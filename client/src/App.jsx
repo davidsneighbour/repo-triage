@@ -213,9 +213,43 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [q, setQ] = useState('');
-  const [hideArchived, setHideArchived] = useState(false);
-  const [hideForks, setHideForks] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // ---- Visibility filters (persisted in localStorage) --------------------
+  const FILTER_KEY = 'repo-triage-filters';
+  // Three inclusive categories — a repo is shown if it matches ANY checked category.
+  // own      = not a fork AND not archived
+  // forks    = is a fork (regardless of archive state)
+  // archived = is archived (regardless of fork state)
+  const defaultFilters = { showOwn: true, showForks: true, showArchived: true };
+  const [filters, setFilters] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(FILTER_KEY));
+      // Migrate old 4-key format by dropping unknown keys
+      if (saved && typeof saved === 'object') {
+        const migrated = { ...defaultFilters };
+        if ('showOwn' in saved) migrated.showOwn = Boolean(saved.showOwn);
+        if ('showForks' in saved) migrated.showForks = Boolean(saved.showForks);
+        if ('showArchived' in saved) migrated.showArchived = Boolean(saved.showArchived);
+        return migrated;
+      }
+    } catch { /* ignore */ }
+    return defaultFilters;
+  });
+
+  const setFilter = (key, value) =>
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value };
+      localStorage.setItem(FILTER_KEY, JSON.stringify(next));
+      return next;
+    });
+
+  const showAll = () => {
+    localStorage.setItem(FILTER_KEY, JSON.stringify(defaultFilters));
+    setFilters(defaultFilters);
+  };
+
+  const allShown = Object.values(filters).every(Boolean);
 
   const load = useCallback(async () => {
     try {
@@ -267,12 +301,17 @@ export default function App() {
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return data.repos.filter((r) => {
-      if (hideArchived && r.archived) return false;
-      if (hideForks && r.fork) return false;
+      // Union: show if repo belongs to at least one checked category.
+      const isOwn = !r.fork && !r.archived;
+      const visible =
+        (filters.showOwn && isOwn) ||
+        (filters.showForks && r.fork) ||
+        (filters.showArchived && r.archived);
+      if (!visible) return false;
       if (term && !`${r.name} ${r.description || ''} ${r.language || ''}`.toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [data.repos, q, hideArchived, hideForks]);
+  }, [data.repos, q, filters]);
 
   const dayColumns = useMemo(() => {
     const defaultDays = Math.max(0, Number(data.defaultInactivityDays) || 0);
@@ -358,14 +397,40 @@ export default function App() {
           placeholder="filter repos..."
           className="w-64 rounded-md border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-xs text-neutral-100 outline-none focus:border-neutral-600"
         />
-        <label className="flex items-center gap-1.5 text-xs text-neutral-400">
-          <input type="checkbox" checked={hideArchived} onChange={(e) => setHideArchived(e.target.checked)} className="accent-rose-500" />
-          hide archived
-        </label>
-        <label className="flex items-center gap-1.5 text-xs text-neutral-400">
-          <input type="checkbox" checked={hideForks} onChange={(e) => setHideForks(e.target.checked)} className="accent-rose-500" />
-          hide forks
-        </label>
+        <div className="flex items-center gap-1 border-l border-neutral-800 pl-3">
+          <span className="mr-1 text-[10px] uppercase tracking-widest text-neutral-600">show</span>
+          {[
+            { key: 'showOwn', label: 'own' },
+            { key: 'showForks', label: 'forks' },
+            { key: 'showArchived', label: 'archived' },
+          ].map(({ key, label }) => (
+            <label
+              key={key}
+              className={cx(
+                'flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-[11px] transition-colors select-none',
+                filters[key]
+                  ? 'border-neutral-600 bg-neutral-800 text-neutral-200'
+                  : 'border-neutral-800 bg-transparent text-neutral-600'
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={filters[key]}
+                onChange={(e) => setFilter(key, e.target.checked)}
+                className="sr-only"
+              />
+              {label}
+            </label>
+          ))}
+          {!allShown && (
+            <button
+              onClick={showAll}
+              className="ml-1 rounded-md border border-neutral-700 px-2 py-1 text-[11px] text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+            >
+              show all
+            </button>
+          )}
+        </div>
       </div>
 
       <main className="flex-1 overflow-auto p-5">

@@ -16,11 +16,13 @@ app.use(express.json());
 let repoCache = [];
 let lastFetch = null;
 let lastError = null;
+let cacheReady = false; // false until the first successful GitHub fetch completes
 
 async function refreshRepos() {
   repoCache = await fetchAllRepos();
   lastFetch = new Date().toISOString();
   lastError = null;
+  cacheReady = true;
 
   // Make sure every repo has a state row so settings can be attached later.
   const insert = db.prepare(
@@ -98,8 +100,12 @@ const findRepo = (id) => repoCache.find((r) => r.id === id);
 
 // ---- API -------------------------------------------------------------------
 app.get('/api/repos', (req, res) => {
+  if (!cacheReady) {
+    console.log('[/api/repos] cache not ready yet — GitHub fetch still in progress');
+  }
   res.json({
     repos: buildPayload(),
+    cacheReady,
     lastFetch,
     lastError,
     defaultInactivityDays: DEFAULT_INACTIVITY_DAYS,
@@ -111,7 +117,7 @@ app.get('/api/repos', (req, res) => {
 app.post('/api/refresh', async (req, res) => {
   try {
     await refreshRepos();
-    res.json({ ok: true, count: repoCache.length, repos: buildPayload(), lastFetch });
+    res.json({ ok: true, count: repoCache.length, repos: buildPayload(), cacheReady, lastFetch });
   } catch (e) {
     lastError = String(e.message || e);
     res.status(500).json({ ok: false, error: lastError });

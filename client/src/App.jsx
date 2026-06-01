@@ -203,7 +203,7 @@ function Column({ col, repos, onDropColumn, ...cardProps }) {
 
 // --- App --------------------------------------------------------------------
 export default function App() {
-  const [data, setData] = useState({ repos: [], defaultInactivityDays: 7, lastFetch: null, username: null, tokenPresent: true, lastError: null });
+  const [data, setData] = useState({ repos: [], cacheReady: false, defaultInactivityDays: 7, lastFetch: null, username: null, tokenPresent: true, lastError: null });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [q, setQ] = useState('');
@@ -221,6 +221,14 @@ export default function App() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Poll every 2 s while the server's GitHub fetch hasn't finished yet.
+  useEffect(() => {
+    if (!loading && !data.cacheReady) {
+      const t = setTimeout(load, 2000);
+      return () => clearTimeout(t);
+    }
+  }, [loading, data.cacheReady, load]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -263,7 +271,7 @@ export default function App() {
     return g;
   }, [filtered]);
 
-  const cardProps = { menuOpenId, onToggleMenu, onDragStartCard, onDropOnCard, onSetPriority, onSetInactivity, onTouch, defaultInactivity: data.defaultInactivityDays };
+  const cardProps = { menuOpenId: openMenuId, onToggleMenu, onDragStartCard, onDropOnCard, onSetPriority, onSetInactivity, onTouch, defaultInactivity: data.defaultInactivityDays };
 
   return (
     <div className="flex h-full flex-col">
@@ -313,8 +321,15 @@ export default function App() {
             {!data.tokenPresent && ' — no GITHUB_TOKEN found. Start with: docker compose --env-file ~/.env up'}
           </div>
         )}
-        {loading ? (
-          <div className="grid h-40 place-items-center text-sm text-neutral-600">loading repositories…</div>
+        {loading || !data.cacheReady ? (
+          <div className="grid h-40 place-items-center text-center text-sm text-neutral-600">
+            <div>
+              <div>{loading ? 'loading…' : 'fetching repositories from GitHub…'}</div>
+              {!loading && !data.cacheReady && (
+                <div className="mt-1 text-xs text-neutral-700">the server is still talking to the GitHub API</div>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="flex gap-4">
             {COLUMNS.map((col) => (

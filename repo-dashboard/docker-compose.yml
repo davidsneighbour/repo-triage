@@ -1,0 +1,17 @@
+services:
+  repo-dashboard:
+    build: .
+    container_name: repo-dashboard
+    ports:
+      - "8787:8787"
+    environment:
+      # These are interpolated from --env-file (e.g. ~/.env) at `up` time.
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_USERNAME: ${GITHUB_USERNAME:-}
+      DEFAULT_INACTIVITY_DAYS: ${DEFAULT_INACTIVITY_DAYS:-7}
+      PORT: 8787
+      DATA_DIR: /data
+    volumes:
+      # SQLite DB persists here on the host across container rebuilds
+      - ./data:/data
+    restart: unless-stopped

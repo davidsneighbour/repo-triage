@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Archive, GitFork, RefreshCw, Search, Settings2, User } from 'lucide-react';
 import { api } from './api.js';
 import { timeAgo, calendarLabel } from './lib/date.js';
 import { defaultFilters, filterRepos, buildDayColumns, groupRepos } from './lib/board.js';
@@ -47,6 +48,15 @@ function writeBoardCache(payload) {
     })
   );
 }
+
+const ICON = {
+  sync: RefreshCw,
+  search: Search,
+  settings: Settings2,
+  own: User,
+  forks: GitFork,
+  archived: Archive,
+};
 
 function Badge({ tone = 'neutral', children }) {
   const tones = {
@@ -127,6 +137,8 @@ function CardMenu({ repo, defaultInactivity, onSetChecked, onClearCheck, onSetIn
 }
 
 function RepoCard({ repo, column, menuOpenId, onToggleMenu, onDragStartCard, onDropOnCard, ...handlers }) {
+  const SettingsIcon = ICON.settings;
+
   return (
     <div
       draggable
@@ -154,9 +166,9 @@ function RepoCard({ repo, column, menuOpenId, onToggleMenu, onDragStartCard, onD
         <button
           onClick={() => onToggleMenu(repo.id)}
           className="shrink-0 rounded-md px-1.5 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-100"
-          aria-label="Settings"
+          aria-label="Open repository settings"
         >
-          ...
+          <SettingsIcon className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
 
@@ -227,6 +239,9 @@ function Column({ col, repos, onDropColumn, ...cardProps }) {
 }
 
 export default function App() {
+  const SyncIcon = ICON.sync;
+  const SearchIcon = ICON.search;
+
   const [data, setData] = useState(() => readBoardCache() ?? EMPTY_DATA);
   const [loading, setLoading] = useState(() => !readBoardCache());
   const [showingCachedData, setShowingCachedData] = useState(() => Boolean(readBoardCache()));
@@ -373,27 +388,32 @@ export default function App() {
           <button
             onClick={refresh}
             disabled={refreshing || data.rateLimit?.authInvalid || data.rateLimit?.remaining === 0}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 disabled:opacity-50"
           >
+            <SyncIcon className={cx('h-3.5 w-3.5', refreshing && 'animate-spin')} aria-hidden="true" />
             {refreshing ? 'syncing...' : 'sync GitHub'}
           </button>
         </div>
       </header>
 
       <div className="flex flex-wrap items-center gap-3 border-b border-neutral-900 px-5 py-2">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="filter repos..."
-          className="w-64 rounded-md border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-xs text-neutral-100 outline-none focus:border-neutral-600"
-        />
+        <label className="relative block">
+          <SearchIcon className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-600" aria-hidden="true" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="filter repos..."
+            aria-label="Search repositories"
+            className="w-64 rounded-md border border-neutral-800 bg-neutral-950 pl-7 pr-3 py-1.5 text-xs text-neutral-100 outline-none focus:border-neutral-600"
+          />
+        </label>
         <div className="flex items-center gap-1 border-l border-neutral-800 pl-3">
           <span className="mr-1 text-[10px] uppercase tracking-widest text-neutral-600">show</span>
           {[
-            { key: 'showOwn', label: 'own' },
-            { key: 'showForks', label: 'forks' },
-            { key: 'showArchived', label: 'archived' },
-          ].map(({ key, label }) => (
+            { key: 'showOwn', label: 'own', icon: ICON.own },
+            { key: 'showForks', label: 'forks', icon: ICON.forks },
+            { key: 'showArchived', label: 'archived', icon: ICON.archived },
+          ].map(({ key, label, icon: FilterIcon }) => (
             <label
               key={key}
               className={cx(
@@ -409,6 +429,7 @@ export default function App() {
                 onChange={(e) => setFilter(key, e.target.checked)}
                 className="sr-only"
               />
+              <FilterIcon className="h-3 w-3" aria-hidden="true" />
               {label}
             </label>
           ))}

@@ -23,9 +23,9 @@
 * [x] for "show cached data immediately, then update":
 	* [x] define expected behavior in README + todo acceptance criteria
 	* [x] add integration-level client test proving stale/cache payload is rendered first and refreshed payload replaces it
-* [ ] for "add Lucide icons":
-	* [ ] add dependency and icon map plan (header status, card actions, filters)
-	* [ ] add snapshot/DOM tests for icon presence and accessible labels
+* [x] for "add Lucide icons":
+	* [x] add dependency and icon map plan (header status, card actions, filters)
+	* [x] add snapshot/DOM tests for icon presence and accessible labels
 * [ ] for "help menu with F1 + markdown + Mermaid":
 	* [ ] define keyboard shortcut contract (`F1` opens help, `Esc` closes)
 	* [ ] define markdown rendering and Mermaid initialization boundaries

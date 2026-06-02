@@ -1,3 +1,5 @@
+# Project status dashboard - TODO and testing plan
+
 ## Issues
 
 * [x] when loading the page the first time show cached data immediately, then update when the API call returns
@@ -5,83 +7,97 @@
 * [x] add a help menu with F1 and connect with a Markdown file to show usage instructions. Make the display Mermaid enabled for diagrams and add initial help content.
 * [x] find out and explicitly document what happens when we set a reminder duration larger than 7 days for any item. where is it shown? when will it decay? etc.
 
+## Status snapshot (2026-06-03)
+
+* Tests green: `npm run test` runs **client (10 files / 30 tests)** + **server (3 files / 24 tests)**, all passing, no Docker required.
+* Pure logic is already extracted and unit-tested: `server/schedule.js`, `client/src/lib/date.js`, `client/src/lib/board.js`, rate-limit helpers in `server/github.js`.
+* No-Docker run path: `npm run dev` (root) boots backend + frontend together via `concurrently`; the backend auto-loads the root `.env` (`--env-file-if-exists`). `npm run server` runs just the backend.
+* **P2 blocker is resolved:** `server/index.js` now exports `app`/`refreshRepos` and only boots the HTTP server when run as main, so `supertest` drives the routes against an in-process app (`server/routes.test.js`). Remaining open work is **Phase 4** (coverage report + thresholds) and doc refresh.
+
 ## Prioritized next steps
 
-### P0 - Testing foundation (start here)
+### P0 - testing foundation (start here)
 
 * [x] replace root `test` script placeholder with workspace test orchestration (`npm run test:client`, `npm run test:server`)
 * [x] add Vitest to `client/` with jsdom + React Testing Library setup
 * [x] add Vitest to `server/` for pure logic and API behavior tests
 * [x] extract and export testable pure functions from runtime files:
-	* [x] `effectiveState()` and day-column helpers from `server/index.js` into `server/schedule.js`
-	* [x] `timeAgo()`, `calendarLabel()`, and filter/day grouping helpers from `client/src/App.jsx` into `client/src/lib/*.js`
-	* [x] rate-limit header parsing and mapping helpers from `server/github.js` into exportable utility functions
+  * [x] `effectiveState()` and day-column helpers from `server/index.js` into `server/schedule.js`
+  * [x] `timeAgo()`, `calendarLabel()`, and filter/day grouping helpers from `client/src/App.jsx` into `client/src/lib/*.js`
+  * [x] rate-limit header parsing and mapping helpers from `server/github.js` into exportable utility functions
 * [x] add CI-local command path: `npm run test` must run all unit tests without Docker
 
-### P1 - Cover current issue list with tests and docs
+### P1 - cover current issue list with tests and docs
 
 * [x] for "show cached data immediately, then update":
-	* [x] define expected behavior in README + todo acceptance criteria
-	* [x] add integration-level client test proving stale/cache payload is rendered first and refreshed payload replaces it
+  * [x] define expected behavior in README + todo acceptance criteria
+  * [x] add integration-level client test proving stale/cache payload is rendered first and refreshed payload replaces it
 * [x] for "add Lucide icons":
-	* [x] add dependency and icon map plan (header status, card actions, filters)
-	* [x] add snapshot/DOM tests for icon presence and accessible labels
+  * [x] add dependency and icon map plan (header status, card actions, filters)
+  * [x] add snapshot/DOM tests for icon presence and accessible labels
 * [x] for "help menu with F1 + markdown + Mermaid":
-	* [x] define keyboard shortcut contract (`F1` opens help, `Esc` closes)
-	* [x] define markdown rendering and Mermaid initialization boundaries
-	* [x] add tests for open/close behavior and fallback when Mermaid parsing fails
+  * [x] define keyboard shortcut contract (`F1` opens help, `Esc` closes)
+  * [x] define markdown rendering and Mermaid initialization boundaries
+  * [x] add tests for open/close behavior and fallback when Mermaid parsing fails
 * [x] for "reminder duration larger than 7 days":
-	* [x] document exact behavior of `effectiveState` and board clamping
-	* [x] add server unit tests for inactivity values `0`, `1`, `7`, `14`, `null`
+  * [x] document exact behavior of `effectiveState` and board clamping
+  * [x] add server unit tests for inactivity values `0`, `1`, `7`, `14`, `null`
 
-### P2 - Stability and regression protection
+### P2 - stability and regression protection
 
-* [ ] add API contract tests for all routes in `server/index.js` with valid + invalid payloads
+* [x] **BLOCKER (resolved): make `server/index.js` testable without booting a real server.**
+  * `app`/`refreshRepos`/`buildPayload` are now exported; `app.listen` + startup/auto sync only run when executed as main (`import.meta.url === pathToFileURL(process.argv[1]).href`).
+  * Route tests use an isolated SQLite via `DATA_DIR` pointed at a temp dir, and mock `./github.js` so they run offline.
+  * `supertest` was already a `server/` devDependency — no new install needed.
+* [x] add API contract tests for all routes in `server/index.js` with valid + invalid payloads (`server/routes.test.js`)
 * [x] add client API wrapper tests in `client/src/api.js` to verify method, path, and request body shape
 * [x] add drag/drop behavior tests around `onDropColumn` and `onDropOnCard`
 * [x] add localStorage filter persistence tests for migration and default fallback
 * [x] add rate-limit/auth error rendering tests for all banner branches
 
-## Automatic unit testing path (Vitest)
+## Automatic unit testing path (vitest)
 
-### Phase 1 - Tooling
+### Phase 1 - tooling
 
 * [x] `client/`: install `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`
 * [x] `server/`: install `vitest` (and `supertest` if API route tests are added without full server boot)
 * [x] add scripts:
-	* [x] `client/package.json`: `test`, `test:watch`, `test:coverage`
-	* [x] `server/package.json`: `test`, `test:watch`, `test:coverage`
-	* [x] root `package.json`: `test`, `test:client`, `test:server`
+  * [x] `client/package.json`: `test`, `test:watch`, `test:coverage`
+  * [x] `server/package.json`: `test`, `test:watch`, `test:coverage`
+  * [x] root `package.json`: `test`, `test:client`, `test:server`
 
-### Phase 2 - First passing suite
+### Phase 2 - first passing suite
 
 * [x] client unit tests:
-	* [x] `timeAgo` formatting boundaries
-	* [x] `calendarLabel` for offset `0/1/2/n`
-	* [x] filter union logic (`own`, `forks`, `archived`) and search term matching
-	* [x] `dayColumns` generation from `defaultInactivityDays`
+  * [x] `timeAgo` formatting boundaries
+  * [x] `calendarLabel` for offset `0/1/2/n`
+  * [x] filter union logic (`own`, `forks`, `archived`) and search term matching
+  * [x] `dayColumns` generation from `defaultInactivityDays`
 * [x] server unit tests:
-	* [x] `effectiveState` for never checked, due, and future buckets
-	* [x] rate-limit parsing from synthetic response headers
-	* [x] inactivity override behavior vs global default
+  * [x] `effectiveState` for never checked, due, and future buckets
+  * [x] rate-limit parsing from synthetic response headers
+  * [x] inactivity override behavior vs global default
 
-### Phase 3 - Behavior tests
+### Phase 3 - behavior tests
 
-* [ ] client behavior tests:
-	* [ ] loading states (`loading...`, `fetching repositories...`)
-	* [ ] menu actions call correct API wrappers
-	* [x] sync button disabled on auth invalid / rate limit exhausted
-* [ ] server route tests:
-	* [ ] `POST /api/repos/:id/check` rejects negative days
-	* [ ] `POST /api/repos/:id/inactivity` rejects invalid values
-	* [ ] `POST /api/repos/:id/priority` rejects invalid priority
-	* [ ] `GET /api/repos` returns expected metadata keys
+* [x] client behavior tests:
+  * [x] loading states (`loading...`, `fetching repositories...`)
+  * [x] menu actions call correct API wrappers
+  * [x] sync button disabled on auth invalid / rate limit exhausted
+* [x] server route tests (`server/routes.test.js`, unblocked by the P2 refactor):
+  * [x] `POST /api/repos/:id/check` rejects negative / non-finite `daysAgo` (400) and accepts `0`
+  * [x] `POST /api/repos/:id/inactivity` rejects negative / non-finite `days`, accepts `null` and valid numbers
+  * [x] `POST /api/repos/:id/priority` rejects values outside `1|2|3|null`
+  * [x] `POST /api/reorder` persists positions and tolerates a missing/non-array `orderedIds`
+  * [x] `POST /api/refresh` returns `500 { ok:false }` when the GitHub fetch throws (mock `fetchAllRepos`)
+  * [x] `GET /api/repos` returns expected metadata keys (`repos`, `cacheReady`, `lastFetch`, `defaultInactivityDays`, `tokenPresent`, `rateLimit`)
 
-### Phase 4 - Definition of done
+### Phase 4 - definition of done
 
 * [x] all tests runnable via `npm run test` from repo root
-* [ ] coverage report generated for `client/` and `server/`
-* [ ] minimum baseline coverage target set (start at 60%, raise over time)
+* [ ] coverage report generated for `client/` and `server/` (scripts exist: `npm run test:coverage` in each; wire a root `test:coverage` that runs both)
+* [ ] set `coverage.thresholds` in each `vitest.config.js` (start at 60% lines/branches, raise over time) so CI fails on regressions
+* [ ] update `CLAUDE.md` ("There are no tests" is now stale) and the README testing section to document the Vitest path and `npm run test`
 
 ## Manual interaction test checklist
 

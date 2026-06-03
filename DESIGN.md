@@ -16,8 +16,8 @@ colors:
   # Text
   text-primary: "#eff5f0"
   text-secondary: "#cbd8cd"
-  text-muted: "#6b806f"
-  text-faint: "#4b5d4f"
+  text-muted: "#748a78"
+  text-faint: "#5d7061"
   # Accent — Today / urgent
   accent-today: "#f43f5e"
   accent-today-dim: "#fda4af"
@@ -293,8 +293,11 @@ individual components by hand. Update both this table and those tokens together.
 | `border-muted` | `#38463b` | Hover / focus borders (neutral-700) |
 | `text-primary` | `#eff5f0` | Headlines, repo names (neutral-100) |
 | `text-secondary` | `#cbd8cd` | Body text, column headers (neutral-300) |
-| `text-muted` | `#6b806f` | Metadata, timestamps (neutral-500) |
-| `text-faint` | `#4b5d4f` | Placeholder text, empty states (neutral-600) |
+| `text-muted` | `#748a78` | Metadata, timestamps (neutral-500) |
+| `text-faint` | `#5d7061` | Placeholder text, empty states (neutral-600) |
+
+`text-muted` clears WCAG AA (≈4.8:1 on `surface`) for small text; `text-faint`
+clears ≈3:1 (placeholders / empty states). Keep these two no darker than listed.
 
 The background also carries two very subtle radial gradients — a rose tint from
 the bottom-left and a sky tint from the top-right — adding depth without
@@ -688,6 +691,9 @@ Hovering reveals a tooltip with used/limit/reset-time detail.
   (rose/amber/sky). Map new states to the closest semantic match.
 * **Do** add new components to the **Components** section of this file before
   implementing them in code.
+* **Do** respect `prefers-reduced-motion`: a global media query in `index.css`
+  near-instantly resolves all animations/transitions (incl. the sync spinner),
+  so prefer CSS `transition`/`animation` over JS-driven motion.
 
 ### Don't
 

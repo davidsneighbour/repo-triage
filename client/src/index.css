@@ -17,8 +17,10 @@
   --color-neutral-200: #dde7de;
   --color-neutral-300: #cbd8cd;
   --color-neutral-400: #9ab09e;
-  --color-neutral-500: #6b806f;
-  --color-neutral-600: #4b5d4f;
+  /* 500/600 lightened slightly vs. the raw tint so muted metadata text clears
+     WCAG AA (~4.8:1 on cards) and faint/placeholder text clears ~3:1. */
+  --color-neutral-500: #748a78;
+  --color-neutral-600: #5d7061;
   --color-neutral-700: #38463b;
   --color-neutral-800: #1f2a21;
   --color-neutral-900: #141a15;
@@ -27,6 +29,18 @@
 
 :root {
   color-scheme: dark;
+}
+
+/* Respect users who ask for less motion: near-instant transitions, no spinner. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 html,

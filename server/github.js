@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+
 const GITHUB_API = 'https://api.github.com';
 
 // ---- Shared rate-limit state -----------------------------------------------
@@ -17,6 +19,12 @@ export const rateLimit = {
 export const sourceStatus = {
   owners: [],   // [{ owner, count, scope }] — scope: self|member|public|error
   warnings: [], // human-readable, non-fatal messages (e.g. org access fell back to public)
+};
+
+// Which credential the last token resolution used, surfaced in /api/repos.
+export const authStatus = {
+  source: null,   // 'env' (GITHUB_TOKEN) | 'gh' (gh auth token) | null
+  present: false, // whether a usable token was resolved
 };
 
 export function parseRateLimitHeaders(res, target = rateLimit) {
@@ -58,6 +66,32 @@ export function parseOwners(raw) {
     out.push(v);
   }
   return out;
+}
+
+// Ask the GitHub CLI for the user's token. Returns null if gh is missing, not
+// logged in, or errors — so resolveToken can fall through cleanly.
+export function ghAuthToken() {
+  try {
+    const out = execFileSync('gh', ['auth', 'token'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 5000,
+    });
+    const token = String(out).trim();
+    return token || null;
+  } catch {
+    return null;
+  }
+}
+
+// Prefer an explicit GITHUB_TOKEN; otherwise reuse the user's `gh` login so no
+// PAT is needed when they've already run `gh auth login`.
+export function resolveToken() {
+  const env = (process.env.GITHUB_TOKEN || '').trim();
+  if (env) return { token: env, source: 'env' };
+  const gh = ghAuthToken();
+  if (gh) return { token: gh, source: 'gh' };
+  return { token: null, source: null };
 }
 
 function buildHeaders(token) {
@@ -241,9 +275,13 @@ function mapRepo(r) {
  *   public; orgs you don't, and plain users, pull public only (with a warning).
  */
 export async function fetchAllRepos() {
-  const token = process.env.GITHUB_TOKEN;
+  const { token, source } = resolveToken();
+  authStatus.source = source;
+  authStatus.present = Boolean(token);
   if (!token) {
-    throw new Error('GITHUB_TOKEN is not set. Put it in ~/.env and start with: docker compose --env-file ~/.env up');
+    throw new Error(
+      'No GitHub token found. Set GITHUB_TOKEN in your .env, or run `gh auth login` so the dashboard can use `gh auth token`.'
+    );
   }
 
   assertRateBudget();

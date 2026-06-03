@@ -41,6 +41,7 @@ const EMPTY_DATA = {
   owners: [],
   sourceWarnings: [],
   tokenPresent: true,
+  authSource: null,
   lastError: null,
   rateLimit: null,
 };
@@ -886,7 +887,7 @@ export default function App() {
         {data.lastError && !data.rateLimit?.authInvalid && data.rateLimit?.remaining !== 0 && (
           <div className="mb-4 rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">
             GitHub error: {data.lastError}
-            {!data.tokenPresent && ' - no GITHUB_TOKEN found. Start with: docker compose --env-file ~/.env up'}
+            {!data.tokenPresent && ' — no token found. Set GITHUB_TOKEN in .env, or run `gh auth login`.'}
           </div>
         )}
         {data.sourceWarnings?.length > 0 && (

@@ -67,7 +67,7 @@ set in each `vitest.config.js` and fail the run on regression.
 
 | Variable | Required | Default | Notes |
 | --- | --- | --- | --- |
-| `GITHUB_TOKEN` | yes | none | Classic token needs `repo` scope for private repos |
+| `GITHUB_TOKEN` | no* | none | Classic token needs `repo` scope for private repos. *If unset, falls back to `gh auth token` (requires `gh auth login`) |
 | `GITHUB_OWNERS` | no | empty | Users/orgs to load. Comma list or JSON array. Blank = token owner's full set. Own login / member orgs include private; other users/orgs are public-only (warning shown) |
 | `GITHUB_USERNAME` | no | empty | Deprecated single-owner alias for `GITHUB_OWNERS` (used only when `GITHUB_OWNERS` is unset) |
 | `DEFAULT_INACTIVITY_DAYS` | no | `7` | Due age in days for Today |

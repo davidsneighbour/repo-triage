@@ -19,6 +19,7 @@ vi.mock('./github.js', () => ({
     limit: 5000, remaining: 4999, used: 1, reset: null, lastChecked: null, authInvalid: false,
   },
   sourceStatus: { owners: [], warnings: [] },
+  authStatus: { source: 'env', present: true },
   fetchAllRepos: vi.fn(),
   parseRateLimitHeaders: vi.fn(),
   parseOwners: (raw) => (raw ? String(raw).split(/[\s,]+/).filter(Boolean) : []),

@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchAllRepos, parseOwners, rateLimit, sourceStatus } from './github.js';
+import { execFileSync } from 'node:child_process';
+import { authStatus, fetchAllRepos, parseOwners, rateLimit, sourceStatus } from './github.js';
+
+// `gh auth token` is shelled out via execFileSync — mock it so it's deterministic.
+vi.mock('node:child_process', () => ({
+  execFileSync: vi.fn(() => {
+    throw new Error('gh not available');
+  }),
+}));
 
 // Build a minimal fetch Response stand-in.
 function makeRes({ status = 200, body = [], headers = {} } = {}) {
@@ -43,9 +51,16 @@ beforeEach(() => {
   });
   sourceStatus.owners = [];
   sourceStatus.warnings = [];
+  authStatus.source = null;
+  authStatus.present = false;
   process.env.GITHUB_TOKEN = 'test-token';
   delete process.env.GITHUB_USERNAME;
   delete process.env.GITHUB_OWNERS;
+  // Default: gh has no token; individual tests opt in via mockReturnValueOnce.
+  execFileSync.mockReset();
+  execFileSync.mockImplementation(() => {
+    throw new Error('gh not available');
+  });
 });
 
 afterEach(() => {
@@ -72,10 +87,39 @@ describe('parseOwners', () => {
   });
 });
 
-describe('fetchAllRepos — default (no owners configured)', () => {
-  it('throws when no token is configured', async () => {
+describe('token resolution (env vs gh CLI)', () => {
+  it('uses GITHUB_TOKEN and never invokes gh when it is set', async () => {
+    process.env.GITHUB_TOKEN = 'env-token';
+    const fetchMock = vi.fn().mockResolvedValue(makeRes({ body: [], headers: RATE_HEADERS }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchAllRepos();
+
+    expect(authStatus).toMatchObject({ source: 'env', present: true });
+    expect(execFileSync).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer env-token');
+  });
+
+  it('falls back to `gh auth token` when GITHUB_TOKEN is unset', async () => {
     delete process.env.GITHUB_TOKEN;
-    await expect(fetchAllRepos()).rejects.toThrow(/GITHUB_TOKEN is not set/);
+    execFileSync.mockReturnValueOnce('gh-cli-token\n');
+    const fetchMock = vi.fn().mockResolvedValue(makeRes({ body: [], headers: RATE_HEADERS }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const repos = await fetchAllRepos();
+
+    expect(repos).toEqual([]);
+    expect(execFileSync).toHaveBeenCalledWith('gh', ['auth', 'token'], expect.any(Object));
+    expect(authStatus).toMatchObject({ source: 'gh', present: true });
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer gh-cli-token');
+  });
+});
+
+describe('fetchAllRepos — default (no owners configured)', () => {
+  it('throws when no token is configured and gh has none', async () => {
+    delete process.env.GITHUB_TOKEN;
+    await expect(fetchAllRepos()).rejects.toThrow(/No GitHub token found/);
+    expect(authStatus.present).toBe(false);
   });
 
   it('short-circuits when the rate limit is known to be exhausted', async () => {

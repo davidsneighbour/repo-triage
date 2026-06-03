@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import db from './db.js';
-import { fetchAllRepos, rateLimit, sourceStatus, parseOwners } from './github.js';
+import { fetchAllRepos, rateLimit, sourceStatus, authStatus, parseOwners } from './github.js';
 import { effectiveState } from './schedule.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -159,7 +159,8 @@ app.get('/api/repos', (req, res) => {
     username: process.env.GITHUB_USERNAME || null,
     owners: parseOwners(process.env.GITHUB_OWNERS ?? process.env.GITHUB_USERNAME),
     sourceWarnings: [...sourceStatus.warnings],
-    tokenPresent: Boolean(process.env.GITHUB_TOKEN),
+    tokenPresent: authStatus.present || Boolean(process.env.GITHUB_TOKEN),
+    authSource: authStatus.source,
     rateLimit: { ...rateLimit },
   });
 });

@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { api } from './api.js';
 import { timeAgo, calendarLabel } from './lib/date.js';
 import { defaultFilters, filterRepos, repoMatchesQuery, buildDayColumns, groupRepos, sortNotices, collectTags } from './lib/board.js';
+import { useDialog } from './lib/useDialog.js';
 import helpMarkdown from './help.md?raw';
 import helpDiagramSvg from './help-diagram.svg?raw';
 
@@ -124,6 +125,7 @@ function CardMenu({ repo, anchorRef, defaultInactivity, allTags = [], onSetCheck
   const [notice, setNotice] = useState('');
   const [tag, setTag] = useState('');
   const [pos, setPos] = useState(null);
+  const dialogRef = useDialog(onClose);
 
   const submitTag = () => {
     const v = tag.trim();
@@ -153,6 +155,10 @@ function CardMenu({ repo, anchorRef, defaultInactivity, allTags = [], onSetCheck
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} />
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-label={`Settings for ${repo.name}`}
+        tabIndex={-1}
         className="fixed z-20 w-64 rounded-lg border border-neutral-700 bg-neutral-900 p-2 shadow-2xl"
         style={pos ? { top: pos.top, left: pos.left } : { visibility: 'hidden' }}
       >
@@ -311,13 +317,21 @@ function CardMenu({ repo, anchorRef, defaultInactivity, allTags = [], onSetCheck
 }
 
 function HelpDialog({ onClose }) {
+  const dialogRef = useDialog(onClose);
   return (
     <>
       <div className="fixed inset-0 z-30 bg-neutral-950/80" onClick={onClose} />
-      <section className="fixed inset-x-4 top-6 z-40 mx-auto max-h-[88vh] max-w-3xl overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900">
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="help-dialog-title"
+        tabIndex={-1}
+        className="fixed inset-x-4 top-6 z-40 mx-auto max-h-[88vh] max-w-3xl overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900"
+      >
         <header className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-neutral-100">Help</h2>
+            <h2 id="help-dialog-title" className="text-sm font-semibold text-neutral-100">Help</h2>
             <p className="text-[11px] text-neutral-500">Press Esc to close</p>
           </div>
           <button
@@ -376,6 +390,7 @@ function NoticesDialog({ scope, repos, onClose, onScopeChange, onChanged }) {
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState('date');
   const [dir, setDir] = useState('desc');
+  const dialogRef = useDialog(onClose);
 
   const isAll = scope === 'all';
   const repo = isAll ? null : repos.find((r) => r.id === scope);
@@ -405,10 +420,17 @@ function NoticesDialog({ scope, repos, onClose, onScopeChange, onChanged }) {
   return createPortal(
     <>
       <div className="fixed inset-0 z-30 bg-neutral-950/80" onClick={onClose} />
-      <section className="fixed inset-x-4 top-6 z-40 mx-auto flex max-h-[88vh] max-w-3xl flex-col overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900">
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="notices-dialog-title"
+        tabIndex={-1}
+        className="fixed inset-x-4 top-6 z-40 mx-auto flex max-h-[88vh] max-w-3xl flex-col overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900"
+      >
         <header className="flex items-start justify-between gap-3 border-b border-neutral-800 px-4 py-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-neutral-100">Notices</h2>
+            <h2 id="notices-dialog-title" className="text-sm font-semibold text-neutral-100">Notices</h2>
             <p className="truncate text-[11px] text-neutral-500">
               {isAll ? 'all repositories' : repo?.full_name || repo?.name || 'repository'}
               {!isAll && (
@@ -682,6 +704,7 @@ function ReportsDialog({ onClose }) {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const dialogRef = useDialog(onClose);
 
   useEffect(() => {
     api
@@ -724,10 +747,17 @@ function ReportsDialog({ onClose }) {
   return createPortal(
     <>
       <div className="fixed inset-0 z-30 bg-neutral-950/80" onClick={onClose} />
-      <section className="fixed inset-x-4 top-6 z-40 mx-auto flex max-h-[88vh] max-w-3xl flex-col overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900">
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reports-dialog-title"
+        tabIndex={-1}
+        className="fixed inset-x-4 top-6 z-40 mx-auto flex max-h-[88vh] max-w-3xl flex-col overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900"
+      >
         <header className="flex items-start justify-between gap-3 border-b border-neutral-800 px-4 py-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-neutral-100">Reports</h2>
+            <h2 id="reports-dialog-title" className="text-sm font-semibold text-neutral-100">Reports</h2>
             <p className="text-[11px] text-neutral-500">{report?.title || REPORT_LABELS[kind] || kind}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -806,16 +836,13 @@ function ReportsDialog({ onClose }) {
   );
 }
 
-function TagFilter({ available, value, onChange }) {
-  const TagIcon = ICON.tag;
-  const [open, setOpen] = useState(false);
+function TagFilterPanel({ available, value, onChange, anchorRef, onClose }) {
   const [pos, setPos] = useState(null);
-  const btnRef = useRef(null);
+  const dialogRef = useDialog(onClose);
   const selected = value.tags;
 
   useEffect(() => {
-    if (!open) return undefined;
-    const el = btnRef.current;
+    const el = anchorRef?.current;
     if (!el) return undefined;
     const update = () => {
       const r = el.getBoundingClientRect();
@@ -826,35 +853,23 @@ function TagFilter({ available, value, onChange }) {
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, [open]);
+  }, [anchorRef]);
 
   const toggleTag = (tag) =>
     onChange({ ...value, tags: selected.includes(tag) ? selected.filter((t) => t !== tag) : [...selected, tag] });
 
-  return (
+  return createPortal(
     <>
-      <button
-        ref={btnRef}
-        onClick={() => setOpen((o) => !o)}
+      <div className="fixed inset-0 z-10" onClick={onClose} />
+      <div
+        ref={dialogRef}
+        role="dialog"
         aria-label="Filter by tag"
-        aria-expanded={open}
-        className={cx(
-          'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] transition-colors',
-          selected.length ? 'border-neutral-600 bg-neutral-800 text-neutral-200' : 'border-neutral-800 bg-transparent text-neutral-600'
-        )}
+        tabIndex={-1}
+        className="fixed z-20 w-56 rounded-lg border border-neutral-700 bg-neutral-900 p-2 shadow-2xl"
+        style={pos ? { top: pos.top, left: pos.left } : { visibility: 'hidden' }}
       >
-        <TagIcon className="h-3 w-3" aria-hidden="true" />
-        tags{selected.length ? ` (${selected.length})` : ''}
-      </button>
-      {open &&
-        createPortal(
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-            <div
-              className="fixed z-20 w-56 rounded-lg border border-neutral-700 bg-neutral-900 p-2 shadow-2xl"
-              style={pos ? { top: pos.top, left: pos.left } : { visibility: 'hidden' }}
-            >
-              <div className="flex items-center justify-between px-1 pb-1">
+        <div className="flex items-center justify-between px-1 pb-1">
                 <span className="text-[10px] uppercase tracking-widest text-neutral-500">Filter by tag</span>
                 {selected.length > 0 && (
                   <button onClick={() => onChange({ tags: [], mode: value.mode })} className="text-[10px] text-neutral-400 hover:text-neutral-200">
@@ -889,10 +904,33 @@ function TagFilter({ available, value, onChange }) {
                   ))
                 )}
               </div>
-            </div>
-          </>,
-          document.body
+      </div>
+    </>,
+    document.body
+  );
+}
+
+function TagFilter({ available, value, onChange }) {
+  const TagIcon = ICON.tag;
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef(null);
+  const selected = value.tags;
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Filter by tag"
+        aria-expanded={open}
+        className={cx(
+          'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] transition-colors',
+          selected.length ? 'border-neutral-600 bg-neutral-800 text-neutral-200' : 'border-neutral-800 bg-transparent text-neutral-600'
         )}
+      >
+        <TagIcon className="h-3 w-3" aria-hidden="true" />
+        tags{selected.length ? ` (${selected.length})` : ''}
+      </button>
+      {open && <TagFilterPanel available={available} value={value} onChange={onChange} anchorRef={btnRef} onClose={() => setOpen(false)} />}
     </>
   );
 }

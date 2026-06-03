@@ -1,0 +1,18 @@
+{
+  "name": "repo-triage-cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "repo-triage": "repo-triage.mjs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.8",
+    "vitest": "4.1.8"
+  }
+}

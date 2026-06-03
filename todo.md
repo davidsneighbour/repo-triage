@@ -73,11 +73,12 @@ Priority key: **(P0)** next / quick win · **(P1)** soon · **(P2)** later.
 A Node CLI (`bin/repo-triage`) that drives the same SQLite state as the web app,
 so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
 
-* [ ] **(P1)** Scaffolding: `repo-triage <command>`, talks to the local API (or DB
-  directly when the server is down), JSON/`--json` output for piping.
-* [ ] **(P1)** `list` with filters (owner, tag, flag, due, language) + `--json`.
-* [ ] **(P1)** Set flags: `ignore`/`unignore`, `check [--days N]`, `clear`,
-  `interval <days>`, `tag add|rm <repo> <tag…>`, `note add <repo> "…"`.
+* [x] **(P1)** Scaffolding: `repo-triage <command>` in `cli/`, talks to the local
+  API, `--json` output for piping, `--api`/`REPO_TRIAGE_API` override. (Direct-DB
+  fallback dropped: the repo catalogue lives in server memory, not SQLite.)
+* [x] **(P1)** `list` with filters (owner, tag, language, due, ignored/all) + `--json`.
+* [x] **(P1)** Set flags: `ignore`/`unignore`, `check [--days N]`, `clear`,
+  `interval <days|default>`, `tag add|rm <repo> <tag…>`, `note add <repo> "…"`.
 * [ ] **(P2)** Resolve repos by `owner/name` or fuzzy match; act on many at once
   (`--all-matching`, stdin list).
 * [ ] **(P2)** `gh` passthrough helpers (e.g. `repo-triage open <repo>` →

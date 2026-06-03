@@ -14,17 +14,23 @@
   "author": "Patrick Kollitsch <davidsneighbourdev+gh@gmail.com>",
   "type": "module",
   "main": "index.js",
+  "bin": {
+    "repo-triage": "cli/repo-triage.mjs"
+  },
   "scripts": {
     "dev": "concurrently --kill-others-on-fail --names server,client --prefix-colors blue,magenta \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "npm --prefix server run dev",
     "dev:client": "npm --prefix client run dev",
     "server": "npm --prefix server run dev",
-    "test": "npm run test:client && npm run test:server",
+    "cli": "node cli/repo-triage.mjs",
+    "test": "npm run test:client && npm run test:server && npm run test:cli",
     "test:client": "npm --prefix client run test",
     "test:server": "npm --prefix server run test",
-    "test:coverage": "npm run test:coverage:client && npm run test:coverage:server",
+    "test:cli": "npm --prefix cli run test",
+    "test:coverage": "npm run test:coverage:client && npm run test:coverage:server && npm run test:coverage:cli",
     "test:coverage:client": "npm --prefix client run test:coverage",
     "test:coverage:server": "npm --prefix server run test:coverage",
+    "test:coverage:cli": "npm --prefix cli run test:coverage",
     "lint:markdown": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc \"**/*.{md,mdx}\"",
     "lint:markdown:fix": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc --fix \"**/*.{md,mdx}\"",
     "lint:markdown:single": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc"

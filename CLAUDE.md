@@ -82,7 +82,11 @@ set in each `vitest.config.js` and fail the run on regression.
 
 * `index.js`: Express app, in-memory `repoCache`, schedule logic (`effectiveState`), sync loop.
 * `github.js`: GitHub API pagination, multi-owner loading (`parseOwners` + per-owner fetch with org-membership detection), auth-invalid detection, rate-limit state parsing, non-fatal `sourceStatus.warnings`.
-* `db.js`: SQLite setup and schema for `repo_state`.
+* `db.js`: SQLite setup and schema for `repo_state`, `repo_notice`, `repo_tag`.
+
+### CLI (`cli/`)
+
+* `repo-triage.mjs`: zero-runtime-dependency Node CLI that scripts triage state via the HTTP API (`list`, `ignore`, `check`, `tag`, `note`, …). Server must be running. Exposes pure helpers (`parseArgs`/`resolveRepo`/`filterReposCli`/`formatList`/`run`) for tests. `npm run cli -- <command>`.
 
 ### Data model
 

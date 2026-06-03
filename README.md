@@ -198,10 +198,29 @@ cd server && npm install && npm run dev
 cd client && npm install && npm run dev
 ```
 
+## CLI (`repo-triage`)
+
+A zero-dependency Node CLI in `cli/` scripts triage state by talking to the
+local API (the server must be running). Run it with `npm run cli -- <command>`
+or `node cli/repo-triage.mjs <command>` (or install the `repo-triage` bin).
+
+```bash
+npm run cli -- list --owner dnbhq --tag infra      # filter + list
+npm run cli -- list --json | jq '.[].full_name'    # machine-readable
+npm run cli -- tag add me/dotfiles ci oss          # add tags
+npm run cli -- check me/dotfiles --days 0          # mark reviewed now
+npm run cli -- ignore me/old-thing                 # hide from the board
+npm run cli -- note add me/api "rotate the token"  # attach a notice
+```
+
+A repo is `owner/name` (or a bare `name` when unambiguous). Override the API URL
+with `--api` or `REPO_TRIAGE_API`. Run `repo-triage help` for the full command
+list. GitHub auth stays server-side, so the CLI never needs its own token.
+
 ## Testing
 
 ```bash
-npm run test           # all client + server tests (Vitest), no Docker
+npm run test           # all client + server + cli tests (Vitest), no Docker
 npm run test:coverage  # same, with coverage report + enforced thresholds
 ```
 

@@ -58,4 +58,19 @@ db.exec(`
 `);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_repo_notice_repo ON repo_notice (repo_id, id)`);
 
+// Free-form user tags/labels on a repo. One row per (repo, tag); the UNIQUE
+// constraint makes adding an existing tag a no-op (INSERT OR IGNORE).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS repo_tag (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    repo_id    INTEGER NOT NULL,
+    full_name  TEXT,
+    tag        TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE (repo_id, tag)
+  );
+`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_repo_tag_repo ON repo_tag (repo_id)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_repo_tag_tag ON repo_tag (tag)`);
+
 export default db;

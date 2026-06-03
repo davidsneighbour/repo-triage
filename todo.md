@@ -57,8 +57,9 @@ Priority key: **(P0)** next / quick win · **(P1)** soon · **(P2)** later.
 
 ### 2. Tags & flags
 
-* [ ] **(P0)** `repo_tag` table (repo_id, tag, created_at) + API:
+* [x] **(P0)** `repo_tag` table (repo_id, tag, created_at) + API:
   `GET/POST/DELETE /api/repos/:id/tags`, `GET /api/tags` (distinct + counts).
+  Tags normalised (trim/lower/cap), deduped; per-repo `tags[]` on the payload.
 * [ ] **(P1)** Tag chips on cards (deterministic colour, like owner palette) and a
   tag filter in the toolbar (multi-select, AND/OR).
 * [ ] **(P1)** Manage tags in the card menu (add/remove with autocomplete from

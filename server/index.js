@@ -78,6 +78,14 @@ function buildPayload() {
   const noticeCounts = db.prepare('SELECT repo_id, COUNT(*) AS n FROM repo_notice GROUP BY repo_id').all();
   const countByRepo = new Map(noticeCounts.map((c) => [c.repo_id, c.n]));
 
+  const tagRows = db.prepare('SELECT repo_id, tag FROM repo_tag ORDER BY tag').all();
+  const tagsByRepo = new Map();
+  for (const t of tagRows) {
+    const list = tagsByRepo.get(t.repo_id);
+    if (list) list.push(t.tag);
+    else tagsByRepo.set(t.repo_id, [t.tag]);
+  }
+
   return repoCache.map((r) => {
     const s = byId.get(r.id) || { priority: null, priority_set_at: null, inactivity_days: null, position: 0, ignored: 0 };
     return {
@@ -90,6 +98,7 @@ function buildPayload() {
       ignored: Boolean(s.ignored),
       notice_count: countByRepo.get(r.id) ?? 0,
       latest_notice: latestByRepo.get(r.id) ?? null,
+      tags: tagsByRepo.get(r.id) ?? [],
       ...effectiveState(s, DEFAULT_INACTIVITY_DAYS),
     };
   });
@@ -141,6 +150,16 @@ const noticesForRepoStmt = db.prepare(
   `SELECT id, repo_id, full_name, body, created_at FROM repo_notice WHERE repo_id = ? ORDER BY id DESC`
 );
 const deleteNoticeStmt = db.prepare(`DELETE FROM repo_notice WHERE id = ?`);
+const addTagStmt = db.prepare(`
+  INSERT OR IGNORE INTO repo_tag (repo_id, full_name, tag, created_at)
+  VALUES (@id, @full_name, @tag, @now)
+`);
+const removeTagStmt = db.prepare('DELETE FROM repo_tag WHERE repo_id = ? AND tag = ?');
+const tagsForRepoStmt = db.prepare('SELECT tag FROM repo_tag WHERE repo_id = ? ORDER BY tag');
+const allTagsStmt = db.prepare('SELECT tag, COUNT(*) AS count FROM repo_tag GROUP BY tag ORDER BY count DESC, tag ASC');
+
+// Tags are normalised to a trimmed, lower-case, length-capped token.
+const normalizeTag = (raw) => (typeof raw === 'string' ? raw.trim().toLowerCase().slice(0, 50) : '');
 
 const findRepo = (id) => repoCache.find((r) => r.id === id);
 
@@ -292,6 +311,29 @@ app.get('/api/notices', (req, res) => {
 app.delete('/api/notices/:noticeId', (req, res) => {
   deleteNoticeStmt.run(Number(req.params.noticeId));
   res.json({ ok: true });
+});
+
+// ---- Tags ------------------------------------------------------------------
+app.get('/api/repos/:id/tags', (req, res) => {
+  res.json({ tags: tagsForRepoStmt.all(Number(req.params.id)).map((r) => r.tag) });
+});
+
+app.post('/api/repos/:id/tags', (req, res) => {
+  const id = Number(req.params.id);
+  const tag = normalizeTag(req.body?.tag);
+  if (!tag) return res.status(400).json({ error: 'tag must be a non-empty string' });
+  addTagStmt.run({ id, full_name: findRepo(id)?.full_name ?? null, tag, now: new Date().toISOString() });
+  res.json({ ok: true, tag });
+});
+
+app.delete('/api/repos/:id/tags/:tag', (req, res) => {
+  removeTagStmt.run(Number(req.params.id), normalizeTag(req.params.tag));
+  res.json({ ok: true });
+});
+
+// Distinct tags across all repos with usage counts (for the CLI and reports).
+app.get('/api/tags', (req, res) => {
+  res.json({ tags: allTagsStmt.all() });
 });
 
 // ---- Static client (built by Vite) ----------------------------------------

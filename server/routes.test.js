@@ -237,6 +237,42 @@ describe('notices', () => {
   });
 });
 
+describe('tags', () => {
+  it('rejects an empty tag with 400', async () => {
+    const res = await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: '   ' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/non-empty/);
+  });
+
+  it('adds normalised tags, dedupes, and exposes them on the board payload', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: '  Infra  ' });
+    await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: 'infra' }); // dup after normalise
+    await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: 'oss' });
+
+    const list = await request(app).get(`/api/repos/${REPO.id}/tags`);
+    expect(list.body.tags).toEqual(['infra', 'oss']);
+
+    const board = await request(app).get('/api/repos');
+    const repo = board.body.repos.find((r) => r.id === REPO.id);
+    expect(repo.tags).toEqual(['infra', 'oss']);
+  });
+
+  it('lists all tags with counts', async () => {
+    const res = await request(app).get('/api/tags');
+    expect(res.status).toBe(200);
+    const infra = res.body.tags.find((t) => t.tag === 'infra');
+    expect(infra).toMatchObject({ tag: 'infra', count: 1 });
+  });
+
+  it('removes a tag', async () => {
+    const del = await request(app).delete(`/api/repos/${REPO.id}/tags/infra`);
+    expect(del.body).toEqual({ ok: true });
+
+    const list = await request(app).get(`/api/repos/${REPO.id}/tags`);
+    expect(list.body.tags).toEqual(['oss']);
+  });
+});
+
 describe('POST /api/refresh', () => {
   it('queues a background sync and returns immediately without blocking on GitHub', async () => {
     let resolveFetch;

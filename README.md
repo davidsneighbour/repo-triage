@@ -180,6 +180,16 @@ The prototype is release-ready for local/self-hosted use with:
 
 ## Development
 
+Run both backend (`:8787`) and frontend (`:5173`) together, no Docker needed:
+
+```bash
+npm install && npm run dev
+```
+
+The backend auto-loads the root `.env`, so set `GITHUB_TOKEN` there.
+`npm run server` runs only the backend. You can still run each side in its own
+terminal if you prefer:
+
 ```bash
 # backend
 cd server && npm install && npm run dev
@@ -188,4 +198,15 @@ cd server && npm install && npm run dev
 cd client && npm install && npm run dev
 ```
 
-No test suite exists yet.
+## Testing
+
+```bash
+npm run test           # all client + server tests (Vitest), no Docker
+npm run test:coverage  # same, with coverage report + enforced thresholds
+```
+
+* `client/`: Vitest + jsdom + React Testing Library (component/behavior tests).
+* `server/`: Vitest with in-process route tests via `supertest`, plus pure
+    schedule/GitHub-client unit tests.
+* Coverage thresholds live in each `vitest.config.js` and fail the run on
+    regression.

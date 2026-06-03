@@ -2,24 +2,10 @@
 
 ## Status snapshot (2026-06-03)
 
-* `npm run test` runs **client (10 files / 30 tests)** + **server (3 files / 24 tests)**, all green, no Docker.
-* `npm run test:coverage` runs both workspaces and prints/writes reports. Current floor: **client ~90% lines / 83% branch**, **server ~65% lines / 56% branch** (the `server/github.js` network paths are the gap).
+* `npm run test` runs **client (10 files / 30 tests)** + **server (4 files / 33 tests)**, all green, no Docker.
+* `npm run test:coverage` runs both workspaces with enforced thresholds (`vitest.config.js`). Current: **client ~90% lines / 83% branch**, **server ~87% lines / 78% branch**.
 * No-Docker run path: `npm run dev` (root) boots backend + frontend together; the backend auto-loads the root `.env`. `npm run server` runs just the backend.
-* All testing-foundation, issue-coverage, and API route-test work is complete and committed; remaining work is coverage enforcement plus a docs refresh.
-
-## Open work
-
-### Coverage thresholds and CI
-
-* [ ] set `coverage.thresholds` in each `vitest.config.js` so a regression fails the run:
-  * client comfortably clears 60% — can start around 80% lines / 80% branch.
-  * server branch coverage is **56%**, below the 60% target; either start the server thresholds at the current floor (e.g. 60% lines, 55% branch) or lift branch coverage first (next item).
-* [ ] add `server/github.js` network/error-path tests (mock `fetch`): 401 auth-invalid, 403 rate-limit, pagination stop, and the success field mapping. Raises server branch coverage and is the prerequisite for a uniform 60% server threshold.
-
-### Docs
-
-* [ ] update `CLAUDE.md` — the "There are no tests" / "Do not add tests" lines are now stale and misleading.
-* [ ] add a README testing section documenting `npm run test`, `npm run test:coverage`, and the `npm run dev` / `npm run server` no-Docker run path.
+* **The engineering backlog is clear.** All testing-foundation, issue-coverage, route-test, coverage-enforcement, and docs work is complete and committed. The only remaining items are the manual release-QA checklist below (requires a browser + a real `GITHUB_TOKEN`); most of those behaviors are already covered by automated tests.
 
 ## Manual interaction test checklist
 

@@ -17,6 +17,17 @@ to Today automatically.
 
 ## Development commands
 
+### Local dev (one command)
+
+```bash
+# from the repo root: backend :8787 + frontend :5173 together
+npm install && npm run dev
+```
+
+`npm run dev` runs the backend and frontend concurrently. The backend
+auto-loads the root `.env` (`--env-file-if-exists`), so put `GITHUB_TOKEN`
+there. `npm run server` runs just the backend.
+
 ### Local dev (two terminals)
 
 ```bash
@@ -41,7 +52,16 @@ Open: [http://localhost:8787](http://localhost:8787)
 cd client && npm run build
 ```
 
-There are no tests.
+### Tests
+
+```bash
+npm run test           # all unit/route tests (client + server), no Docker
+npm run test:coverage  # same, with v8 coverage + enforced thresholds
+```
+
+Vitest powers both workspaces: `client/` uses jsdom + React Testing Library,
+`server/` runs in-process route tests via `supertest`. Coverage thresholds are
+set in each `vitest.config.js` and fail the run on regression.
 
 ## Environment variables
 
@@ -108,5 +128,5 @@ Single-component React UI in `App.jsx`:
 
 * No TypeScript.
 * Tailwind class names must remain static strings.
-* Do not add tests unless explicitly requested.
+* Keep the test suites green; add/adjust tests alongside behavior changes.
 * Do not cache GitHub repo list to disk.

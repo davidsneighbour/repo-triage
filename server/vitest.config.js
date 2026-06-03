@@ -7,6 +7,14 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reporter: ['text', 'html'],
+            // Floors sit below current coverage (~86/78/75/87) so normal edits
+            // don't trip CI; raise them as coverage improves.
+            thresholds: {
+                statements: 80,
+                branches: 70,
+                functions: 70,
+                lines: 80,
+            },
         },
     },
 });

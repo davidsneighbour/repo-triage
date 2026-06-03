@@ -88,11 +88,10 @@ so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
 
 ### 4. Reports & exports
 
-* [ ] **(P1)** Report builder (server) producing: overdue / due-today counts,
-  never-reviewed repos, stale-by-push (no push in N days), per-owner breakdown,
-  language distribution, archived candidates, repos with open PRs/issues.
-* [ ] **(P1)** `GET /api/reports/:kind?format=json|md|csv`; a Reports dialog in the
-  UI and a `repo-triage report <kind>` CLI command share it.
+* [x] **(P1)** Report builder (server, `report.js`): summary, due, never-reviewed,
+  stale (`?days=`), per-owner, language distribution, archived, open-issues/PRs.
+* [x] **(P1)** `GET /api/reports/:kind?format=json|md|csv`; shared by the UI
+  Reports dialog and the `repo-triage report <kind>` CLI command.
 * [ ] **(P2)** Exportable Markdown digest ("weekly triage") suitable for pasting
   into an issue/PR; optional scheduled write to a file.
 * [ ] **(P2)** Backup/restore: export all local triage state (flags, intervals,

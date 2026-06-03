@@ -440,10 +440,10 @@ Full-width bar below header:
 * Left: text filter input (fixed `256px` width)
 * Middle: filter pills (own / forks / archived) + conditional "show all" button
 * Right: a separate group, divided by a `border-l`, holding the global **show
-  ignored** toggle, the **tag filter**, and a **Notices** button. These sit
-  deliberately apart from the inclusive filter pills: ignoring is an independent
-  visibility axis, the tag filter is a query, and the Notices button opens the
-  all-repos dialog.
+  ignored** toggle, the **tag filter**, a **Reports** button, and a **Notices**
+  button. These sit deliberately apart from the inclusive filter pills: ignoring
+  is an independent visibility axis, the tag filter is a query, and the
+  Reports/Notices buttons open their dialogs.
 
 ## Elevation & depth
 
@@ -630,6 +630,25 @@ Anatomy:
 Sort by repo name uses the same muted treatment as other metadata; do not
 introduce accent colour here. The dialog reads and writes notices through the
 API and refreshes the board on change so card previews and counts stay current.
+
+### Reports dialog
+
+A modal overlay (same structure as the Notices dialog — `z-30` scrim, centred
+`z-40` panel, Esc to close), opened from the toolbar **Reports** button. The
+header carries the report title and two selectors: a **kind** selector (a
+wrapped row of small buttons — summary, due, never-reviewed, stale, owners,
+languages, archived, active) and a **view** selector (table / markdown / csv).
+
+* **Table view** renders the report's `columns`/`rows` as a plain bordered
+  table (`label` scale, `tabular-nums`, neutral text). Empty results show "no
+  matching repositories" in `text-faint`.
+* **Markdown / csv view** shows the server-rendered text in a monospace `pre`
+  (`surface-subtle`) with a **copy** button, for pasting into an issue/PR or a
+  spreadsheet.
+
+Read-only and neutral throughout — reports are reference data, never carry an
+urgency accent. All report data comes from `/api/reports/:kind` (shared with the
+`repo-triage report` CLI command).
 
 ### Banners
 

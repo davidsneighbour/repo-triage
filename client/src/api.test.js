@@ -69,4 +69,43 @@ describe('api wrapper contract', () => {
             body: JSON.stringify({ orderedIds: [3, 2, 1] }),
         });
     });
+
+    it('builds report URLs and parses json vs text per format', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ kind: 'summary' }), text: async () => 'md' });
+
+        await api.reportKinds();
+        expect(fetchMock).toHaveBeenCalledWith('/api/reports');
+
+        expect(await api.report('summary')).toEqual({ kind: 'summary' });
+        expect(fetchMock).toHaveBeenCalledWith('/api/reports/summary?format=json');
+
+        expect(await api.report('stale', { format: 'md', days: 90 })).toBe('md');
+        expect(fetchMock).toHaveBeenCalledWith('/api/reports/stale?format=md&days=90');
+    });
+
+    it('covers the remaining mutation wrappers', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ ok: true }) });
+
+        await api.touch(1);
+        await api.setIgnored(1, true);
+        await api.addNotice(1, 'hi');
+        await api.repoNotices(1);
+        await api.allNotices('repo', 'asc');
+        await api.deleteNotice(7);
+        await api.addTag(1, 'infra');
+        await api.removeTag(1, 'infra');
+
+        const urls = fetchMock.mock.calls.map((c) => c[0]);
+        expect(urls).toEqual(
+            expect.arrayContaining([
+                '/api/repos/1/touch',
+                '/api/repos/1/ignore',
+                '/api/repos/1/notices',
+                '/api/notices?sort=repo&dir=asc',
+                '/api/notices/7',
+                '/api/repos/1/tags',
+                '/api/repos/1/tags/infra',
+            ])
+        );
+    });
 });

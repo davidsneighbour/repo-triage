@@ -1,7 +1,15 @@
 export const defaultFilters = { showOwn: true, showForks: true, showArchived: true };
 
+// Substring match across name, description, and language. Empty query matches all.
+// Shared by the global toolbar filter and the per-column filter.
+export function repoMatchesQuery(repo, query) {
+    const term = (query || '').trim().toLowerCase();
+    if (!term) return true;
+    const haystack = `${repo.name} ${repo.description || ''} ${repo.language || ''}`.toLowerCase();
+    return haystack.includes(term);
+}
+
 export function filterRepos(repos, query, filters) {
-    const term = query.trim().toLowerCase();
     return repos.filter((repo) => {
         const isOwn = !repo.fork && !repo.archived;
         const visible =
@@ -10,11 +18,7 @@ export function filterRepos(repos, query, filters) {
             (filters.showArchived && repo.archived);
         if (!visible) return false;
 
-        if (term) {
-            const haystack = `${repo.name} ${repo.description || ''} ${repo.language || ''}`.toLowerCase();
-            if (!haystack.includes(term)) return false;
-        }
-        return true;
+        return repoMatchesQuery(repo, query);
     });
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDayColumns, defaultFilters, filterRepos, groupRepos } from './board.js';
+import { buildDayColumns, defaultFilters, filterRepos, groupRepos, repoMatchesQuery } from './board.js';
 
 const repos = [
     { id: 1, name: 'own-live', description: 'alpha', language: 'JS', fork: false, archived: false, column: 'day-0', position: 2 },
@@ -19,6 +19,31 @@ describe('filterRepos', () => {
 
     it('matches search term against name/description/language', () => {
         expect(filterRepos(repos, 'go', defaultFilters).map((repo) => repo.id)).toEqual([3]);
+    });
+});
+
+describe('repoMatchesQuery', () => {
+    const repo = repos[2]; // own-archived / gamma / Go
+
+    it('matches everything for an empty or whitespace query', () => {
+        expect(repoMatchesQuery(repo, '')).toBe(true);
+        expect(repoMatchesQuery(repo, '   ')).toBe(true);
+        expect(repoMatchesQuery(repo, undefined)).toBe(true);
+    });
+
+    it('matches name, description, and language case-insensitively', () => {
+        expect(repoMatchesQuery(repo, 'OWN')).toBe(true);
+        expect(repoMatchesQuery(repo, 'gamma')).toBe(true);
+        expect(repoMatchesQuery(repo, 'go')).toBe(true);
+    });
+
+    it('returns false when nothing matches', () => {
+        expect(repoMatchesQuery(repo, 'zzz')).toBe(false);
+    });
+
+    it('tolerates a missing description or language', () => {
+        expect(repoMatchesQuery({ name: 'solo' }, 'solo')).toBe(true);
+        expect(repoMatchesQuery({ name: 'solo' }, 'js')).toBe(false);
     });
 });
 

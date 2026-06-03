@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Archive, CircleHelp, GitFork, RefreshCw, Search, Settings2, User, X } from 'lucide-react';
 import mermaid from 'mermaid';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { api } from './api.js';
 import { timeAgo, calendarLabel } from './lib/date.js';
-import { defaultFilters, filterRepos, buildDayColumns, groupRepos } from './lib/board.js';
+import { defaultFilters, filterRepos, repoMatchesQuery, buildDayColumns, groupRepos } from './lib/board.js';
 import helpMarkdown from './help.md?raw';
 
 const ACCENT = {
@@ -75,13 +76,33 @@ function Badge({ tone = 'neutral', children }) {
   return <span className={cx('rounded px-1.5 py-0.5 text-[10px] font-medium', tones[tone])}>{children}</span>;
 }
 
-function CardMenu({ repo, defaultInactivity, onSetChecked, onClearCheck, onSetInactivity, onClose }) {
+function CardMenu({ repo, anchorRef, defaultInactivity, onSetChecked, onClearCheck, onSetInactivity, onClose }) {
   const [days, setDays] = useState(repo.inactivity_days ?? '');
+  const [pos, setPos] = useState(null);
 
-  return (
+  // Anchor the popover to the trigger via fixed positioning so the column's
+  // overflow-y-auto scroll area never clips it.
+  useEffect(() => {
+    const el = anchorRef?.current;
+    if (!el) return undefined;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      const width = 256;
+      const left = Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8));
+      setPos({ top: r.bottom + 4, left });
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [anchorRef]);
+
+  return createPortal(
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} />
-      <div className="absolute right-2 top-9 z-20 w-64 rounded-lg border border-neutral-700 bg-neutral-900 p-2 shadow-2xl">
+      <div
+        className="fixed z-20 w-64 rounded-lg border border-neutral-700 bg-neutral-900 p-2 shadow-2xl"
+        style={pos ? { top: pos.top, left: pos.left } : { visibility: 'hidden' }}
+      >
         <p className="px-1 pb-1 text-[10px] uppercase tracking-widest text-neutral-500">Review timing</p>
         <div className="grid grid-cols-2 gap-1">
           <button
@@ -137,7 +158,8 @@ function CardMenu({ repo, defaultInactivity, onSetChecked, onClearCheck, onSetIn
           <p className="mt-1 px-1 text-[10px] text-neutral-600">Blank = default ({defaultInactivity}d)</p>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
 
@@ -246,6 +268,7 @@ function HelpDialog({ onClose }) {
 
 function RepoCard({ repo, column, menuOpenId, onToggleMenu, onDragStartCard, onDropOnCard, ...handlers }) {
   const SettingsIcon = ICON.settings;
+  const menuButtonRef = useRef(null);
 
   return (
     <div
@@ -272,6 +295,7 @@ function RepoCard({ repo, column, menuOpenId, onToggleMenu, onDragStartCard, onD
           {repo.description && <p className="mt-0.5 line-clamp-2 text-xs text-neutral-500">{repo.description}</p>}
         </div>
         <button
+          ref={menuButtonRef}
           onClick={() => onToggleMenu(repo.id)}
           className="shrink-0 rounded-md px-1.5 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-100"
           aria-label="Open repository settings"
@@ -300,25 +324,43 @@ function RepoCard({ repo, column, menuOpenId, onToggleMenu, onDragStartCard, onD
         )}
       </div>
 
-      {menuOpenId === repo.id && <CardMenu repo={repo} onClose={() => onToggleMenu(repo.id)} {...handlers} />}
+      {menuOpenId === repo.id && <CardMenu repo={repo} anchorRef={menuButtonRef} onClose={() => onToggleMenu(repo.id)} {...handlers} />}
     </div>
   );
 }
 
 function Column({ col, repos, onDropColumn, ...cardProps }) {
   const acc = ACCENT[col.accent];
+  const ColSearchIcon = ICON.search;
   const [over, setOver] = useState(false);
+  const [cq, setCq] = useState('');
+
+  const visible = useMemo(() => repos.filter((r) => repoMatchesQuery(r, cq)), [repos, cq]);
+  const filtering = cq.trim() !== '';
 
   return (
-    <div className="flex w-72 shrink-0 flex-col">
+    <div className="flex h-full w-72 shrink-0 flex-col">
       <div className={cx('mb-2 flex items-center justify-between rounded-lg border bg-neutral-900/40 px-3 py-2', acc.edge)}>
-        <div className="flex items-center gap-2">
-          <span className={cx('h-2 w-2 rounded-full', acc.dot)} />
-          <span className={cx('text-sm font-semibold', acc.head)}>{col.title}</span>
-          <span className="text-[11px] text-neutral-600">{col.subtitle}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={cx('h-2 w-2 shrink-0 rounded-full', acc.dot)} />
+          <span className={cx('truncate text-sm font-semibold', acc.head)}>{col.title}</span>
+          <span className="truncate text-[11px] text-neutral-600">{col.subtitle}</span>
         </div>
-        <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[11px] text-neutral-300">{repos.length}</span>
+        <span className="shrink-0 rounded-full bg-neutral-800 px-2 py-0.5 text-[11px] tabular-nums text-neutral-300">
+          {filtering ? `${visible.length}/${repos.length}` : repos.length}
+        </span>
       </div>
+
+      <label className="relative mb-2 block">
+        <ColSearchIcon className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-neutral-600" aria-hidden="true" />
+        <input
+          value={cq}
+          onChange={(e) => setCq(e.target.value)}
+          placeholder="filter column..."
+          aria-label={`Filter ${col.title} column`}
+          className="w-full rounded-md border border-neutral-800 bg-neutral-950 pl-7 pr-2 py-1 text-[11px] text-neutral-100 outline-none focus:border-neutral-600"
+        />
+      </label>
 
       <div
         onDragOver={(e) => {
@@ -333,14 +375,19 @@ function Column({ col, repos, onDropColumn, ...cardProps }) {
           if (id) onDropColumn(id, col.daysAgoTarget);
         }}
         className={cx(
-          'flex min-h-[140px] flex-1 flex-col gap-2 rounded-lg border border-dashed p-2 transition-colors',
+          'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-lg border border-dashed p-2 transition-colors',
           over ? 'border-neutral-500 bg-neutral-900/60' : 'border-neutral-800/60'
         )}
       >
-        {repos.map((r) => (
+        {visible.map((r) => (
           <RepoCard key={r.id} repo={r} column={col} {...cardProps} />
         ))}
-        {repos.length === 0 && <div className="grid flex-1 place-items-center text-center text-xs text-neutral-700">drag here</div>}
+        {repos.length === 0 && (
+          <div className="grid flex-1 place-items-center text-center text-xs text-neutral-700">drag here</div>
+        )}
+        {repos.length > 0 && visible.length === 0 && (
+          <div className="grid flex-1 place-items-center text-center text-xs text-neutral-700">no matches</div>
+        )}
       </div>
     </div>
   );
@@ -577,7 +624,7 @@ export default function App() {
         </div>
       </div>
 
-      <main className="flex-1 overflow-auto p-5">
+      <main className="flex flex-1 flex-col overflow-hidden p-5">
         {data.rateLimit?.authInvalid && (
           <div className="mb-4 rounded-lg border border-rose-500/60 bg-rose-500/15 px-4 py-3 text-xs text-rose-200">
             <strong>GitHub token is invalid or expired.</strong> Update GITHUB_TOKEN in your .env file and restart the server.
@@ -609,14 +656,14 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className="flex h-full gap-4 overflow-hidden">
+          <div className="flex min-h-0 flex-1 gap-4 overflow-hidden">
             {todayColumn && (
-              <div className="sticky left-0 z-10 bg-neutral-950/95 pr-2 backdrop-blur-sm">
+              <div className="sticky left-0 z-10 flex bg-neutral-950/95 pr-2 backdrop-blur-sm">
                 <Column col={todayColumn} repos={groups[todayColumn.key] || []} onDropColumn={onDropColumn} {...cardProps} />
               </div>
             )}
-            <div className="min-w-0 flex-1 overflow-x-auto pb-2">
-              <div className="flex min-w-max gap-4 pr-4">
+            <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden pb-2">
+              <div className="flex h-full min-w-max gap-4 pr-4">
                 {futureColumns.map((col) => (
                   <Column key={col.key} col={col} repos={groups[col.key] || []} onDropColumn={onDropColumn} {...cardProps} />
                 ))}

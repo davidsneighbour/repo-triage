@@ -295,19 +295,28 @@ The board is a sticky-column horizontal scroll area:
 * Column width: `288px` (`w-72`). Fixed. Do not make columns fluid.
 * Column gap: `16px` (`gap-4`).
 * Board padding: `20px` (`p-5`) on all sides.
+* Each column is **full-height** within the board viewport; its card list
+  scrolls **vertically** (`overflow-y-auto`) rather than growing the page. The
+  board area itself does not scroll vertically — the per-column lists do.
 
 ### Column anatomy
 
 ```plaintext
 ┌─────────────────────────────┐
-│ ● Title    subtitle    [N]  │  ← column header (border-b, accent dot)
+│ ● Title   subtitle   [m/N]  │  ← column header (accent dot, count chip)
 └─────────────────────────────┘
-┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐  ← drop zone (dashed border)
+┌─────────────────────────────┐
+│ ⌕ filter column...          │  ← per-column filter input (full width)
+└─────────────────────────────┘
+┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐  ← drop zone (dashed border, scrolls vertically)
 │  [card]                     │
-│  [card]                     │
-│  drag here                  │  ← empty state
+│  [card]                   ↕ │  ← overflow-y-auto when cards exceed height
+│  drag here                  │  ← empty state ("no matches" when filtered)
 └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
 ```
+
+The count chip shows visible/total (`m/N`) when the column filter is active,
+otherwise just the total.
 
 ### Card anatomy
 
@@ -405,7 +414,10 @@ updating this document).
 
 ### CardMenu (popover)
 
-Appears on `···` click. Fixed-width `256px`. Contains three action groups:
+Appears on `···` click. Fixed-width `256px`. Rendered through a portal to
+`document.body` and positioned `fixed`, anchored just below the trigger button —
+this keeps it from being clipped by a column's `overflow-y-auto` scroll area.
+Contains three action groups:
 
 1. **Review timing buttons** — "Checked now", "Move to Today", "Clear check date"
 2. **Per-repo review interval input** — number field + save button
@@ -419,6 +431,21 @@ Toggle-style buttons. **Active** = `bg-neutral-800 border-neutral-600
 text-secondary`. **Inactive** = `transparent bg border-neutral-800 text-faint`.
 The visual difference must be unambiguous at a glance; never use opacity alone
 to distinguish states.
+
+### Column filter
+
+Each column carries its own text filter directly under the column header,
+scoped to **that column only** — it never affects other columns or the global
+toolbar filter.
+
+* Full column width, `input` token styling (`bg-background`, `rounded.md`,
+  default `border`, `border-muted` on focus), `label`-scale text, with a leading
+  search glyph matching the toolbar filter.
+* Matches the same fields as the global filter: repo name, description, language.
+* When active and it hides cards, the header count chip switches to `m/N`
+  (visible/total) and an empty result shows "no matches" instead of "drag here".
+* Navigation aid only: it does not mutate triage state, is not persisted, and
+  does not affect drag-drop targets.
 
 ### Banners
 

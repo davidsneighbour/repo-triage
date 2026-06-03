@@ -1,142 +1,176 @@
-# Project status dashboard - TODO and testing plan
+# Repo·triage — roadmap & TODO
 
-## Ideas and todos
+*Updated 2026-06-03. Completed work lives in git history; this file tracks only
+what's next.*
 
-* [ ] x on the individual column filter text fields to easily delete the filter.
+## Snapshot (current state)
 
-## Status snapshot (2026-06-03)
+Local-only day-schedule kanban for triaging GitHub repositories.
 
-* `npm run test` runs **client (14 files / 53 tests)** + **server (4 files / 54 tests)**, all green, no Docker.
-* `npm run test:coverage` runs both workspaces with enforced thresholds (`vitest.config.js`). Current: **client ~90% lines / 84% branch**, **server ~89% lines / 78% branch**.
-* No-Docker run path: `npm run dev` (root) boots backend + frontend together; the backend auto-loads the root `.env`. `npm run server` runs just the backend.
-* **The engineering backlog is clear.** All testing-foundation, issue-coverage, route-test, coverage-enforcement, and docs work is complete and committed. The only remaining items are the manual release-QA checklist below (requires a browser + a real `GITHUB_TOKEN`); most of those behaviors are already covered by automated tests.
+* **Stack:** Express + SQLite (`server/`), React + Tailwind v4 (`client/`), Vitest
+  both sides. Backend owns GitHub fetching; frontend only reads `/api/repos`.
+* **Implemented:** day-column board with drag-drop scheduling, per-repo review
+  cycle, honest `checked_at`, inclusive filters (own/forks/archived) + per-column
+  filter, ignore flag, timestamped notices, multi-owner loading
+  (`GITHUB_OWNERS`, users + orgs, public fallback + warnings), owner badges,
+  background sync, rate-limit/auth feedback, localStorage cache, F1 help.
+* **Tests:** client 14 files / 53, server 4 files / 54 — all green; coverage
+  thresholds enforced in each `vitest.config.js`.
 
-## Feature work: ignore flag + notices (2026-06-03)
+## Working agreements
 
-Local-only repo metadata persisted in SQLite alongside triage state.
+* `DESIGN.md` is the binding UI contract — update it before changing `client/`.
+* Add/adjust tests alongside behaviour; keep both suites green and coverage above
+  the configured floors. No TypeScript; Tailwind classes stay static strings.
+* **`gh`-first:** for anything touching GitHub, prefer the `gh` CLI
+  (`gh auth token`, `gh api`, `gh repo`) over hand-rolled REST + PAT plumbing.
 
-### Ignore flag
+## Known gaps / loose ends
 
-* [x] `repo_state.ignored` column (migration for existing DBs) + `POST /api/repos/:id/ignore`
-* [x] `buildPayload()` exposes `ignored` boolean per repo
-* [x] ignored repos hidden from the board by default
-* [x] global **show ignored** toggle in the toolbar, separate from the own/forks/archived pills
-* [x] ignore / unignore action in the card menu + `ignored` badge on the card
+* [ ] `README.md` is stale — no `GITHUB_OWNERS`, notices, ignore, owner badges,
+  `checked_at`, prebuilt help SVG, or Tailwind v4 / phosphor theme. Refresh it.
+* [ ] `repo_state.priority` (1–3) is vestigial — only the `null` path is used (to
+  clear a check). Decide: repurpose as triage priority, fold into tags, or drop.
+* [ ] `stargazers_count` / `open_issues_count` are fetched in `github.js` but
+  never shown on the card. Surface them (see Display).
+* [ ] `App.jsx` is one ~1k-line file — extract components as features land.
 
-### Notices
+---
 
-* [x] `repo_notice` table (id, repo_id, full_name, body, created_at)
-* [x] `POST /api/repos/:id/notices` (timestamped), `GET /api/repos/:id/notices`, `GET /api/notices?sort=&dir=`, `DELETE /api/notices/:noticeId`
-* [x] `buildPayload()` exposes `latest_notice` + `notice_count` per repo
-* [x] latest notice shown on the repo card
-* [x] add-notice + view-notices actions in the card menu
-* [x] Notices dialog: all notices for one repo and across all repos, sortable by date and repo name
-* [x] tests: server routes (ignore + notices CRUD + sort), client `filterRepos(showIgnored)` + `sortNotices`
+## Roadmap
 
-## Bugfix + refactor: background sync (2026-06-03)
+Priority key: **(P0)** next / quick win · **(P1)** soon · **(P2)** later.
 
-GitHub loading is owned by the backend; the frontend only reads `/api/repos`.
+### 1. GitHub via the `gh` CLI (foundational)
 
-* [x] **Bug:** on a fresh server start the cached board flashes, then `load()` overwrites the cache with the not-ready empty payload and the board never refills until a manual F5. Fix: never clobber a populated board with a not-ready empty payload, and never persist a not-ready payload to localStorage.
-* [x] Keep polling `/api/repos` while the server reports `cacheReady: false` **or** `syncing: true` (drive the loop from the server's status, not the cached value).
-* [x] Backend owns the initial load on server start (already via `SYNC_ON_STARTUP`); make it a fire-and-forget background `queueRefresh()` so a slow GitHub fetch never blocks request handling.
-* [x] `POST /api/refresh` queues a background sync and returns immediately instead of blocking on the GitHub fetch; expose a `syncing` flag in `/api/repos`.
-* [x] Auto-sync interval also goes through `queueRefresh()` (no overlapping fetches).
-* [x] Frontend "sync GitHub" queues the backend task and reflects `syncing` (spinner/disabled) while the poll loop pulls in the result.
-* [x] tests: queued refresh returns fast + reports `syncing`; `/api/repos` exposes `syncing`; frontend keeps cached board on a not-ready payload.
+* [x] **(P0)** Auth via `gh`: if `GITHUB_TOKEN` is unset, fall back to
+  `gh auth token` so users who already `gh auth login` need no PAT. Surface which
+  auth source is active in `/api/repos` (`authSource: env|gh|null`).
+* [ ] **(P1)** Fetch through `gh api --paginate` (with REST fetch as fallback) to
+  drop custom pagination and inherit `gh`'s auth, retry, and rate-limit handling.
+* [ ] **(P1)** Enrich repo metadata cheaply via `gh api`/GraphQL: open-PR count,
+  open-issue count, default branch, latest release, topics, CI status of default
+  branch, last-commit author/date.
+* [ ] **(P2)** Per-card `gh` quick actions: open in browser (`gh repo view --web`),
+  list PRs/issues, create an issue — shelled out server-side, confirmed in UI.
+* [ ] **(P2)** Map GitHub repo **topics** → suggested tags (see Tags).
 
-## Bugfix: help diagram renders as a build-time SVG (2026-06-03)
+### 2. Tags & flags
 
-* [x] **Bug:** F1 help showed "Unable to render Mermaid diagram…" because Mermaid was run in the browser at view time and failed.
-* [x] Pre-render the `help.md` flow diagram to a static, dark-themed SVG committed at `client/src/help-diagram.svg`; the help dialog inlines it (no runtime Mermaid).
-* [x] `scripts/build-help-diagram.mjs` regenerates the SVG from the `help.md` mermaid block via `@mermaid-js/mermaid-cli`; wired as `prebuild` + `build:help-diagram`, best-effort (skips cleanly if Chromium/cli absent so `npm run build` never fails).
-* [x] Drop the runtime `mermaid` dependency (removed from `package.json` + lockfile; ~110 packages, big bundle win).
-* [x] tests: help dialog renders the pre-built diagram SVG and shows no Mermaid fallback.
+* [ ] **(P0)** `repo_tag` table (repo_id, tag, created_at) + API:
+  `GET/POST/DELETE /api/repos/:id/tags`, `GET /api/tags` (distinct + counts).
+* [ ] **(P1)** Tag chips on cards (deterministic colour, like owner palette) and a
+  tag filter in the toolbar (multi-select, AND/OR).
+* [ ] **(P1)** Manage tags in the card menu (add/remove with autocomplete from
+  existing tags); document the component in `DESIGN.md` first.
+* [ ] **(P2)** Bulk tag/untag via multi-select (see Usability).
+* [ ] **(P2)** Generic per-repo flags beyond `ignored` (e.g. `pinned`, `muted`,
+  `needs-decision`) — a small extensible flag set rather than one column each.
 
-## Feature: load from multiple users/orgs + owner indicator (2026-06-03)
+### 3. CLI companion app
 
-* [x] **No config** still loads the token owner's own repos (public + private + archived).
-* [x] `GITHUB_OWNERS` env: comma-separated **or** JSON array of users/orgs; `GITHUB_USERNAME` kept as single-owner fallback. `parseOwners()` handles both forms + dedupe.
-* [x] Per configured owner: token owner's own login → `/user/repos` (private incl.); an org you belong to → `/orgs/{org}/repos?type=all`; a plain user → `/users/{user}/repos`.
-* [x] If the token isn't a member/authorized for an org → load its **public** repos and surface a clear on-screen warning (non-fatal); dedupe repos across owners.
-* [x] Backend exposes `owners` + `sourceWarnings` in `/api/repos`; each repo carries `owner`/`owner_type`.
-* [x] Frontend: owner badge + left colour stripe on each card (categorical owner palette), source-warning banner, multi-owner header context.
-* [x] Test seed owners: `davidsneighbour` (user), `dnbhq` (org), `gohugo-ananke` (org) — set `GITHUB_OWNERS=davidsneighbour, dnbhq, gohugo-ananke` in `.env`.
-* [x] tests: `parseOwners`, per-owner fetch paths (self/org-member/org-public+warning/user/403 fallback), routes mock update, client owner badge + warning banner.
+A Node CLI (`bin/repo-triage`) that drives the same SQLite state as the web app,
+so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
 
-## Bugfix: "checked" age reflects the real review time (2026-06-03)
+* [ ] **(P1)** Scaffolding: `repo-triage <command>`, talks to the local API (or DB
+  directly when the server is down), JSON/`--json` output for piping.
+* [ ] **(P1)** `list` with filters (owner, tag, flag, due, language) + `--json`.
+* [ ] **(P1)** Set flags: `ignore`/`unignore`, `check [--days N]`, `clear`,
+  `interval <days>`, `tag add|rm <repo> <tag…>`, `note add <repo> "…"`.
+* [ ] **(P2)** Resolve repos by `owner/name` or fuzzy match; act on many at once
+  (`--all-matching`, stdin list).
+* [ ] **(P2)** `gh` passthrough helpers (e.g. `repo-triage open <repo>` →
+  `gh repo view --web`); reuse `gh auth token`.
+* [ ] **(P2)** Ship as an `npm` bin + document; optional `gh` extension wrapper
+  (`gh triage …`) for discoverability.
 
-* [x] **Bug:** dragging a card from Today to a future column showed e.g. "checked 6d ago" although the user reviewed it just now — because the card read the back-dated scheduling anchor (`priority_set_at`) as the last-checked time.
-* [x] New `repo_state.checked_at` column (migration + backfill from `priority_set_at`) records the *actual* review time; board placement still uses `priority_set_at`.
-* [x] `effectiveState()` derives `checkedAgeDays` from `checked_at`; `/check` stamps `checked_at = now` only when the card lands in a future column (`daysAgo < interval` = "reviewed, resurface later"), not when moving to Today ("make due"). `/touch` stamps it; clearing the check date clears it.
-* [x] Card shows **"checked today"** for age 0 (was "checked 0d ago"), "not checked yet" for none.
-* [x] tests: `effectiveState` checked_at derivation, route check/move-to-today behaviour, client wording.
+### 4. Reports & exports
 
-## Manual interaction test checklist
+* [ ] **(P1)** Report builder (server) producing: overdue / due-today counts,
+  never-reviewed repos, stale-by-push (no push in N days), per-owner breakdown,
+  language distribution, archived candidates, repos with open PRs/issues.
+* [ ] **(P1)** `GET /api/reports/:kind?format=json|md|csv`; a Reports dialog in the
+  UI and a `repo-triage report <kind>` CLI command share it.
+* [ ] **(P2)** Exportable Markdown digest ("weekly triage") suitable for pasting
+  into an issue/PR; optional scheduled write to a file.
+* [ ] **(P2)** Backup/restore: export all local triage state (flags, intervals,
+  notices, tags) to JSON and re-import.
 
-Run this checklist against local dev (`server :8787`, `client :5173`) and Docker (`:8787`).
+### 5. Display & board options
 
-### Startup and data loading
+* [ ] **(P0)** Show fetched-but-hidden data on cards: ⭐ stars and open-issue count
+  (compact, muted; never as accent colour).
+* [ ] **(P0)** "×" to clear a column's filter field (carried over idea).
+* [ ] **(P1)** Group-by selector: by **day** (current), **owner**, **tag**, or
+  **language**; board re-columns accordingly.
+* [ ] **(P1)** Per-column sort (name, pushed, stars, due) and card **density**
+  toggle (compact/comfortable), persisted.
+* [ ] **(P1)** List/table view as an alternative to the board (sortable columns,
+  good for bulk scanning and reports).
+* [ ] **(P2)** Field visibility toggles (stars, issues, language, pushed, notice
+  preview) so users tune information density.
 
-* [ ] first load shows loading state, then board appears once `cacheReady` is true
-* [ ] if startup sync is slow, polling refreshes board automatically every ~2s until ready
-* [ ] repo count and review cycle value in header match API payload
+### 6. Accessibility
 
-### Header and sync controls
+* [ ] **(P0)** Keyboard scheduling: move focus across cards/columns and reschedule
+  without drag-drop (the board is mouse-only today).
+* [ ] **(P0)** Dialog/popover focus management: focus trap, restore focus on close,
+  `aria-modal`, labelled headings (Help, Notices, Card menu).
+* [ ] **(P1)** Semantic roles/labels for board, columns, cards; a polite live
+  region announcing sync status and action results.
+* [ ] **(P1)** Respect `prefers-reduced-motion` (sync spinner, transitions).
+* [ ] **(P1)** Verify contrast of the phosphor-green neutral ramp (esp. muted text
+  and placeholders) against WCAG AA; adjust shades if needed.
+* [ ] **(P2)** Add an automated a11y check (axe) to the component test setup.
 
-* [ ] `sync GitHub` triggers refresh and toggles `syncing...` label while in flight
-* [ ] sync button disabled when `rateLimit.authInvalid` is true
-* [ ] sync button disabled when `rateLimit.remaining === 0`
-* [ ] rate-limit indicator text changes style for normal, low (<100), and zero
-* [ ] last synced timestamp updates after manual refresh
+### 7. Usability & polish
 
-### Search and filter interaction
+* [ ] **(P1)** Multi-select cards → bulk ignore / tag / schedule.
+* [ ] **(P1)** Undo (toast with "undo") for destructive actions: delete notice,
+  clear check, bulk ops.
+* [ ] **(P1)** Confirm before destructive actions (delete notice / bulk clear).
+* [ ] **(P2)** Toast/notification system for action feedback.
+* [ ] **(P2)** Persist view/display prefs server-side so web + CLI agree.
+* [ ] **(P2)** Settings panel (review cycle, sync interval, owners) editable in-app
+  instead of `.env`-only.
 
-* [ ] typing in `filter repos...` narrows cards by name, description, and language
-* [ ] toggling `own` only shows non-fork, non-archived repos
-* [ ] toggling `forks` includes fork repos regardless of archive state
-* [ ] toggling `archived` includes archived repos regardless of fork state
-* [ ] filter behavior is inclusive union across checked toggles
-* [ ] `show all` appears when not all toggles are enabled and restores defaults
-* [ ] filter settings persist after page reload (localStorage)
+### 8. Quality & infra
 
-### Board and drag-drop interaction
+* [ ] **(P1)** Refresh `README.md` + reconcile with `DESIGN.md` and `AGENTS.md`.
+* [ ] **(P1)** GitHub Actions CI: run `npm test` + markdown lint on PRs.
+* [ ] **(P2)** Health/version endpoint (`/api/health`) for Docker/monitoring.
+* [ ] **(P2)** Split `App.jsx` into components (Board, Column, Card, CardMenu,
+  dialogs) once tag/report UI lands.
+* [ ] **(P2)** E2E smoke test (Playwright): load → drag a card → add note → reload.
 
-* [ ] Today column remains sticky while horizontally scrolling future columns
-* [ ] dragging card to empty column moves it and persists after reload
-* [ ] dropping card onto another card updates moved card column correctly
-* [ ] empty-column `drag here` placeholder appears only when no cards exist
+---
 
-### Card menu actions
+## Suggested next steps (summary)
 
-* [ ] `...` opens card menu and clicking backdrop closes it
-* [ ] `Checked now` sets check date to now and moves repo to furthest future bucket
-* [ ] `Move to Today` uses default inactivity days target and moves repo to today bucket
-* [ ] `Clear check date` sets repo back to "not checked yet"
-* [ ] setting `Review every (days)` to a number persists per-repo override
-* [ ] leaving `Review every (days)` blank resets to default cycle
+1. **`gh` auth fallback (1·P0)** — let users skip the PAT by reusing
+   `gh auth token`. Smallest change with the biggest onboarding win, and sets up
+   `gh api` data enrichment.
+2. **Surface stars + open issues on cards, and add the column-filter "×" (5·P0)**
+   — pure display wins from data already in hand.
+3. **Tags system (2·P0)** — DB + API + card chips + filter. It's the backbone the
+   CLI and reports build on; also resolves the vestigial `priority` field.
+4. **CLI companion (3·P1)** — `repo-triage` for `ignore`/`check`/`tag`/`note`,
+   `--json` output, `gh`-aware. Makes flags/tags scriptable as requested.
+5. **Reports (4·P1)** — overdue / stale / never-reviewed / per-owner, exportable
+   to Markdown/CSV, shared by a UI dialog and `repo-triage report`.
+6. **Accessibility pass (6·P0–P1)** — keyboard scheduling, dialog focus traps,
+   reduced-motion, contrast check on the new green theme.
+7. **Docs refresh (8·P1)** — bring `README.md` back in line with reality.
 
-### Error and edge-state handling
+Then iterate on richer `gh api` metadata, group-by/list views, and bulk actions.
 
-* [ ] invalid token banner appears when backend reports `authInvalid`
-* [ ] rate-limit exhausted banner appears with reset time when remaining is zero
-* [ ] generic GitHub error banner appears for other failures
-* [ ] missing token hint appears when `tokenPresent` is false
-* [ ] app remains usable for local filtering/search even when refresh is blocked
+## Manual smoke test (pre-release)
 
-### Schedule edge cases
+Most behaviour is covered by automated tests; spot-check the parts that need a
+real browser + token:
 
-* [ ] never-checked repos always resolve to Today
-* [ ] repos checked >= inactivity threshold resolve to Today
-* [ ] repos checked below threshold resolve to future day columns
-* [ ] per-repo inactivity values greater than global default are documented and verified
-
-### Links and metadata
-
-* [ ] clicking repo name opens GitHub page in new tab
-* [ ] card badges correctly show public/private, live/archived, fork, language
-* [ ] checked age and due text render expected values after mutations
-
-## Notes
-
-* Implement one item at a time and add matching tests before moving on.
+* [ ] First load shows cached board (if any) then refreshes; slow startup polls in.
+* [ ] Drag across columns persists after reload; "checked today" shows on snooze.
+* [ ] Multi-owner load: owner badges appear; non-member org shows the public-only
+  warning banner.
+* [ ] Auth-invalid and rate-limit-exhausted banners render and disable sync.

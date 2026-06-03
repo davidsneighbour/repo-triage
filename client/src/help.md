@@ -6,6 +6,8 @@ Press `Esc` to close this panel.
 
 * `F1`: Open help
 * `Esc`: Close help dialog
+* `]`: Move the focused repo card one column further out (snooze)
+* `[`: Move the focused repo card one column toward Today
 
 ## Day-schedule quick model
 

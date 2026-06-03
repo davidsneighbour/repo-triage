@@ -504,6 +504,11 @@ Draggable. On drag: `cursor-grab` → `cursor-grabbing`. On hover: `border-muted
 replaces default `border`. The `···` settings button is hidden at rest (via
 `group-hover` or always visible — current implementation always shows it).
 
+Keyboard alternative to drag (`aria-keyshortcuts="[ ]"`): with focus anywhere on
+a card, `]` pushes it one column further out and `[` pulls it one column toward
+Today — the same target math as a drag. The card is labelled as a `group` for
+screen readers (repo name, owner, due state).
+
 ### Badge
 
 Read-only labels. Always inline. Never interactive. Each badge type has a fixed

@@ -122,8 +122,8 @@ so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
 
 ### 6. Accessibility
 
-* [ ] **(P0)** Keyboard scheduling: move focus across cards/columns and reschedule
-  without drag-drop (the board is mouse-only today).
+* [x] **(P0)** Keyboard scheduling: `[` / `]` reschedule the focused card one
+  column toward Today / further out (no drag needed); `aria-keyshortcuts` + help.
 * [x] **(P0)** Dialog/popover focus management: focus trap, restore focus on close,
   `aria-modal`, labelled headings — shared `useDialog` hook on Help, Notices,
   Reports, Card menu, and the Tag filter.

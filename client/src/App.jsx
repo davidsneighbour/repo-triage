@@ -514,11 +514,24 @@ function RepoCard({ repo, column, menuOpenId, showOwner, onToggleMenu, onDragSta
   const dueText = repo.needsCheckToday ? 'review today' : `review in ${repo.dueInDays} days`;
   const cardLabel = `${repo.name}${repo.owner ? `, ${repo.owner}` : ''} — ${dueText}`;
 
+  // Keyboard alternative to drag: [ pulls a card toward Today, ] pushes it
+  // further out, one column at a time. Mirrors the drag target math.
+  const onCardKeyDown = (e) => {
+    if ((e.key !== '[' && e.key !== ']') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    e.preventDefault();
+    const span = Math.max(1, handlers.defaultInactivity || 7);
+    const cur = repo.boardOffset ?? 0;
+    const next = e.key === ']' ? Math.min(span - 1, cur + 1) : Math.max(0, cur - 1);
+    if (next !== cur) handlers.onSetChecked(repo.id, span - next);
+  };
+
   return (
     <div
       draggable
       role="group"
       aria-label={cardLabel}
+      aria-keyshortcuts="[ ]"
+      onKeyDown={onCardKeyDown}
       onDragStart={(e) => onDragStartCard(e, repo.id)}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {

@@ -5,12 +5,13 @@ what's next.*
 
 ## Manual additions
 
-* running `npm test` results in
-  > 5:41:10 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
-  > 5:41:10 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
-  > Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
-  Fix/adapt.
-* check and merge all open PRs
+* [x] `npm test` printed a Vite `esbuild`/`oxc` deprecation warning. Cause:
+  vitest 4 bundles a Rolldown Vite (v8) that prefers oxc, but the classic babel
+  React plugin (used for the prod build) sets the deprecated esbuild JSX options.
+  Harmless (oxc transforms JSX fine); the oxc React plugin needs Vite 6/7, which
+  conflicts with both our Vite 5 build and vitest's Vite 8. Resolved by filtering
+  just those lines via a `customLogger` in `client/vitest.config.js`.
+* [ ] check and merge all open PRs (owner action — not done automatically)
 
 ## Snapshot (current state)
 

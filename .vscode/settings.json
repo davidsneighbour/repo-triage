@@ -5,5 +5,7 @@
     "markdown.extension.tableFormatter.enabled": false,
     "cSpell.words": [
         "triaging"
-    ]
+    ],
+    "claudeCode.initialPermissionMode": "acceptEdits",
+    "claudeCode.useCtrlEnterToSend": true
 }

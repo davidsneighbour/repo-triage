@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Archive, CircleDot, CircleHelp, EyeOff, GitFork, RefreshCw, Search, Settings2, Star, StickyNote, Trash2, User, X } from 'lucide-react';
+import { Archive, CircleDot, CircleHelp, EyeOff, GitFork, RefreshCw, Search, Settings2, Star, StickyNote, Tag, Trash2, User, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { api } from './api.js';
 import { timeAgo, calendarLabel } from './lib/date.js';
-import { defaultFilters, filterRepos, repoMatchesQuery, buildDayColumns, groupRepos, sortNotices } from './lib/board.js';
+import { defaultFilters, filterRepos, repoMatchesQuery, buildDayColumns, groupRepos, sortNotices, collectTags } from './lib/board.js';
 import helpMarkdown from './help.md?raw';
 import helpDiagramSvg from './help-diagram.svg?raw';
 
@@ -28,6 +28,16 @@ export function ownerColor(login) {
   const s = String(login || '');
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return OWNER_PALETTE[h % OWNER_PALETTE.length];
+}
+
+// Tag chips reuse the same categorical palette, hashed differently so a tag and
+// a same-named owner don't land on the same colour (they're told apart by the
+// `#` prefix + owner stripe, but distinct hues reduce accidental association).
+export function tagColor(tag) {
+  const s = String(tag || '');
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
   return OWNER_PALETTE[h % OWNER_PALETTE.length];
 }
 
@@ -82,6 +92,7 @@ const ICON = {
   notices: StickyNote,
   star: Star,
   issues: CircleDot,
+  tag: Tag,
 };
 
 function Badge({ tone = 'neutral', children }) {
@@ -96,10 +107,19 @@ function Badge({ tone = 'neutral', children }) {
   return <span className={cx('rounded-sm px-1.5 py-0.5 text-[10px] font-medium', tones[tone])}>{children}</span>;
 }
 
-function CardMenu({ repo, anchorRef, defaultInactivity, onSetChecked, onClearCheck, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onClose }) {
+function CardMenu({ repo, anchorRef, defaultInactivity, allTags = [], onSetChecked, onClearCheck, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onAddTag, onRemoveTag, onClose }) {
   const [days, setDays] = useState(repo.inactivity_days ?? '');
   const [notice, setNotice] = useState('');
+  const [tag, setTag] = useState('');
   const [pos, setPos] = useState(null);
+
+  const submitTag = () => {
+    const v = tag.trim();
+    if (v) {
+      onAddTag(repo.id, v);
+      setTag('');
+    }
+  };
 
   // Anchor the popover to the trigger via fixed positioning so the column's
   // overflow-y-auto scroll area never clips it.
@@ -177,6 +197,54 @@ function CardMenu({ repo, anchorRef, defaultInactivity, onSetChecked, onClearChe
             </button>
           </div>
           <p className="mt-1 px-1 text-[10px] text-neutral-600">Blank = default ({defaultInactivity}d)</p>
+        </div>
+
+        <div className="mt-2 border-t border-neutral-800 pt-2">
+          <label className="block px-1 text-[10px] uppercase tracking-widest text-neutral-500">Tags</label>
+          {repo.tags?.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {repo.tags.map((t) => (
+                <span key={t} className="inline-flex items-center gap-1 rounded-sm bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-300">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tagColor(t) }} aria-hidden="true" />
+                  #{t}
+                  <button onClick={() => onRemoveTag(repo.id, t)} aria-label={`Remove tag ${t}`} className="text-neutral-500 hover:text-rose-300">
+                    <X className="h-2.5 w-2.5" aria-hidden="true" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="mt-1 flex items-center gap-1">
+            <input
+              list="card-tag-suggestions"
+              value={tag}
+              onChange={(e) => setTag(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  submitTag();
+                }
+              }}
+              placeholder="add tag..."
+              aria-label="New tag"
+              className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs text-neutral-100 outline-hidden focus:border-neutral-500"
+            />
+            <button
+              disabled={tag.trim() === ''}
+              onClick={submitTag}
+              aria-label="Add tag"
+              className="rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-200 hover:bg-neutral-700 disabled:opacity-40"
+            >
+              Add
+            </button>
+          </div>
+          {allTags.length > 0 && (
+            <datalist id="card-tag-suggestions">
+              {allTags.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+          )}
         </div>
 
         <div className="mt-2 border-t border-neutral-800 pt-2">
@@ -461,6 +529,20 @@ function RepoCard({ repo, column, menuOpenId, showOwner, onToggleMenu, onDragSta
         {repo.ignored && <Badge tone="neutral">ignored</Badge>}
       </div>
 
+      {repo.tags?.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+          {repo.tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 rounded-sm bg-neutral-800 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300"
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tagColor(tag) }} aria-hidden="true" />
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-neutral-500">
         <span className="flex min-w-0 items-center gap-2">
           <span className="truncate">pushed {timeAgo(repo.pushed_at)}</span>
@@ -580,6 +662,97 @@ function Column({ col, repos, onDropColumn, ...cardProps }) {
   );
 }
 
+function TagFilter({ available, value, onChange }) {
+  const TagIcon = ICON.tag;
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+  const selected = value.tags;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const el = btnRef.current;
+    if (!el) return undefined;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      const width = 224;
+      const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+      setPos({ top: r.bottom + 4, left });
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [open]);
+
+  const toggleTag = (tag) =>
+    onChange({ ...value, tags: selected.includes(tag) ? selected.filter((t) => t !== tag) : [...selected, tag] });
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Filter by tag"
+        aria-expanded={open}
+        className={cx(
+          'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] transition-colors',
+          selected.length ? 'border-neutral-600 bg-neutral-800 text-neutral-200' : 'border-neutral-800 bg-transparent text-neutral-600'
+        )}
+      >
+        <TagIcon className="h-3 w-3" aria-hidden="true" />
+        tags{selected.length ? ` (${selected.length})` : ''}
+      </button>
+      {open &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+            <div
+              className="fixed z-20 w-56 rounded-lg border border-neutral-700 bg-neutral-900 p-2 shadow-2xl"
+              style={pos ? { top: pos.top, left: pos.left } : { visibility: 'hidden' }}
+            >
+              <div className="flex items-center justify-between px-1 pb-1">
+                <span className="text-[10px] uppercase tracking-widest text-neutral-500">Filter by tag</span>
+                {selected.length > 0 && (
+                  <button onClick={() => onChange({ tags: [], mode: value.mode })} className="text-[10px] text-neutral-400 hover:text-neutral-200">
+                    clear
+                  </button>
+                )}
+              </div>
+              {selected.length >= 2 && (
+                <div className="mb-1 flex overflow-hidden rounded-md border border-neutral-700 text-[10px]">
+                  {['any', 'all'].map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => onChange({ ...value, mode: m })}
+                      className={cx('flex-1 px-2 py-0.5', value.mode === m ? 'bg-neutral-800 text-neutral-100' : 'text-neutral-400 hover:bg-neutral-800')}
+                    >
+                      match {m}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="max-h-56 overflow-auto">
+                {available.length === 0 ? (
+                  <p className="px-1 py-2 text-center text-[11px] text-neutral-600">no tags yet</p>
+                ) : (
+                  available.map(({ tag, count }) => (
+                    <label key={tag} className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1 text-[11px] text-neutral-300 hover:bg-neutral-800">
+                      <input type="checkbox" checked={selected.includes(tag)} onChange={() => toggleTag(tag)} className="accent-neutral-500" />
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tagColor(tag) }} aria-hidden="true" />
+                      <span className="flex-1 truncate">#{tag}</span>
+                      <span className="tabular-nums text-neutral-600">{count}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
+    </>
+  );
+}
+
 export default function App() {
   const SyncIcon = ICON.sync;
   const SearchIcon = ICON.search;
@@ -596,6 +769,8 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   // Notices dialog scope: null (closed) | 'all' | a repo id.
   const [noticesScope, setNoticesScope] = useState(null);
+  // Transient tag query: which tags to match and whether any/all.
+  const [tagFilter, setTagFilter] = useState({ tags: [], mode: 'any' });
 
   // "Show ignored" is a global visibility switch, deliberately separate from
   // the own/forks/archived inclusive filters and persisted under its own key.
@@ -726,6 +901,8 @@ export default function App() {
   const onSetIgnored = (id, ignored) => mutate(() => api.setIgnored(id, ignored));
   const onAddNotice = (id, body) => mutate(() => api.addNotice(id, body));
   const onViewNotices = (scope) => setNoticesScope(scope);
+  const onAddTag = (id, tag) => mutate(() => api.addTag(id, tag));
+  const onRemoveTag = (id, tag) => mutate(() => api.removeTag(id, tag));
   const onToggleMenu = (id) => setOpenMenuId((cur) => (cur === id ? null : id));
 
   const onDragStartCard = (e, id) => {
@@ -739,8 +916,21 @@ export default function App() {
   };
 
   const filtered = useMemo(() => {
-    return filterRepos(data.repos, q, filters, showIgnored);
-  }, [data.repos, q, filters, showIgnored]);
+    return filterRepos(data.repos, q, filters, showIgnored, tagFilter);
+  }, [data.repos, q, filters, showIgnored, tagFilter]);
+
+  const availableTags = useMemo(() => collectTags(data.repos), [data.repos]);
+
+  // Drop selected tags that no longer exist on any repo (e.g. after removing the
+  // last use of a tag) so the filter can't get stuck on a phantom tag.
+  useEffect(() => {
+    setTagFilter((tf) => {
+      if (tf.tags.length === 0) return tf;
+      const avail = new Set(availableTags.map((t) => t.tag));
+      const kept = tf.tags.filter((t) => avail.has(t));
+      return kept.length === tf.tags.length ? tf : { ...tf, tags: kept };
+    });
+  }, [availableTags]);
 
   // Only surface the per-card owner indicator when the board mixes owners;
   // single-owner setups already name the owner in the header.
@@ -781,6 +971,9 @@ export default function App() {
     onSetIgnored,
     onAddNotice,
     onViewNotices,
+    onAddTag,
+    onRemoveTag,
+    allTags: availableTags.map((t) => t.tag),
     defaultInactivity: data.defaultInactivityDays,
   };
 
@@ -889,6 +1082,7 @@ export default function App() {
             <IgnoredIcon className="h-3 w-3" aria-hidden="true" />
             show ignored
           </button>
+          <TagFilter available={availableTags} value={tagFilter} onChange={setTagFilter} />
           <button
             onClick={() => setNoticesScope('all')}
             className="flex items-center gap-1 rounded-md border border-neutral-700 px-2 py-1 text-[11px] text-neutral-300 hover:bg-neutral-800"

@@ -137,6 +137,13 @@ components:
   card-owner-stripe:
     # 3px left edge on the card, coloured from the owner palette.
     width: 3px
+  # ---- Tag chip ------------------------------------------------------------
+  # Neutral pill with a leading dot coloured from the categorical palette
+  # (inline style); text is the `#tag`. Same identity rationale as the owner
+  # badge — categorical, never an urgency signal.
+  badge-tag:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text-secondary}"
   # ---- Buttons -------------------------------------------------------------
   button-primary:
     backgroundColor: "{colors.surface}"
@@ -328,13 +335,15 @@ semantic rose/amber/sky system.
   owner login, so a given owner always gets the same colour.
 * It is the **only** place colour is chosen dynamically, so it is applied via
   inline `style` (hex), not Tailwind classes — this is a deliberate, documented
-  exception to the "no dynamic class names" rule, because the owner set is
+  exception to the "no dynamic class names" rule, because the owner/tag sets are
   unbounded and cannot be statically enumerated.
 * Reserved semantic hues (rose = today, amber = near, sky = future, emerald =
-  public, violet = language) are avoided in the owner palette so identity colour
-  never reads as an urgency or status signal.
-* The palette lives in `App.jsx` as `OWNER_PALETTE`; update this section if it
-  changes.
+  public, violet = language) are avoided so identity colour never reads as an
+  urgency or status signal.
+* The same palette colours **tag** chip dots (see Repo tags). The palette lives
+  in `App.jsx` as `OWNER_PALETTE` (hashed by `ownerColor` / `tagColor`); update
+  this section if it changes. Owners and tags are told apart by structure, not
+  hue: owners get a left card stripe + plain login; tags are `#`-prefixed.
 
 ## Typography
 
@@ -431,9 +440,10 @@ Full-width bar below header:
 * Left: text filter input (fixed `256px` width)
 * Middle: filter pills (own / forks / archived) + conditional "show all" button
 * Right: a separate group, divided by a `border-l`, holding the global **show
-  ignored** toggle and a **Notices** button. These sit deliberately apart from
-  the inclusive filter pills: ignoring is an independent visibility axis, not a
-  category filter, and the Notices button opens the all-repos dialog.
+  ignored** toggle, the **tag filter**, and a **Notices** button. These sit
+  deliberately apart from the inclusive filter pills: ignoring is an independent
+  visibility axis, the tag filter is a query, and the Notices button opens the
+  all-repos dialog.
 
 ## Elevation & depth
 
@@ -520,6 +530,16 @@ uncluttered). It has two parts, both coloured from the owner palette:
 Read-only, like all badges. The colour is identity, never urgency — see
 Colors → Owner palette. Do not add a second colour to the pill body.
 
+### Repo tags
+
+User-assigned labels. When a repo has any tags, they render as a wrapped row of
+chips directly below the badge row (only when present, so untagged cards stay
+clean). Each chip (`badge-tag`) is a neutral pill with a small leading colour
+dot (categorical palette, hashed from the tag via `tagColor`) and the tag text
+shown as `#tag` in `body-sm`. Like the owner badge, only the dot carries colour;
+the chip body is neutral. Read-only on the card — tags are added/removed in the
+CardMenu and filtered from the toolbar.
+
 ### CardMenu (popover)
 
 Appears on `···` click. Fixed-width `256px`. Rendered through a portal to
@@ -529,13 +549,17 @@ Contains these action groups, each separated by a `border-neutral-800` divider:
 
 1. **Review timing buttons** — "Checked now", "Move to Today", "Clear check date"
 2. **Per-repo review interval input** — number field + save button
-3. **Ignore toggle** — a single full-width button reading "Ignore repo" /
+3. **Tags** — a `micro` label, the repo's current tags as removable chips (each
+   with an `×`), and a text field (with a `datalist` of existing tags for
+   autocomplete) + "Add" button to attach a new tag. Adding an existing tag is a
+   no-op.
+4. **Ignore toggle** — a single full-width button reading "Ignore repo" /
    "Unignore repo" depending on current state.
-4. **Notices** — a `micro` label, a multi-line text field for a new notice, an
+5. **Notices** — a `micro` label, a multi-line text field for a new notice, an
    "Add" button (disabled while the field is empty), and a "View all (N)" link
    that opens the Notices dialog scoped to this repo. `N` is the repo's notice
    count.
-5. Backdrop scrim (`fixed inset-0 z-10`) closes the menu on outside click.
+6. Backdrop scrim (`fixed inset-0 z-10`) closes the menu on outside click.
 
 Do not add new action groups without updating this document.
 
@@ -571,6 +595,17 @@ border-neutral-800 text-faint`) with a leading eye-off glyph. It is **not** part
 of the own/forks/archived inclusive set: it toggles whether ignored repos are
 shown at all, on top of whatever the inclusive filters resolve to. Its state is
 persisted in localStorage under its own key, separate from the filter pills.
+
+### Tag filter
+
+A toolbar button (`tags (N)` where `N` is the number of selected tags) opens a
+popover (portal, `fixed`, anchored below the trigger; backdrop scrim closes it —
+same pattern as the CardMenu). The popover lists every tag currently on the
+board with its usage count as checkbox rows, plus a **match any / all**
+segmented toggle (shown once two or more tags are selected) and a "clear"
+action. Selection narrows the board to repos matching the chosen tags (union for
+"any", intersection for "all"); it composes with the text and inclusive filters.
+Like the text filters it is a transient query — not persisted.
 
 ### Notices dialog
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDayColumns, defaultFilters, filterRepos, groupRepos, repoMatchesQuery, sortNotices } from './board.js';
+import { buildDayColumns, collectTags, defaultFilters, filterRepos, groupRepos, matchesTagFilter, repoMatchesQuery, sortNotices } from './board.js';
 
 const repos = [
     { id: 1, name: 'own-live', description: 'alpha', language: 'JS', fork: false, archived: false, column: 'day-0', position: 2 },
@@ -25,6 +25,49 @@ describe('filterRepos', () => {
         const withIgnored = [...repos, { id: 9, name: 'hidden', fork: false, archived: false, ignored: true }];
         expect(filterRepos(withIgnored, '', defaultFilters).map((r) => r.id)).not.toContain(9);
         expect(filterRepos(withIgnored, '', defaultFilters, true).map((r) => r.id)).toContain(9);
+    });
+
+    it('narrows by the tag filter (any / all)', () => {
+        const tagged = [
+            { id: 10, name: 't1', fork: false, archived: false, tags: ['infra'] },
+            { id: 11, name: 't2', fork: false, archived: false, tags: ['oss', 'infra'] },
+        ];
+        expect(filterRepos(tagged, '', defaultFilters, false, { tags: ['oss'], mode: 'any' }).map((r) => r.id)).toEqual([11]);
+        expect(filterRepos(tagged, '', defaultFilters, false, { tags: ['oss', 'infra'], mode: 'all' }).map((r) => r.id)).toEqual([11]);
+        expect(filterRepos(tagged, '', defaultFilters, false, { tags: ['oss', 'infra'], mode: 'any' }).map((r) => r.id)).toEqual([10, 11]);
+    });
+});
+
+describe('matchesTagFilter', () => {
+    const repo = { tags: ['infra', 'oss'] };
+
+    it('passes when no tags are selected', () => {
+        expect(matchesTagFilter(repo, [])).toBe(true);
+        expect(matchesTagFilter(repo, undefined)).toBe(true);
+    });
+
+    it('any mode matches when at least one selected tag is present', () => {
+        expect(matchesTagFilter(repo, ['oss', 'x'], 'any')).toBe(true);
+        expect(matchesTagFilter(repo, ['x'], 'any')).toBe(false);
+    });
+
+    it('all mode matches only when every selected tag is present', () => {
+        expect(matchesTagFilter(repo, ['infra', 'oss'], 'all')).toBe(true);
+        expect(matchesTagFilter(repo, ['infra', 'x'], 'all')).toBe(false);
+    });
+
+    it('tolerates repos with no tags', () => {
+        expect(matchesTagFilter({}, ['x'], 'any')).toBe(false);
+    });
+});
+
+describe('collectTags', () => {
+    it('counts distinct tags, sorted by count then name', () => {
+        const repos2 = [{ tags: ['a', 'b'] }, { tags: ['a'] }, { tags: [] }, {}];
+        expect(collectTags(repos2)).toEqual([
+            { tag: 'a', count: 2 },
+            { tag: 'b', count: 1 },
+        ]);
     });
 });
 

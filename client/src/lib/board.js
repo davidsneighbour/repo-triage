@@ -9,12 +9,35 @@ export function repoMatchesQuery(repo, query) {
     return haystack.includes(term);
 }
 
+// Tag-filter predicate. `selected` empty = passes. mode 'all' = repo must carry
+// every selected tag; 'any' = at least one.
+export function matchesTagFilter(repo, selected, mode = 'any') {
+    if (!selected || selected.length === 0) return true;
+    const tags = repo.tags || [];
+    return mode === 'all'
+        ? selected.every((t) => tags.includes(t))
+        : selected.some((t) => tags.includes(t));
+}
+
+// Distinct tags across repos with usage counts, sorted by count desc then name.
+export function collectTags(repos) {
+    const counts = new Map();
+    for (const repo of repos) {
+        for (const tag of repo.tags || []) counts.set(tag, (counts.get(tag) || 0) + 1);
+    }
+    return [...counts.entries()]
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
 // `showIgnored` is an independent axis from the inclusive own/forks/archived
 // filters: ignored repos are dropped first, regardless of the other toggles,
-// unless the global "show ignored" switch is on.
-export function filterRepos(repos, query, filters, showIgnored = false) {
+// unless the global "show ignored" switch is on. `tagFilter` ({ tags, mode })
+// further narrows to repos matching the selected tags.
+export function filterRepos(repos, query, filters, showIgnored = false, tagFilter = null) {
     return repos.filter((repo) => {
         if (repo.ignored && !showIgnored) return false;
+        if (tagFilter && !matchesTagFilter(repo, tagFilter.tags, tagFilter.mode)) return false;
 
         const isOwn = !repo.fork && !repo.archived;
         const visible =

@@ -44,4 +44,11 @@ export const api = {
   allNotices: (sort = 'date', dir = 'desc') =>
     fetch(`/api/notices?sort=${encodeURIComponent(sort)}&dir=${encodeURIComponent(dir)}`).then(json),
   deleteNotice: (noticeId) => fetch(`/api/notices/${noticeId}`, { method: 'DELETE' }).then(json),
+  addTag: (id, tag) =>
+    fetch(`/api/repos/${id}/tags`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag }),
+    }).then(json),
+  removeTag: (id, tag) => fetch(`/api/repos/${id}/tags/${encodeURIComponent(tag)}`, { method: 'DELETE' }).then(json),
 };

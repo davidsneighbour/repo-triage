@@ -5,18 +5,19 @@ description: >
   A local-only day-schedule kanban dashboard for GitHub repositories.
   Dark, monospaced, high-contrast. Information density over decoration.
 colors:
-  # Surfaces
-  background: "#0a0a0a"
-  surface: "#171717"
-  surface-subtle: "#0d0d0d"
+  # Surfaces — the neutral ramp carries a faint phosphor-green tint (old CRT
+  # terminal). Subtle on purpose; accent ramps below stay pure.
+  background: "#080c08"
+  surface: "#141a15"
+  surface-subtle: "#0b110c"
   # Borders
-  border: "#262626"
-  border-muted: "#404040"
+  border: "#1f2a21"
+  border-muted: "#38463b"
   # Text
-  text-primary: "#f5f5f5"
-  text-secondary: "#d4d4d4"
-  text-muted: "#737373"
-  text-faint: "#525252"
+  text-primary: "#eff5f0"
+  text-secondary: "#cbd8cd"
+  text-muted: "#6b806f"
+  text-faint: "#4b5d4f"
   # Accent — Today / urgent
   accent-today: "#f43f5e"
   accent-today-dim: "#fda4af"
@@ -247,7 +248,10 @@ semantic meaning only; they are never decorative.
 1. **Information density over whitespace.** Every pixel should serve data or
    structure, not brand identity.
 2. **Colour = signal.** Each accent colour encodes a specific urgency state.
-   Do not introduce new accent colours for aesthetic reasons.
+   Do not introduce new accent colours for aesthetic reasons. The sole
+   non-signal colour is the faint phosphor-green tint baked into the neutral
+   chrome ramp (see Colors) — it is global, low-saturation, and carries no
+   meaning; it is not an accent and must never compete with the urgency ramps.
 3. **Monospace everywhere.** IBM Plex Mono is the sole typeface. No serif or
    sans-serif mixing. This reinforces the developer-tool character and ensures
    tabular data (counts, timestamps) aligns naturally.
@@ -260,18 +264,30 @@ semantic meaning only; they are never decorative.
 
 The palette has one dark neutral ramp and three semantic accent colours.
 
-### Neutral ramp (surfaces, text, borders)
+### Neutral ramp (surfaces, text, borders) — phosphor-green tint
+
+The neutral ramp — every chrome element: borders, outlines, icons, buttons,
+inputs, dropdowns, popovers, body text — carries a **faint neon-green tint**,
+evoking an old phosphor CRT terminal. It is deliberately low-saturation (a
+"sprinkle", not a glow): strongest in the mid/dark border tones (~10–15 %
+saturation) and barely present at the light text extremes. The semantic accent
+ramps (rose / amber / sky) and the status badges (emerald / violet) stay **pure**
+— the tint never touches signal colour.
+
+It is implemented once by overriding the Tailwind `--color-neutral-*` tokens in
+`client/src/index.css`, so every `*-neutral-*` utility inherits it; do not tint
+individual components by hand. Update both this table and those tokens together.
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `background` | `#0a0a0a` | Page background (Tailwind neutral-950) |
-| `surface` | `#171717` | Cards, column headers, popovers (neutral-900) |
-| `border` | `#262626` | Default borders (neutral-800) |
-| `border-muted` | `#404040` | Hover / focus borders (neutral-700) |
-| `text-primary` | `#f5f5f5` | Headlines, repo names (neutral-100) |
-| `text-secondary` | `#d4d4d4` | Body text, column headers (neutral-300) |
-| `text-muted` | `#737373` | Metadata, timestamps (neutral-500) |
-| `text-faint` | `#525252` | Placeholder text, empty states (neutral-600) |
+| `background` | `#080c08` | Page background (Tailwind neutral-950) |
+| `surface` | `#141a15` | Cards, column headers, popovers (neutral-900) |
+| `border` | `#1f2a21` | Default borders (neutral-800) |
+| `border-muted` | `#38463b` | Hover / focus borders (neutral-700) |
+| `text-primary` | `#eff5f0` | Headlines, repo names (neutral-100) |
+| `text-secondary` | `#cbd8cd` | Body text, column headers (neutral-300) |
+| `text-muted` | `#6b806f` | Metadata, timestamps (neutral-500) |
+| `text-faint` | `#4b5d4f` | Placeholder text, empty states (neutral-600) |
 
 The background also carries two very subtle radial gradients — a rose tint from
 the bottom-left and a sky tint from the top-right — adding depth without

@@ -7,6 +7,22 @@
 /* Project theme tokens. Keeps IBM Plex Mono as the `font-mono` stack. */
 @theme {
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Phosphor-green chrome: a faint neon-green tint on the whole neutral ramp
+     (borders, icons, buttons, inputs, dropdowns, body text) for an old-CRT
+     terminal feel. Low saturation on purpose — the semantic accent ramps
+     (rose/amber/sky) and badges (emerald/violet) are untouched. See DESIGN.md. */
+  --color-neutral-50: #f6faf7;
+  --color-neutral-100: #eff5f0;
+  --color-neutral-200: #dde7de;
+  --color-neutral-300: #cbd8cd;
+  --color-neutral-400: #9ab09e;
+  --color-neutral-500: #6b806f;
+  --color-neutral-600: #4b5d4f;
+  --color-neutral-700: #38463b;
+  --color-neutral-800: #1f2a21;
+  --color-neutral-900: #141a15;
+  --color-neutral-950: #080c08;
 }
 
 :root {
@@ -24,8 +40,8 @@ body {
   background:
     radial-gradient(900px 500px at 100% -10%, rgba(56, 189, 248, 0.06), transparent 60%),
     radial-gradient(900px 500px at -10% 110%, rgba(244, 63, 94, 0.05), transparent 60%),
-    #0a0a0a;
-  color: #e5e5e5;
+    #080c08;
+  color: #dde7de;
   font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -35,7 +51,7 @@ body {
   width: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #262626;
+  background: #1f2a21;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-track {

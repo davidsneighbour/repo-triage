@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Archive, BarChart3, CircleDot, CircleHelp, EyeOff, GitFork, RefreshCw, Search, Settings2, Star, StickyNote, Tag, Trash2, User, X } from 'lucide-react';
+import { Archive, BarChart3, CircleDot, CircleHelp, EyeOff, GitFork, RefreshCw, Rows2, Search, Settings2, Star, StickyNote, Tag, Trash2, User, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { api } from './api.js';
@@ -95,6 +95,7 @@ const ICON = {
   issues: CircleDot,
   tag: Tag,
   reports: BarChart3,
+  density: Rows2,
 };
 
 const REPORT_LABELS = {
@@ -504,12 +505,13 @@ function NoticesDialog({ scope, repos, onClose, onScopeChange, onChanged }) {
   );
 }
 
-function RepoCard({ repo, column, menuOpenId, showOwner, onToggleMenu, onDragStartCard, onDropOnCard, ...handlers }) {
+function RepoCard({ repo, column, menuOpenId, showOwner, density = 'comfortable', onToggleMenu, onDragStartCard, onDropOnCard, ...handlers }) {
   const SettingsIcon = ICON.settings;
   const StarIcon = ICON.star;
   const IssueIcon = ICON.issues;
   const menuButtonRef = useRef(null);
   const ownerTint = showOwner && repo.owner ? ownerColor(repo.owner) : null;
+  const compact = density === 'compact';
 
   const dueText = repo.needsCheckToday ? 'review today' : `review in ${repo.dueInDays} days`;
   const cardLabel = `${repo.name}${repo.owner ? `, ${repo.owner}` : ''} — ${dueText}`;
@@ -540,7 +542,7 @@ function RepoCard({ repo, column, menuOpenId, showOwner, onToggleMenu, onDragSta
         onDropOnCard(e, repo.id, column.daysAgoTarget);
       }}
       style={ownerTint ? { borderLeftColor: ownerTint, borderLeftWidth: 3 } : undefined}
-      className="group relative rounded-lg border border-neutral-800 bg-neutral-900/70 p-3 hover:border-neutral-700"
+      className={cx('group relative rounded-lg border border-neutral-800 bg-neutral-900/70 hover:border-neutral-700', compact ? 'p-2' : 'p-3')}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 cursor-grab active:cursor-grabbing">
@@ -552,7 +554,7 @@ function RepoCard({ repo, column, menuOpenId, showOwner, onToggleMenu, onDragSta
           >
             {repo.name}
           </a>
-          {repo.description && <p className="mt-0.5 line-clamp-2 text-xs text-neutral-500">{repo.description}</p>}
+          {repo.description && <p className={cx('mt-0.5 text-xs text-neutral-500', compact ? 'line-clamp-1' : 'line-clamp-2')}>{repo.description}</p>}
         </div>
         <button
           ref={menuButtonRef}
@@ -628,7 +630,7 @@ function RepoCard({ repo, column, menuOpenId, showOwner, onToggleMenu, onDragSta
         )}
       </div>
 
-      {repo.latest_notice && (
+      {repo.latest_notice && !compact && (
         <div className="mt-2 flex items-start justify-between gap-2 rounded-md bg-neutral-950 px-2 py-1.5">
           <p className="line-clamp-2 text-[11px] text-neutral-300">{repo.latest_notice.body}</p>
           <span className="shrink-0 text-[10px] tabular-nums text-neutral-600">{timeAgo(repo.latest_notice.created_at)}</span>
@@ -960,6 +962,7 @@ export default function App() {
   const IgnoredIcon = ICON.ignored;
   const NoticesIcon = ICON.notices;
   const ReportsIcon = ICON.reports;
+  const DensityIcon = ICON.density;
 
   const [data, setData] = useState(() => readBoardCache() ?? EMPTY_DATA);
   const [loading, setLoading] = useState(() => !readBoardCache());
@@ -1029,6 +1032,26 @@ export default function App() {
   };
 
   const allShown = Object.values(filters).every(Boolean);
+
+  // Card density (comfortable | compact), persisted.
+  const DENSITY_KEY = 'repo-triage-density';
+  const [density, setDensity] = useState(() => {
+    try {
+      return localStorage.getItem(DENSITY_KEY) === 'compact' ? 'compact' : 'comfortable';
+    } catch {
+      return 'comfortable';
+    }
+  });
+  const toggleDensity = () =>
+    setDensity((prev) => {
+      const next = prev === 'compact' ? 'comfortable' : 'compact';
+      try {
+        localStorage.setItem(DENSITY_KEY, next);
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
 
   const load = useCallback(async () => {
     try {
@@ -1180,6 +1203,7 @@ export default function App() {
   const cardProps = {
     menuOpenId: openMenuId,
     showOwner: showOwners,
+    density,
     onToggleMenu,
     onDragStartCard,
     onDropOnCard,
@@ -1290,6 +1314,20 @@ export default function App() {
           )}
         </div>
         <div className="flex items-center gap-2 border-l border-neutral-800 pl-3">
+          <button
+            onClick={toggleDensity}
+            aria-pressed={density === 'compact'}
+            title={density === 'compact' ? 'Compact cards (click for comfortable)' : 'Comfortable cards (click for compact)'}
+            className={cx(
+              'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] transition-colors',
+              density === 'compact'
+                ? 'border-neutral-600 bg-neutral-800 text-neutral-200'
+                : 'border-neutral-800 bg-transparent text-neutral-600'
+            )}
+          >
+            <DensityIcon className="h-3 w-3" aria-hidden="true" />
+            compact
+          </button>
           <button
             onClick={toggleShowIgnored}
             aria-pressed={showIgnored}

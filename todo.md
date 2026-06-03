@@ -112,8 +112,9 @@ so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
 * [x] **(P0)** "×" to clear a column's filter field (carried over idea).
 * [ ] **(P1)** Group-by selector: by **day** (current), **owner**, **tag**, or
   **language**; board re-columns accordingly.
-* [ ] **(P1)** Per-column sort (name, pushed, stars, due) and card **density**
-  toggle (compact/comfortable), persisted.
+* [x] **(P1)** Card **density** toggle (compact/comfortable), persisted — compact
+  uses `p-2`, `line-clamp-1` descriptions, and hides the notice preview.
+* [ ] **(P1)** Per-column sort (name, pushed, stars, due).
 * [ ] **(P1)** List/table view as an alternative to the board (sortable columns,
   good for bulk scanning and reports).
 * [ ] **(P2)** Field visibility toggles (stars, issues, language, pushed, notice

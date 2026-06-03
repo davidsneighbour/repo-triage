@@ -509,6 +509,17 @@ a card, `]` pushes it one column further out and `[` pulls it one column toward
 Today — the same target math as a drag. The card is labelled as a `group` for
 screen readers (repo name, owner, due state).
 
+**Density.** A global toggle (toolbar) switches all cards between two modes,
+persisted in localStorage:
+
+* **comfortable** (default) — `p-3`, description `line-clamp-2`, latest-notice
+  preview shown.
+* **compact** — `p-2`, description `line-clamp-1`, notice preview hidden (still
+  reachable in the card menu / Notices dialog). Same data hierarchy, less height.
+
+Only spacing and the optional preview change; badges, owner, stats, and the
+review line are always present so the card never loses triage-critical info.
+
 ### Badge
 
 Read-only labels. Always inline. Never interactive. Each badge type has a fixed

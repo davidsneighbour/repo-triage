@@ -395,7 +395,7 @@ otherwise just the total.
 │ repo-name                   [⋯] │
 │ short description (2 lines max) │
 │ [public] [live] [JavaScript]    │
-│ pushed 3d ago     checked 2d ago│
+│ pushed 3d ago ★12 ◌3  checked 2d│
 │ review in 5d                    │
 │ ▸ latest notice text   2d ago   │  ← card-notice (only if a notice exists)
 └─────────────────────────────────┘
@@ -404,7 +404,11 @@ otherwise just the total.
 * Card padding: `12px` (`p-3`).
 * Description: `line-clamp-2`. Never wraps further.
 * Badge row: flex-wrap, gap `6px`.
-* Metadata row: flex row, space-between, `label` scale.
+* Metadata row: flex row, space-between, `label` scale. The left cluster is
+  `pushed <age>` followed by optional **repo stats** — a star glyph + stargazer
+  count and an issue glyph + open-issue/PR count. Stats are muted (`text-muted`,
+  `tabular-nums`), each shown only when its count is `> 0`, and never carry an
+  accent colour — they are reference data, not a signal.
 * **Card notice** — when a repo has at least one notice, the most recent one
   renders in a `card-notice` block below the metadata: `surface-subtle`
   background, `rounded.md`, `label` scale, body text `line-clamp-2`, with the
@@ -551,6 +555,8 @@ toolbar filter.
 * Full column width, `input` token styling (`bg-background`, `rounded.md`,
   default `border`, `border-muted` on focus), `label`-scale text, with a leading
   search glyph matching the toolbar filter.
+* When the field is non-empty, a trailing **clear (`×`)** button (muted, hover
+  to `text-secondary`) sits inside the right edge and resets the field on click.
 * Matches the same fields as the global filter: repo name, description, language.
 * When active and it hides cards, the header count chip switches to `m/N`
   (visible/total) and an empty result shows "no matches" instead of "drag here".

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Archive, CircleHelp, EyeOff, GitFork, RefreshCw, Search, Settings2, StickyNote, Trash2, User, X } from 'lucide-react';
+import { Archive, CircleDot, CircleHelp, EyeOff, GitFork, RefreshCw, Search, Settings2, Star, StickyNote, Trash2, User, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { api } from './api.js';
@@ -80,6 +80,8 @@ const ICON = {
   archived: Archive,
   ignored: EyeOff,
   notices: StickyNote,
+  star: Star,
+  issues: CircleDot,
 };
 
 function Badge({ tone = 'neutral', children }) {
@@ -402,6 +404,8 @@ function NoticesDialog({ scope, repos, onClose, onScopeChange, onChanged }) {
 
 function RepoCard({ repo, column, menuOpenId, showOwner, onToggleMenu, onDragStartCard, onDropOnCard, ...handlers }) {
   const SettingsIcon = ICON.settings;
+  const StarIcon = ICON.star;
+  const IssueIcon = ICON.issues;
   const menuButtonRef = useRef(null);
   const ownerTint = showOwner && repo.owner ? ownerColor(repo.owner) : null;
 
@@ -457,9 +461,23 @@ function RepoCard({ repo, column, menuOpenId, showOwner, onToggleMenu, onDragSta
         {repo.ignored && <Badge tone="neutral">ignored</Badge>}
       </div>
 
-      <div className="mt-2 flex items-center justify-between text-[11px] text-neutral-500">
-        <span>pushed {timeAgo(repo.pushed_at)}</span>
-        <span>
+      <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-neutral-500">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate">pushed {timeAgo(repo.pushed_at)}</span>
+          {repo.stargazers_count > 0 && (
+            <span className="flex shrink-0 items-center gap-0.5 tabular-nums" title={`${repo.stargazers_count} stargazers`}>
+              <StarIcon className="h-3 w-3" aria-hidden="true" />
+              {repo.stargazers_count}
+            </span>
+          )}
+          {repo.open_issues_count > 0 && (
+            <span className="flex shrink-0 items-center gap-0.5 tabular-nums" title={`${repo.open_issues_count} open issues / PRs`}>
+              <IssueIcon className="h-3 w-3" aria-hidden="true" />
+              {repo.open_issues_count}
+            </span>
+          )}
+        </span>
+        <span className="shrink-0">
           {repo.checkedAgeDays == null
             ? 'not checked yet'
             : repo.checkedAgeDays === 0
@@ -517,8 +535,18 @@ function Column({ col, repos, onDropColumn, ...cardProps }) {
           onChange={(e) => setCq(e.target.value)}
           placeholder="filter column..."
           aria-label={`Filter ${col.title} column`}
-          className="w-full rounded-md border border-neutral-800 bg-neutral-950 pl-7 pr-2 py-1 text-[11px] text-neutral-100 outline-hidden focus:border-neutral-600"
+          className="w-full rounded-md border border-neutral-800 bg-neutral-950 pl-7 pr-7 py-1 text-[11px] text-neutral-100 outline-hidden focus:border-neutral-600"
         />
+        {cq && (
+          <button
+            type="button"
+            onClick={() => setCq('')}
+            aria-label={`Clear ${col.title} filter`}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-neutral-600 hover:text-neutral-200"
+          >
+            <X className="h-3 w-3" aria-hidden="true" />
+          </button>
+        )}
       </label>
 
       <div

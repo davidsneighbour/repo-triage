@@ -67,6 +67,20 @@ describe('per-column filter', () => {
     expect(screen.getByText('1/2')).toBeInTheDocument();
   });
 
+  it('clears the column filter via the × button', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha-repo' });
+
+    const todayFilter = screen.getByLabelText('Filter Today column');
+    fireEvent.change(todayFilter, { target: { value: 'alpha' } });
+    expect(screen.queryByRole('link', { name: 'beta-repo' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Clear Today filter'));
+
+    expect(todayFilter).toHaveValue('');
+    expect(screen.getByRole('link', { name: 'beta-repo' })).toBeInTheDocument();
+  });
+
   it('shows "no matches" when the column filter excludes everything', async () => {
     render(<App />);
     await screen.findByRole('link', { name: 'alpha-repo' });

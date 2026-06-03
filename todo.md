@@ -98,9 +98,9 @@ so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
 
 ### 5. Display & board options
 
-* [ ] **(P0)** Show fetched-but-hidden data on cards: ⭐ stars and open-issue count
+* [x] **(P0)** Show fetched-but-hidden data on cards: ⭐ stars and open-issue count
   (compact, muted; never as accent colour).
-* [ ] **(P0)** "×" to clear a column's filter field (carried over idea).
+* [x] **(P0)** "×" to clear a column's filter field (carried over idea).
 * [ ] **(P1)** Group-by selector: by **day** (current), **owner**, **tag**, or
   **language**; board re-columns accordingly.
 * [ ] **(P1)** Per-column sort (name, pushed, stars, due) and card **density**

@@ -7,16 +7,23 @@ age (`DEFAULT_INACTIVITY_DAYS`), it returns to **Today** automatically.
 ## Features
 
 * Day-based board: **Today + N-1 future weekday columns**
-* Drag-drop scheduling by day column
-* Per-repo review cycle override
-* Inclusive repository filtering (`own`, `forks`, `archived`)
-* Auto-sync with GitHub on startup and/or interval
+* Drag-drop **and keyboard** scheduling (`[` / `]` move the focused card)
+* Per-repo review cycle override; honest "checked today / Nd ago" age
+* Load from **multiple users and orgs** (`GITHUB_OWNERS`); per-card owner badge
+* **Tags** (chips + toolbar filter), **notices** (timestamped notes), and an
+  **ignore** flag with a global show-ignored toggle
+* Inclusive repository filtering (`own`, `forks`, `archived`) + per-column filter
+* **Reports** (overdue / stale / per-owner / …) viewable in-app or exported as
+  Markdown/CSV, shared with the **`repo-triage` CLI**
+* Auto-sync with GitHub on startup and/or interval (background, non-blocking)
 * Live GitHub API rate-limit status and token validity feedback
+* Accessible: focus-trapped dialogs, ARIA roles, live region, reduced-motion
 * SQLite persistence for triage state only (repo catalog is always from GitHub)
 
 ## Quick start
 
-1. Copy `.env.example` to `.env` and set `GITHUB_TOKEN`.
+1. Copy `.env.example` to `.env` and set `GITHUB_TOKEN` (or just run
+   `gh auth login` — the server falls back to `gh auth token`).
 2. Run:
 
 ```bash
@@ -29,8 +36,9 @@ docker compose --env-file .env up --build
 
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
-| `GITHUB_TOKEN` | yes | none | GitHub API auth token |
-| `GITHUB_USERNAME` | no | empty | If set, load only that user/org public repos |
+| `GITHUB_TOKEN` | no* | none | GitHub API auth token. *If unset, falls back to `gh auth token` (run `gh auth login`) |
+| `GITHUB_OWNERS` | no | empty | Users/orgs to load. Comma list or JSON array. Blank = the token owner's full set. Own login / member orgs include private; other users/orgs are public-only (a warning is shown) |
+| `GITHUB_USERNAME` | no | empty | Deprecated single-owner alias for `GITHUB_OWNERS` |
 | `DEFAULT_INACTIVITY_DAYS` | no | `7` | Due age in days for returning a repo to Today |
 | `SYNC_ON_STARTUP` | no | `true` | Fetch GitHub repos when server starts |
 | `SYNC_AUTO` | no | `true` | Enable periodic background sync |
@@ -107,25 +115,30 @@ Filter settings persist in browser `localStorage`.
 
 The dashboard ships with an in-app help panel backed by Markdown content.
 
-Keyboard contract:
+Keyboard:
 
-* `F1` opens the help panel.
-* `Esc` closes the help panel.
+* `F1` opens / `Esc` closes the help panel.
+* `]` / `[` move the focused repo card one column further out / toward Today.
+* Dialogs trap focus and restore it to the trigger on close.
 
 Rendering boundaries:
 
-* Help content is loaded from `client/src/help.md`.
-* Markdown is rendered via `react-markdown` + `remark-gfm`.
-* Fenced `mermaid` code blocks are rendered as diagrams when Mermaid succeeds.
-* If Mermaid rendering fails, the panel shows a warning and keeps the Markdown
-    text visible.
+* Help content is loaded from `client/src/help.md` (`react-markdown` + `remark-gfm`).
+* The flow diagram is **pre-rendered to a static SVG at build time**
+    (`client/src/help-diagram.svg` via `scripts/build-help-diagram.mjs`) — Mermaid
+    is never run in the browser.
 
 ## GitHub API behavior
 
-* Repo fetching is paginated (`/user/repos` or `/users/:username/repos`)
-* Rate-limit headers are tracked server-side and exposed in `GET /api/repos`
-* If token is invalid/expired (`401`), UI shows an auth error banner
-* If rate limit is exhausted, refresh is blocked until reset time
+* Auth resolves `GITHUB_TOKEN`, else `gh auth token`; the active source is
+    reported as `authSource` in `GET /api/repos`.
+* With no `GITHUB_OWNERS`, the token owner's repos are fetched (`/user/repos`,
+    private included). With owners configured, each is loaded individually — your
+    own login and member orgs include private repos; other users/orgs are
+    public-only and add a non-fatal `sourceWarnings` entry.
+* Fetching is paginated; rate-limit headers are tracked server-side and exposed
+    in `GET /api/repos`; `401` shows an auth banner; an exhausted limit blocks
+    refresh until reset.
 
 ## Cache-first startup behavior
 
@@ -147,25 +160,40 @@ Acceptance criteria:
 
 ```plaintext
 server/
-    index.js   Express API, schedule computation, sync loop
-    github.js  GitHub API client + rate-limit/auth state
-    db.js      SQLite schema and connection
+    index.js    Express API, payload merge, sync loop, routes
+    github.js   Multi-owner fetch (gh-token fallback), rate-limit/auth state
+    schedule.js effectiveState() — board placement from checked_at/anchor
+    report.js   Report builder + markdown/csv formatters
+    db.js       SQLite schema (repo_state, repo_notice, repo_tag)
 
 client/
-    src/App.jsx  Single-page UI (board, filters, drag/drop, menus)
+    src/App.jsx  Single-page UI (board, filters, dialogs, menus)
     src/api.js   Fetch wrappers for API routes
+    src/lib/     board/date/useDialog helpers
+
+cli/
+    repo-triage.mjs  Zero-dependency CLI over the HTTP API
 ```
+
+Stack: Express 5 + better-sqlite3 (`server/`), React 19 + Vite 8 + Tailwind v4
+(`client/`), Vitest across all three workspaces.
 
 ## API
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| GET | `/api/repos` | Board payload + sync/rate-limit status |
-| POST | `/api/refresh` | Trigger manual GitHub refresh |
+| GET | `/api/repos` | Board payload + sync/rate-limit/auth/owner status |
+| POST | `/api/refresh` | Queue a background GitHub refresh (non-blocking) |
 | POST | `/api/repos/:id/check` | `{ daysAgo }` set effective last-check age |
-| POST | `/api/repos/:id/inactivity` | `{ days }` set per-repo review-cycle override |
+| POST | `/api/repos/:id/inactivity` | `{ days }` per-repo review-cycle override |
 | POST | `/api/repos/:id/priority` | Legacy low-level state setter (used for clear) |
-| POST | `/api/repos/:id/touch` | Reset `priority_set_at` to now |
+| POST | `/api/repos/:id/touch` | Reset the check timestamp to now |
+| POST | `/api/repos/:id/ignore` | `{ ignored }` hide/show a repo |
+| GET/POST/DELETE | `/api/repos/:id/notices` | List / add / (delete via `/api/notices/:id`) notes |
+| GET | `/api/notices` | All notices, sortable |
+| GET/POST | `/api/repos/:id/tags` · DELETE `/.../tags/:tag` | Per-repo tags |
+| GET | `/api/tags` | Distinct tags with counts |
+| GET | `/api/reports` · `/api/reports/:kind` | Report kinds / a report (`?format=json\|md\|csv`) |
 | POST | `/api/reorder` | Persist column order |
 
 ## Release notes (prototype)

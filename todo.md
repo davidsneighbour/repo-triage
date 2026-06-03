@@ -36,13 +36,12 @@ Local-only day-schedule kanban for triaging GitHub repositories.
 
 ## Known gaps / loose ends
 
-* [ ] `README.md` is stale — no `GITHUB_OWNERS`, notices, ignore, owner badges,
-  `checked_at`, prebuilt help SVG, or Tailwind v4 / phosphor theme. Refresh it.
+* [x] `README.md` refreshed (owners, tags, notices, ignore, reports, CLI, gh
+  auth, prebuilt help SVG, accessibility, Vite 8 / React 19 / Express 5 stack).
 * [ ] `repo_state.priority` (1–3) is vestigial — only the `null` path is used (to
   clear a check). Decide: repurpose as triage priority, fold into tags, or drop.
-* [ ] `stargazers_count` / `open_issues_count` are fetched in `github.js` but
-  never shown on the card. Surface them (see Display).
-* [ ] `App.jsx` is one ~1k-line file — extract components as features land.
+* [ ] `App.jsx` is one ~1.3k-line file — extract components (Board, Column, Card,
+  dialogs) as features land.
 
 ---
 

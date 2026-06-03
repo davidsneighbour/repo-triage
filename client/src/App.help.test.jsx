@@ -60,7 +60,8 @@ describe('App help dialog', () => {
 
     fireEvent.keyDown(window, { key: 'F1' });
     expect(await screen.findByRole('heading', { name: 'Help' })).toBeInTheDocument();
-    expect(screen.getByText('Repo.triage Help')).toBeInTheDocument();
+    // Heading text mirrors the markdown source in help.md (sentence-cased).
+    expect(await screen.findByText('Repo.Triage help')).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'Escape' });
 

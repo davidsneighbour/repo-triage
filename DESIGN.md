@@ -395,7 +395,7 @@ Depth is communicated primarily through:
 2. **Background opacity** — Cards use `bg-neutral-900/70` against the
    `#0a0a0a` page, creating a slight see-through layering effect.
 3. **Backdrop blur** — Applied only to the sticky Today column wrapper
-   (`backdrop-blur-sm`) to cleanly separate it from scrolled content.
+   (`backdrop-blur-xs`) to cleanly separate it from scrolled content.
 4. **Z-index layers:**
    * Popovers / card menus: `z-20`
    * Popover backdrop scrim: `z-10`

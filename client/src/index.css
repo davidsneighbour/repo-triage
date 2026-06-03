@@ -1,6 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/* Explicit content sources (mirrors the old tailwind.config content globs). */
+@source '../index.html';
+@source './**/*.{js,jsx}';
+
+/* Project theme tokens. Keeps IBM Plex Mono as the `font-mono` stack. */
+@theme {
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
 
 :root {
   color-scheme: dark;

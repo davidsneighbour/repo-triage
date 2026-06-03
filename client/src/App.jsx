@@ -76,7 +76,7 @@ function Badge({ tone = 'neutral', children }) {
     violet: 'bg-violet-500/15 text-violet-300',
     rose: 'bg-rose-500/15 text-rose-300',
   };
-  return <span className={cx('rounded px-1.5 py-0.5 text-[10px] font-medium', tones[tone])}>{children}</span>;
+  return <span className={cx('rounded-sm px-1.5 py-0.5 text-[10px] font-medium', tones[tone])}>{children}</span>;
 }
 
 function CardMenu({ repo, anchorRef, defaultInactivity, onSetChecked, onClearCheck, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onClose }) {
@@ -147,7 +147,7 @@ function CardMenu({ repo, anchorRef, defaultInactivity, onSetChecked, onClearChe
               value={days}
               placeholder={String(defaultInactivity)}
               onChange={(e) => setDays(e.target.value)}
-              className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs text-neutral-100 outline-none focus:border-neutral-500"
+              className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs text-neutral-100 outline-hidden focus:border-neutral-500"
             />
             <button
               onClick={() => {
@@ -182,7 +182,7 @@ function CardMenu({ repo, anchorRef, defaultInactivity, onSetChecked, onClearChe
             rows={2}
             placeholder="add a note..."
             aria-label="New notice"
-            className="mt-1 w-full resize-none rounded-md border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs text-neutral-100 outline-none focus:border-neutral-500"
+            className="mt-1 w-full resize-none rounded-md border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs text-neutral-100 outline-hidden focus:border-neutral-500"
           />
           <div className="mt-1 flex items-center gap-1">
             <button
@@ -259,7 +259,7 @@ function HelpDialog({ onClose }) {
                 }
 
                 return (
-                  <code className="rounded bg-neutral-950 px-1 py-0.5 text-[11px] text-neutral-200">
+                  <code className="rounded-sm bg-neutral-950 px-1 py-0.5 text-[11px] text-neutral-200">
                     {children}
                   </code>
                 );
@@ -485,7 +485,7 @@ function Column({ col, repos, onDropColumn, ...cardProps }) {
           onChange={(e) => setCq(e.target.value)}
           placeholder="filter column..."
           aria-label={`Filter ${col.title} column`}
-          className="w-full rounded-md border border-neutral-800 bg-neutral-950 pl-7 pr-2 py-1 text-[11px] text-neutral-100 outline-none focus:border-neutral-600"
+          className="w-full rounded-md border border-neutral-800 bg-neutral-950 pl-7 pr-2 py-1 text-[11px] text-neutral-100 outline-hidden focus:border-neutral-600"
         />
       </label>
 
@@ -760,7 +760,7 @@ export default function App() {
             onChange={(e) => setQ(e.target.value)}
             placeholder="filter repos..."
             aria-label="Search repositories"
-            className="w-64 rounded-md border border-neutral-800 bg-neutral-950 pl-7 pr-3 py-1.5 text-xs text-neutral-100 outline-none focus:border-neutral-600"
+            className="w-64 rounded-md border border-neutral-800 bg-neutral-950 pl-7 pr-3 py-1.5 text-xs text-neutral-100 outline-hidden focus:border-neutral-600"
           />
         </label>
         <div className="flex items-center gap-1 border-l border-neutral-800 pl-3">
@@ -856,7 +856,7 @@ export default function App() {
         ) : (
           <div className="flex min-h-0 flex-1 gap-4 overflow-hidden">
             {todayColumn && (
-              <div className="sticky left-0 z-10 flex bg-neutral-950/95 pr-2 backdrop-blur-sm">
+              <div className="sticky left-0 z-10 flex bg-neutral-950/95 pr-2 backdrop-blur-xs">
                 <Column col={todayColumn} repos={groups[todayColumn.key] || []} onDropColumn={onDropColumn} {...cardProps} />
               </div>
             )}

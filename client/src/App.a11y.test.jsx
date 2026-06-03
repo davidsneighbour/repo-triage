@@ -60,6 +60,16 @@ describe('dialog accessibility', () => {
     expect(trigger).toHaveFocus();
   });
 
+  it('exposes a live status region and labelled board/column/card groups', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+
+    expect(screen.getByRole('status')).toHaveTextContent(/Board ready/);
+    expect(screen.getByRole('group', { name: 'Repository board' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /Today column/ })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /alpha — review/ })).toBeInTheDocument();
+  });
+
   it('card menu popover restores focus to its trigger on Escape', async () => {
     render(<App />);
     await screen.findByRole('link', { name: 'alpha' });

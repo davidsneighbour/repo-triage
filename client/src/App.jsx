@@ -511,9 +511,14 @@ function RepoCard({ repo, column, menuOpenId, showOwner, onToggleMenu, onDragSta
   const menuButtonRef = useRef(null);
   const ownerTint = showOwner && repo.owner ? ownerColor(repo.owner) : null;
 
+  const dueText = repo.needsCheckToday ? 'review today' : `review in ${repo.dueInDays} days`;
+  const cardLabel = `${repo.name}${repo.owner ? `, ${repo.owner}` : ''} — ${dueText}`;
+
   return (
     <div
       draggable
+      role="group"
+      aria-label={cardLabel}
       onDragStart={(e) => onDragStartCard(e, repo.id)}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
@@ -632,7 +637,7 @@ function Column({ col, repos, onDropColumn, ...cardProps }) {
   const filtering = cq.trim() !== '';
 
   return (
-    <div className="flex h-full w-72 shrink-0 flex-col">
+    <div role="group" aria-label={`${col.title} column, ${repos.length} repositories`} className="flex h-full w-72 shrink-0 flex-col">
       <div className={cx('mb-2 flex items-center justify-between rounded-lg border bg-neutral-900/40 px-3 py-2', acc.edge)}>
         <div className="flex min-w-0 items-center gap-2">
           <span className={cx('h-2 w-2 shrink-0 rounded-full', acc.dot)} />
@@ -1141,6 +1146,21 @@ export default function App() {
     ? `@${data.username}`
     : 'authenticated user';
 
+  // Single polite live-region message; screen readers announce it on change.
+  // Phrasing is kept distinct from the visible banners so it never duplicates
+  // their text in the accessibility tree.
+  const liveMessage = data.rateLimit?.authInvalid
+    ? 'Authentication failed — update your GitHub token'
+    : refreshing || data.syncing
+    ? 'Syncing repositories with GitHub'
+    : loading
+    ? 'Loading board'
+    : data.lastError
+    ? `Sync failed: ${data.lastError}`
+    : showingCachedData
+    ? 'Showing cached board while refreshing'
+    : `Board ready, ${filtered.length} repositories shown`;
+
   const todayColumn = dayColumns[0];
   const futureColumns = dayColumns.slice(1);
 
@@ -1164,6 +1184,9 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col">
+      <div className="sr-only" role="status" aria-live="polite">
+        {liveMessage}
+      </div>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-900 px-5 py-3">
         <div className="flex items-baseline gap-3">
           <h1 className="text-base font-semibold tracking-tight text-neutral-100">repo.triage</h1>
@@ -1324,7 +1347,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className="flex min-h-0 flex-1 gap-4 overflow-hidden">
+          <div role="group" aria-label="Repository board" aria-busy={data.syncing || undefined} className="flex min-h-0 flex-1 gap-4 overflow-hidden">
             {todayColumn && (
               <div className="sticky left-0 z-10 flex bg-neutral-950/95 pr-2 backdrop-blur-xs">
                 <Column col={todayColumn} repos={groups[todayColumn.key] || []} onDropColumn={onDropColumn} {...cardProps} />

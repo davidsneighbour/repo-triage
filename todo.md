@@ -10,6 +10,7 @@ what's next.*
   > 5:41:10 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
   > Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
   Fix/adapt.
+* check and merge all open PRs
 
 ## Snapshot (current state)
 
@@ -126,7 +127,7 @@ so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
 * [x] **(P0)** Dialog/popover focus management: focus trap, restore focus on close,
   `aria-modal`, labelled headings — shared `useDialog` hook on Help, Notices,
   Reports, Card menu, and the Tag filter.
-* [ ] **(P1)** Semantic roles/labels for board, columns, cards; a polite live
+* [x] **(P1)** Semantic roles/labels for board, columns, cards; a polite live
   region announcing sync status and action results.
 * [x] **(P1)** Respect `prefers-reduced-motion` (sync spinner, transitions).
 * [x] **(P1)** Verify contrast of the phosphor-green neutral ramp (esp. muted text

@@ -694,6 +694,10 @@ Hovering reveals a tooltip with used/limit/reset-time detail.
 * **Do** respect `prefers-reduced-motion`: a global media query in `index.css`
   near-instantly resolves all animations/transitions (incl. the sync spinner),
   so prefer CSS `transition`/`animation` over JS-driven motion.
+* **Do** keep dialogs/popovers accessible via the `useDialog` hook (focus in,
+  trap, Escape, restore) with `role="dialog"` + a label, and label board groups
+  (board / columns / cards) so screen-reader users can navigate structure. A
+  single `role="status"` live region announces sync/load state.
 
 ### Don't
 

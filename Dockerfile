@@ -1,5 +1,5 @@
 # ---- Stage 1: build the React client --------------------------------------
-FROM node:20-bookworm-slim AS client-build
+FROM node:22-bookworm-slim AS client-build
 WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install
@@ -7,7 +7,7 @@ COPY client/ ./
 RUN npm run build
 
 # ---- Stage 2: server runtime ----------------------------------------------
-FROM node:20-bookworm-slim AS server
+FROM node:22-bookworm-slim AS server
 WORKDIR /app/server
 
 # build tools so better-sqlite3 can compile its native binding if no prebuilt

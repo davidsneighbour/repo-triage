@@ -7,5 +7,13 @@
         "triaging"
     ],
     "claudeCode.initialPermissionMode": "acceptEdits",
-    "claudeCode.useCtrlEnterToSend": true
+    "claudeCode.useCtrlEnterToSend": true,
+    "explorer.fileNesting.patterns": {
+        "*.ts": "${capture}.js",
+        "*.js": "${capture}.js.map, ${capture}.min.js, ${capture}.d.ts",
+        "*.jsx": "${capture}.js",
+        "*.tsx": "${capture}.ts",
+        "package.json": "package-lock.json, .markdownlint-cli2.jsonc",
+        "README.md": "CHANGELOG.md, CONTRIBUTING.md, LICENSE.md, DESIGN.md, AGENTS.md"
+    }
 }

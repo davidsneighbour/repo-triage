@@ -86,7 +86,7 @@ set in each `vitest.config.js` and fail the run on regression.
 
 ### CLI (`cli/`)
 
-* `repo-triage.mjs`: zero-runtime-dependency Node CLI that scripts triage state via the HTTP API (`list`, `ignore`, `check`, `clear`, `priority`, `tag`, `note`, …). Server must be running. Exposes pure helpers (`parseArgs`/`resolveRepo`/`filterReposCli`/`formatList`/`run`) for tests. `npm run cli -- <command>`.
+* `repo-triage.mjs`: zero-runtime-dependency Node CLI that scripts triage state via the HTTP API (`list`, `ignore`, `check`, `clear`, `priority`, `tag`, `note`, `backup`, `restore`, …). Server must be running. Exposes pure helpers (`parseArgs`/`resolveRepo`/`filterReposCli`/`formatList`/`run`) for tests. `npm run cli -- <command>`.
 
 ### Data model
 
@@ -130,6 +130,8 @@ Single-component React UI in `App.jsx`:
 | POST | `/api/repos/:id/clear` | Clear the scheduling state (anchor + checked_at); keeps priority |
 | POST | `/api/repos/:id/touch` | Reset check timestamp to now |
 | POST | `/api/reorder` | Save order positions |
+| GET | `/api/backup` | Export all triage state (repo_state/notice/tag) as JSON |
+| POST | `/api/restore` | Replace all triage state from a backup payload (transactional) |
 
 ## Implementation constraints
 

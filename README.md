@@ -209,6 +209,8 @@ Stack: Express 5 + better-sqlite3 (`server/`), React 19 + Vite 8 + Tailwind v4
 | POST | `/api/repos/:id/priority` | `{ priority: 1\|2\|3\|null }` set triage priority (independent of scheduling) |
 | POST | `/api/repos/:id/clear` | Clear the schedule (anchor + check date); keeps priority |
 | POST | `/api/repos/:id/touch` | Reset the check timestamp to now |
+| GET | `/api/backup` | Export all triage state (state/notices/tags) as JSON |
+| POST | `/api/restore` | Replace all triage state from a backup (transactional) |
 | POST | `/api/repos/:id/ignore` | `{ ignored }` hide/show a repo |
 | GET/POST/DELETE | `/api/repos/:id/notices` | List / add / (delete via `/api/notices/:id`) notes |
 | GET | `/api/notices` | All notices, sortable |
@@ -263,6 +265,8 @@ npm run cli -- check me/dotfiles --days 0          # mark reviewed now
 npm run cli -- ignore me/old-thing                 # hide from the board
 npm run cli -- note add me/api "rotate the token"  # attach a notice
 npm run cli -- report stale --days 365             # markdown report
+npm run cli -- backup > triage-backup.json         # export all triage state
+npm run cli -- restore triage-backup.json          # re-import it
 npm run cli -- report owners --format csv > o.csv   # export csv
 ```
 

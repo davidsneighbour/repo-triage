@@ -385,6 +385,76 @@ app.get('/api/reports/:kind', (req, res) => {
   res.json(report);
 });
 
+// ---- Backup / restore ------------------------------------------------------
+// Export every locally-stored triage table (the repo catalogue itself always
+// comes fresh from GitHub, so it's intentionally not included).
+const BACKUP_VERSION = 1;
+app.get('/api/backup', (req, res) => {
+  res.json({
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    repo_state: db.prepare('SELECT * FROM repo_state').all(),
+    repo_notice: db.prepare('SELECT repo_id, full_name, body, created_at FROM repo_notice').all(),
+    repo_tag: db.prepare('SELECT repo_id, full_name, tag, created_at FROM repo_tag').all(),
+  });
+});
+
+const restoreStateStmt = db.prepare(`
+  INSERT INTO repo_state (repo_id, full_name, priority, priority_set_at, checked_at, inactivity_days, position, ignored, updated_at)
+  VALUES (@repo_id, @full_name, @priority, @priority_set_at, @checked_at, @inactivity_days, @position, @ignored, @updated_at)
+`);
+const restoreNoticeStmt = db.prepare(
+  `INSERT INTO repo_notice (repo_id, full_name, body, created_at) VALUES (@repo_id, @full_name, @body, @created_at)`
+);
+const restoreTagStmt = db.prepare(
+  `INSERT OR IGNORE INTO repo_tag (repo_id, full_name, tag, created_at) VALUES (@repo_id, @full_name, @tag, @created_at)`
+);
+
+// Replace all triage state from a backup payload, transactionally (all-or-nothing).
+app.post('/api/restore', (req, res) => {
+  const body = req.body || {};
+  if (!Array.isArray(body.repo_state) || !Array.isArray(body.repo_notice) || !Array.isArray(body.repo_tag)) {
+    return res.status(400).json({ error: 'invalid backup: repo_state, repo_notice and repo_tag arrays are required' });
+  }
+  const now = new Date().toISOString();
+  try {
+    const restore = db.transaction(() => {
+      db.prepare('DELETE FROM repo_state').run();
+      db.prepare('DELETE FROM repo_notice').run();
+      db.prepare('DELETE FROM repo_tag').run();
+      for (const s of body.repo_state) {
+        if (s.repo_id == null) continue;
+        restoreStateStmt.run({
+          repo_id: s.repo_id,
+          full_name: s.full_name ?? null,
+          priority: s.priority ?? null,
+          priority_set_at: s.priority_set_at ?? null,
+          checked_at: s.checked_at ?? null,
+          inactivity_days: s.inactivity_days ?? null,
+          position: s.position ?? 0,
+          ignored: s.ignored ? 1 : 0,
+          updated_at: s.updated_at ?? now,
+        });
+      }
+      for (const n of body.repo_notice) {
+        if (n.repo_id == null || !n.body) continue;
+        restoreNoticeStmt.run({ repo_id: n.repo_id, full_name: n.full_name ?? null, body: n.body, created_at: n.created_at ?? now });
+      }
+      for (const t of body.repo_tag) {
+        if (t.repo_id == null || !t.tag) continue;
+        restoreTagStmt.run({ repo_id: t.repo_id, full_name: t.full_name ?? null, tag: normalizeTag(t.tag), created_at: t.created_at ?? now });
+      }
+    });
+    restore();
+  } catch (e) {
+    return res.status(400).json({ error: `restore failed: ${String(e.message || e)}` });
+  }
+  res.json({
+    ok: true,
+    restored: { repo_state: body.repo_state.length, repo_notice: body.repo_notice.length, repo_tag: body.repo_tag.length },
+  });
+});
+
 // ---- Static client (built by Vite) ----------------------------------------
 // Bootstrap-only: present a production build when one exists. Route tests import
 // the app without a build, so this branch and the listen loop below are not

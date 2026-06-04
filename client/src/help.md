@@ -177,6 +177,8 @@ point it elsewhere with `--api <url>` or `REPO_TRIAGE_API`.
 | `tag add\|rm <repo> <tag…>` | Add / remove tags |
 | `note add <repo> <text…>` | Attach a timestamped notice |
 | `report <kind> [--format md\|csv\|json] [--days N]` | Print a report |
+| `backup` | Print all triage state as JSON (redirect to a file) |
+| `restore <file.json>` | Replace all triage state from a backup file |
 | `help` | Show CLI usage |
 
 A repo is referenced by `owner/name`, or a bare `name` when it's unambiguous.

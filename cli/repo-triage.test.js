@@ -100,6 +100,8 @@ function stubApi() {
       calls.push({ url, method: init?.method || 'GET', body: init?.body ? JSON.parse(init.body) : undefined });
       if (url.endsWith('/api/repos')) return res({ repos: REPOS });
       if (url.endsWith('/api/tags')) return res({ tags: [{ tag: 'infra', count: 1 }] });
+      if (url.endsWith('/api/backup')) return res({ version: 1, repo_state: [], repo_notice: [], repo_tag: [] });
+      if (url.endsWith('/api/restore')) return res({ ok: true, restored: { repo_state: 2, repo_notice: 1, repo_tag: 3 } });
       if (url.includes('/api/reports/')) {
         if (url.includes('format=json')) return res({ kind: 'summary', columns: ['metric', 'value'], rows: [['total repos', 2]] });
         if (url.includes('format=csv')) return res('metric,value\ntotal repos,2\n');
@@ -249,6 +251,54 @@ describe('run', () => {
 
   it('rejects an unknown command', async () => {
     await expect(run(['frobnicate'], out)).rejects.toThrow(/unknown command/);
+  });
+
+  it('backup prints the JSON payload from /api/backup', async () => {
+    const calls = stubApi();
+    await run(['backup'], out);
+    expect(calls.find((c) => c.url.endsWith('/api/backup'))).toBeTruthy();
+    expect(out.mock.calls[0][0]).toMatch(/"repo_state"/);
+  });
+
+  it('restore reads a file and POSTs it to /api/restore', async () => {
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const file = path.join(os.tmpdir(), `repo-triage-restore-${Date.now()}.json`);
+    fs.writeFileSync(file, JSON.stringify({ repo_state: [{ repo_id: 1 }], repo_notice: [], repo_tag: [] }));
+
+    const calls = stubApi();
+    await run(['restore', file], out);
+    fs.rmSync(file, { force: true });
+
+    const post = calls.find((c) => c.url.endsWith('/api/restore'));
+    expect(post).toMatchObject({ method: 'POST' });
+    expect(post.body.repo_state).toEqual([{ repo_id: 1 }]);
+    expect(out.mock.calls.at(-1)[0]).toMatch(/restored 2 states, 1 notices, 3 tags/);
+  });
+
+  it('restore requires a file argument', async () => {
+    stubApi();
+    await expect(run(['restore'], out)).rejects.toThrow(/usage: restore/);
+  });
+
+  it('restore surfaces an unreadable file', async () => {
+    stubApi();
+    await expect(run(['restore', '/no/such/backup-file.json'], out)).rejects.toThrow(/could not read backup file/);
+  });
+
+  it('restore tolerates a response without a restored summary', async () => {
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const file = path.join(os.tmpdir(), `repo-triage-restore2-${Date.now()}.json`);
+    fs.writeFileSync(file, JSON.stringify({ repo_state: [], repo_notice: [], repo_tag: [] }));
+
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ ok: true }) })));
+    await run(['restore', file], out);
+    fs.rmSync(file, { force: true });
+
+    expect(out.mock.calls.at(-1)[0]).toMatch(/restored 0 states, 0 notices, 0 tags/);
   });
 
   it('surfaces a friendly error when the API is unreachable', async () => {

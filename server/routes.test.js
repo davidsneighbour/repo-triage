@@ -371,3 +371,62 @@ describe('POST /api/refresh', () => {
     expect(board.body.lastError).toMatch(/boom/);
   });
 });
+
+describe('backup & restore (runs last — mutates shared triage state)', () => {
+  it('exports triage tables and round-trips them through restore', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/priority`).send({ priority: 1 });
+    await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: 'backup-me' });
+    await request(app).post(`/api/repos/${REPO.id}/notices`).send({ body: 'remember this' });
+
+    const backup = await request(app).get('/api/backup');
+    expect(backup.status).toBe(200);
+    expect(backup.body).toEqual(
+      expect.objectContaining({
+        version: expect.any(Number),
+        repo_state: expect.any(Array),
+        repo_notice: expect.any(Array),
+        repo_tag: expect.any(Array),
+      })
+    );
+    expect(backup.body.repo_tag.some((t) => t.tag === 'backup-me')).toBe(true);
+
+    const restore = await request(app).post('/api/restore').send(backup.body);
+    expect(restore.status).toBe(200);
+    expect(restore.body.ok).toBe(true);
+
+    const after = await request(app).get('/api/repos');
+    const repo = after.body.repos.find((r) => r.id === REPO.id);
+    expect(repo.tags).toContain('backup-me');
+    expect(repo.priority).toBe(1);
+  });
+
+  it('rejects a malformed backup with 400', async () => {
+    const res = await request(app).post('/api/restore').send({ nope: true });
+    expect(res.status).toBe(400);
+  });
+
+  it('skips invalid rows and applies defaults/normalisation on restore', async () => {
+    const res = await request(app).post('/api/restore').send({
+      repo_state: [
+        { repo_id: REPO.id }, // minimal row → defaults applied
+        { full_name: 'x/y' }, // no repo_id → skipped
+      ],
+      repo_notice: [
+        { repo_id: REPO.id, body: 'kept' },
+        { repo_id: REPO.id }, // no body → skipped
+      ],
+      repo_tag: [
+        { repo_id: REPO.id, tag: 'MixedCase' }, // normalised to lower-case
+        { repo_id: REPO.id }, // no tag → skipped
+      ],
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.restored).toEqual({ repo_state: 2, repo_notice: 2, repo_tag: 2 });
+
+    const board = await request(app).get('/api/repos');
+    const repo = board.body.repos.find((r) => r.id === REPO.id);
+    expect(repo.tags).toEqual(['mixedcase']);
+    expect(repo.notice_count).toBe(1);
+    expect(repo.priority).toBeNull();
+  });
+});

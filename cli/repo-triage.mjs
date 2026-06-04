@@ -8,6 +8,7 @@
 // See `repo-triage help`. Auth/GitHub access stays server-side; the CLI only
 // reads/writes triage state, so it never needs a token of its own.
 import { pathToFileURL } from 'node:url';
+import { readFileSync } from 'node:fs';
 
 const VALUE_FLAGS = new Set(['api', 'days', 'owner', 'tag', 'language', 'lang', 'format']);
 
@@ -181,6 +182,8 @@ Commands:
                               Print a report. Kinds: summary, due,
                               never-reviewed, stale, owners, languages,
                               archived, active
+  backup                      Print all local triage state as JSON (redirect it)
+  restore  <file.json>        Replace all triage state from a backup file
   help
 
 A repo is "owner/name" (or a bare "name" when unambiguous).
@@ -273,6 +276,26 @@ async function run(argv, out = console.log) {
       if (flags.days !== undefined) qs.set('days', String(flags.days));
       const text = await callText(base, `/api/reports/${encodeURIComponent(kind)}?${qs}`);
       out(format === 'json' ? JSON.stringify(JSON.parse(text), null, 2) : text.replace(/\n$/, ''));
+      return 0;
+    }
+    case 'backup': {
+      // Print the full triage-state backup to stdout (redirect to a file).
+      const data = await call(base, 'GET', '/api/backup');
+      out(JSON.stringify(data, null, 2));
+      return 0;
+    }
+    case 'restore': {
+      const file = positionals[0];
+      if (!file) throw new Error('usage: restore <file.json>');
+      let payload;
+      try {
+        payload = JSON.parse(readFileSync(file, 'utf8'));
+      } catch (e) {
+        throw new Error(`could not read backup file "${file}": ${e.message}`);
+      }
+      const res = await call(base, 'POST', '/api/restore', payload);
+      const r = res.restored || {};
+      out(`restored ${r.repo_state ?? 0} states, ${r.repo_notice ?? 0} notices, ${r.repo_tag ?? 0} tags`);
       return 0;
     }
     case 'note': {

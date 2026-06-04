@@ -126,8 +126,11 @@ so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
   Reports dialog and the `repo-triage report <kind>` CLI command.
 * [ ] **(P2)** Exportable Markdown digest ("weekly triage") suitable for pasting
   into an issue/PR; optional scheduled write to a file.
-* [ ] **(P2)** Backup/restore: export all local triage state (flags, intervals,
-  notices, tags) to JSON and re-import.
+* [x] **(P2)** Backup/restore: `GET /api/backup` exports all triage state
+  (repo_state/notices/tags) as JSON; `POST /api/restore` replaces it
+  transactionally (skips invalid rows, normalises tags). CLI `backup` /
+  `restore <file>`. (UI button deferred — file upload in-browser is a separate,
+  smaller follow-up.)
 
 ### 5. Display & board options
 

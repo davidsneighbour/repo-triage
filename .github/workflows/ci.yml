@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests & coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Each package (root + client/server/cli) has its own lockfile; install
+      # them all so the workspace test scripts can run.
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix client ci
+          npm --prefix server ci
+          npm --prefix cli ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+  lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    # Advisory for now: the shared @dnbhq markdownlint config ships a custom
+    # `list-duplicates` rule that throws on DESIGN.md's front-matter, and a
+    # couple of pre-existing files (copilot-instructions.md) use a different
+    # list style. Keep the signal visible without blocking PRs until those are
+    # reconciled separately.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      # Lint only the project's own tracked Markdown (the root script's glob
+      # also walks node_modules, where the config's ignores get mis-rooted).
+      - name: Lint Markdown
+        run: >
+          npx markdownlint-cli2
+          --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc
+          $(git ls-files '*.md' ':!:**/node_modules/**')

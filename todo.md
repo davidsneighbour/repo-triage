@@ -172,7 +172,11 @@ so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
 ### 8. Quality & infra
 
 * [ ] **(P1)** Refresh `README.md` + reconcile with `DESIGN.md` and `AGENTS.md`.
-* [ ] **(P1)** GitHub Actions CI: run `npm test` + markdown lint on PRs.
+* [x] **(P1)** GitHub Actions CI (`.github/workflows/ci.yml`): runs
+  `npm run test:coverage` across all workspaces on push/PR (blocking) and a
+  markdown-lint job (advisory — the shared `@dnbhq` config's `list-duplicates`
+  rule throws on `DESIGN.md` front-matter; reconcile separately before making
+  it blocking).
 * [x] **(P2)** Health/version endpoint (`/api/health`) for Docker/monitoring —
   returns status, cacheReady, syncing, repoCount, lastFetch/lastError, uptime.
 * [ ] **(P2)** Split `App.jsx` into components (Board, Column, Card, CardMenu,

@@ -66,6 +66,13 @@ export function filterReposCli(repos, opts = {}) {
     if (language && (r.language || '').toLowerCase() !== String(language).toLowerCase()) return false;
     if (opts.tag && !(r.tags || []).includes(String(opts.tag).toLowerCase())) return false;
     if (opts.due && !r.needsCheckToday) return false;
+    if (opts.priority !== undefined) {
+      // --priority accepts a comma list of levels; "none" matches an unset one.
+      const wanted = String(opts.priority)
+        .split(',')
+        .map((p) => (p.trim().toLowerCase() === 'none' ? 0 : Number(p.trim())));
+      if (!wanted.includes(r.priority ?? 0)) return false;
+    }
     return true;
   });
 }
@@ -81,6 +88,7 @@ export function formatList(repos, { json = false } = {}) {
         owner: r.owner,
         due: dueLabel(r),
         needsCheckToday: r.needsCheckToday,
+        priority: r.priority ?? null,
         tags: r.tags || [],
         ignored: Boolean(r.ignored),
         language: r.language || null,
@@ -156,13 +164,15 @@ const HELP = `repo-triage — CLI for the repo.triage dashboard
 Usage: repo-triage [--api <url>] [--json] <command> [args]
 
 Commands:
-  list [--owner O] [--tag T] [--language L] [--due] [--ignored] [--all]
-                              List repositories (hides ignored by default)
+  list [--owner O] [--tag T] [--language L] [--priority L] [--due] [--ignored] [--all]
+                              List repositories (hides ignored by default).
+                              --priority takes a comma list of 1|2|3|none
   tags                        List all tags with usage counts
   ignore   <repo>             Hide a repo from the board
   unignore <repo>             Un-ignore a repo
   check    <repo> [--days N]  Mark reviewed N days ago (default 0 = now)
   clear    <repo>             Clear the check date (back to "not checked")
+  priority <repo> <1|2|3|none>   Set/clear the triage priority
   interval <repo> <days|default>   Set/reset the per-repo review interval
   tag add  <repo> <tag...>    Add one or more tags
   tag rm   <repo> <tag...>    Remove one or more tags
@@ -215,8 +225,19 @@ async function run(argv, out = console.log) {
     }
     case 'clear': {
       const repo = await withRepo(base, positionals[0]);
-      await call(base, 'POST', `/api/repos/${repo.id}/priority`, { priority: null });
+      await call(base, 'POST', `/api/repos/${repo.id}/clear`);
       out(`cleared check date for ${repo.full_name}`);
+      return 0;
+    }
+    case 'priority': {
+      const repo = await withRepo(base, positionals[0]);
+      const raw = positionals[1];
+      const priority = raw === 'none' || raw === 'clear' || raw === undefined ? null : Number(raw);
+      if (priority !== null && ![1, 2, 3].includes(priority)) {
+        throw new Error('usage: priority <repo> <1|2|3|none>');
+      }
+      await call(base, 'POST', `/api/repos/${repo.id}/priority`, { priority });
+      out(`set priority for ${repo.full_name} to ${priority === null ? 'none' : `P${priority}`}`);
       return 0;
     }
     case 'interval': {

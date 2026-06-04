@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiBase, filterReposCli, formatList, parseArgs, resolveRepo, run } from './repo-triage.mjs';
 
 const REPOS = [
-  { id: 1, full_name: 'me/alpha', name: 'alpha', owner: 'me', needsCheckToday: true, dueInDays: 0, tags: ['infra'], ignored: false, language: 'JavaScript', stargazers_count: 5 },
-  { id: 2, full_name: 'dnbhq/beta', name: 'beta', owner: 'dnbhq', needsCheckToday: false, dueInDays: 3, tags: ['oss'], ignored: false, language: 'Go', stargazers_count: 0 },
-  { id: 3, full_name: 'me/hidden', name: 'hidden', owner: 'me', needsCheckToday: false, dueInDays: 1, tags: [], ignored: true, language: 'Go' },
+  { id: 1, full_name: 'me/alpha', name: 'alpha', owner: 'me', needsCheckToday: true, dueInDays: 0, tags: ['infra'], ignored: false, language: 'JavaScript', stargazers_count: 5, priority: 1 },
+  { id: 2, full_name: 'dnbhq/beta', name: 'beta', owner: 'dnbhq', needsCheckToday: false, dueInDays: 3, tags: ['oss'], ignored: false, language: 'Go', stargazers_count: 0, priority: 2 },
+  { id: 3, full_name: 'me/hidden', name: 'hidden', owner: 'me', needsCheckToday: false, dueInDays: 1, tags: [], ignored: true, language: 'Go', priority: null },
 ];
 
 describe('parseArgs', () => {
@@ -61,6 +61,12 @@ describe('filterReposCli', () => {
     expect(filterReposCli(REPOS, { tag: 'infra' }).map((r) => r.id)).toEqual([1]);
     expect(filterReposCli(REPOS, { language: 'go' }).map((r) => r.id)).toEqual([2]);
     expect(filterReposCli(REPOS, { due: true }).map((r) => r.id)).toEqual([1]);
+  });
+
+  it('filters by priority (comma list; "none" = unset), with --all to include ignored', () => {
+    expect(filterReposCli(REPOS, { priority: '1' }).map((r) => r.id)).toEqual([1]);
+    expect(filterReposCli(REPOS, { priority: '1,2' }).map((r) => r.id)).toEqual([1, 2]);
+    expect(filterReposCli(REPOS, { priority: 'none', all: true }).map((r) => r.id)).toEqual([3]);
   });
 });
 
@@ -160,10 +166,26 @@ describe('run', () => {
     expect(calls.find((c) => c.url.includes('/ignore'))).toMatchObject({ body: { ignored: false } });
   });
 
-  it('clear posts a null priority', async () => {
+  it('clear posts to the schedule-only /clear endpoint', async () => {
     const calls = stubApi();
     await run(['clear', 'me/alpha'], out);
+    expect(calls.find((c) => c.url.includes('/clear'))).toMatchObject({ method: 'POST' });
+  });
+
+  it('priority sets a level and clears with "none"', async () => {
+    let calls = stubApi();
+    await run(['priority', 'me/alpha', '2'], out);
+    expect(calls.find((c) => c.url.includes('/priority'))).toMatchObject({ body: { priority: 2 } });
+
+    vi.unstubAllGlobals();
+    calls = stubApi();
+    await run(['priority', 'me/alpha', 'none'], out);
     expect(calls.find((c) => c.url.includes('/priority'))).toMatchObject({ body: { priority: null } });
+  });
+
+  it('priority rejects an out-of-range level', async () => {
+    stubApi();
+    await expect(run(['priority', 'me/alpha', '9'], out)).rejects.toThrow(/usage: priority/);
   });
 
   it('interval sets a number and resets with "default"', async () => {

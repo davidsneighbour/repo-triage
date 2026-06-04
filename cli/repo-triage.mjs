@@ -292,6 +292,8 @@ async function run(argv, out = console.log) {
 export { run };
 
 // ---- entrypoint -----------------------------------------------------------
+// Bootstrap-only: exercised when run as a binary, not when imported by tests.
+/* v8 ignore start */
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   run(process.argv.slice(2)).then(
@@ -302,3 +304,4 @@ if (isMain) {
     }
   );
 }
+/* v8 ignore stop */

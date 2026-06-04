@@ -315,4 +315,103 @@ describe('fetchAllRepos — configured owners', () => {
     await fetchAllRepos();
     expect(fetchMock.mock.calls.some(([url]) => url.includes('/users/octocat/repos'))).toBe(true);
   });
+
+  it('derives the owner from full_name when the repo has no owner object', async () => {
+    process.env.GITHUB_OWNERS = 'octocat';
+    const fetchMock = routeFetch([
+      ['/orgs/octocat/repos', () => makeRes({ status: 404, body: 'Not Found', headers: RATE_HEADERS })],
+      ['/users/octocat/repos', () => makeRes({ body: [repo({ id: 8, full_name: 'octocat/orphan', owner: undefined })], headers: RATE_HEADERS })],
+      ['/user', () => makeRes({ body: { login: 'me' }, headers: RATE_HEADERS })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const repos = await fetchAllRepos();
+    expect(repos[0]).toMatchObject({ id: 8, owner: 'octocat', owner_type: null });
+  });
+
+  it('counts a "pending" org membership as a member (private scope)', async () => {
+    process.env.GITHUB_OWNERS = 'dnbhq';
+    const fetchMock = routeFetch([
+      ['/orgs/dnbhq/repos', () => makeRes({ body: [repo({ id: 9, full_name: 'dnbhq/x', owner: { login: 'dnbhq', type: 'Organization' } })], headers: RATE_HEADERS })],
+      ['/user/memberships/orgs/dnbhq', () => makeRes({ body: { state: 'pending' }, headers: RATE_HEADERS })],
+      ['/user', () => makeRes({ body: { login: 'me' }, headers: RATE_HEADERS })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchAllRepos();
+    expect(sourceStatus.owners[0]).toMatchObject({ owner: 'dnbhq', scope: 'member' });
+    expect(sourceStatus.warnings).toEqual([]);
+  });
+
+  it('records a per-owner warning when the token owner\'s own /user/repos fails', async () => {
+    process.env.GITHUB_OWNERS = 'me';
+    const fetchMock = routeFetch([
+      ['/user/repos', () => makeRes({ status: 500, body: 'boom', headers: RATE_HEADERS })],
+      ['/user', () => makeRes({ body: { login: 'me' }, headers: RATE_HEADERS })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const repos = await fetchAllRepos();
+    expect(repos).toEqual([]);
+    expect(sourceStatus.owners[0]).toMatchObject({ owner: 'me', scope: 'error' });
+  });
+
+  it('leaves viewerLogin unresolved when /user is unavailable (owner falls to org path)', async () => {
+    process.env.GITHUB_OWNERS = 'me';
+    const fetchMock = routeFetch([
+      ['/user/memberships/orgs/me', () => makeRes({ status: 404, body: 'Not Found', headers: RATE_HEADERS })],
+      ['/orgs/me/repos', () => makeRes({ status: 404, body: 'Not Found', headers: RATE_HEADERS })],
+      ['/users/me/repos', () => makeRes({ body: [repo({ id: 2, full_name: 'me/pub', owner: { login: 'me', type: 'User' } })], headers: RATE_HEADERS })],
+      // /user itself errors → viewerLogin stays null, so "me" is not treated as self.
+      ['/user', () => makeRes({ status: 500, body: 'boom', headers: RATE_HEADERS })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const repos = await fetchAllRepos();
+    expect(repos.map((r) => r.id)).toEqual([2]);
+    expect(fetchMock.mock.calls.some(([url]) => url.includes('/user/repos'))).toBe(false);
+  });
+
+  it('treats a non-active org membership as public-only', async () => {
+    process.env.GITHUB_OWNERS = 'dnbhq';
+    const fetchMock = routeFetch([
+      ['/orgs/dnbhq/repos', () => makeRes({ body: [repo({ id: 9, full_name: 'dnbhq/x', owner: { login: 'dnbhq', type: 'Organization' } })], headers: RATE_HEADERS })],
+      ['/user/memberships/orgs/dnbhq', () => makeRes({ body: { state: 'inactive' }, headers: RATE_HEADERS })],
+      ['/user', () => makeRes({ body: { login: 'me' }, headers: RATE_HEADERS })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchAllRepos();
+    expect(sourceStatus.owners[0]).toMatchObject({ owner: 'dnbhq', scope: 'public' });
+    expect(sourceStatus.warnings.join(' ')).toMatch(/not a member of organization "dnbhq"/);
+  });
+
+  it('surfaces a 403 from a user listing as a per-owner warning', async () => {
+    process.env.GITHUB_OWNERS = 'octocat';
+    const fetchMock = routeFetch([
+      ['/orgs/octocat/repos', () => makeRes({ status: 404, body: 'Not Found', headers: RATE_HEADERS })],
+      ['/users/octocat/repos', () => makeRes({ status: 403, body: 'forbidden', headers: RATE_HEADERS })],
+      ['/user', () => makeRes({ body: { login: 'me' }, headers: RATE_HEADERS })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const repos = await fetchAllRepos();
+    expect(repos).toEqual([]);
+    expect(sourceStatus.warnings.join(' ')).toMatch(/Could not load "octocat".*403 Forbidden/);
+  });
+
+  it('yields no repos when an org 403 falls back to a public listing that also fails', async () => {
+    process.env.GITHUB_OWNERS = 'secret-org';
+    const fetchMock = routeFetch([
+      ['/orgs/secret-org/repos', () => makeRes({ status: 403, body: 'forbidden', headers: RATE_HEADERS })],
+      ['/users/secret-org/repos', () => makeRes({ status: 500, body: 'boom', headers: RATE_HEADERS })],
+      ['/user', () => makeRes({ body: { login: 'me' }, headers: RATE_HEADERS })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const repos = await fetchAllRepos();
+    expect(repos).toEqual([]);
+    expect(sourceStatus.owners[0]).toMatchObject({ owner: 'secret-org', scope: 'public', count: 0 });
+    expect(sourceStatus.warnings.join(' ')).toMatch(/not authorized for organization "secret-org" \(403\)/);
+  });
 });

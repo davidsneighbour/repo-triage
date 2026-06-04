@@ -371,6 +371,10 @@ app.get('/api/reports/:kind', (req, res) => {
 });
 
 // ---- Static client (built by Vite) ----------------------------------------
+// Bootstrap-only: present a production build when one exists. Route tests import
+// the app without a build, so this branch and the listen loop below are not
+// exercised by the in-process suite.
+/* v8 ignore start */
 const publicDir = path.join(__dirname, 'public');
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
@@ -405,5 +409,6 @@ function startServer() {
 // exercised with supertest against an in-process instance.
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) startServer();
+/* v8 ignore stop */
 
 export { app, refreshRepos, buildPayload };

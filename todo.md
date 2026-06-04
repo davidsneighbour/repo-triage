@@ -13,6 +13,11 @@ what's next.*
 * [x] open PRs cleared. The only one (Dependabot: bump Vite 5.4.21→8.0.16) was
   superseded by the manual Vite 8 upgrade already on `main`, so it couldn't merge
   (lockfile conflict) and was closed as obsolete. No open PRs remain.
+* [x] server + CLI coverage were red against the raised 90/85/85/90 floors (a
+  pre-existing gap since the threshold bump). Restored to green with real tests
+  (report kinds + sparse data, GitHub owner/membership edge paths, cold-cache
+  board, CLI priority/clear paths) and `/* v8 ignore */` on bootstrap-only code;
+  `db.js` (pure DDL) excluded from measurement. `npm run test:coverage` passes.
 * [x] adding tags via interface is impossible or not easily found — each card
   now carries an always-visible dashed "＋ tag" chip (even when untagged) that
   opens the CardMenu focused on the tag input. No more hunting in the gear menu.

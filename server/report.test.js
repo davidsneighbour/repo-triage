@@ -43,6 +43,75 @@ describe('buildReport', () => {
     expect(r.rows.map((row) => row[0])).toEqual(['me/alpha', 'me/hidden']);
   });
 
+  it('never-reviewed lists non-ignored repos without a check date', () => {
+    const r = buildReport('never-reviewed', REPOS, { now: NOW });
+    // me/alpha has checkedAgeDays null and is not ignored; me/hidden is ignored.
+    expect(r.rows.map((row) => row[0])).toEqual(['me/alpha']);
+    expect(r.columns).toContain('pushed');
+  });
+
+  it('languages tallies per language, sorted by count desc', () => {
+    const r = buildReport('languages', REPOS, { now: NOW });
+    // Two Go repos, one JavaScript.
+    expect(r.rows).toEqual([
+      ['Go', 2],
+      ['JavaScript', 1],
+    ]);
+  });
+
+  it('archived lists archived repos sorted by full name', () => {
+    const r = buildReport('archived', REPOS, { now: NOW });
+    expect(r.rows.map((row) => row[0])).toEqual(['dnbhq/beta']);
+  });
+
+  it('handles sparse repos (missing owner / pushed_at / tags / counts)', () => {
+    const sparse = [
+      { id: 9, full_name: 'x/y', needsCheckToday: true, checkedAgeDays: 0, ignored: false, archived: true, fork: false, pushed_at: null, open_issues_count: 2, stargazers_count: undefined },
+    ];
+    // owner/'—' fallbacks, dateOnly('') for null pushed_at, empty tag string.
+    const owners = buildReport('owners', sparse, { now: NOW });
+    expect(owners.rows).toEqual([['—', 1, 1, 1]]);
+
+    const langs = buildReport('languages', sparse, { now: NOW });
+    expect(langs.rows).toEqual([['—', 1]]);
+
+    const due = buildReport('due', sparse, { now: NOW });
+    expect(due.rows).toEqual([['x/y', '', 'today', '']]);
+
+    const active = buildReport('active', sparse, { now: NOW });
+    expect(active.rows).toEqual([['x/y', '', 2, 0]]);
+
+    const archived = buildReport('archived', sparse, { now: NOW });
+    expect(archived.rows).toEqual([['x/y', '', '']]);
+  });
+
+  it('defaults the stale window to 180 days when unspecified', () => {
+    const r = buildReport('stale', REPOS);
+    expect(r.title).toMatch(/180d/);
+  });
+
+  it('stale excludes never-pushed repos and sorts the rest oldest-first', () => {
+    const repos = [
+      { id: 1, full_name: 'a/never', ignored: false, pushed_at: null },
+      { id: 2, full_name: 'a/older', ignored: false, pushed_at: '2023-01-01T00:00:00.000Z' },
+      { id: 3, full_name: 'a/old', ignored: false, pushed_at: '2024-06-01T00:00:00.000Z' },
+    ];
+    const r = buildReport('stale', repos, { now: NOW, days: 30 });
+    // null pushed_at dropped; remaining sorted oldest → newest.
+    expect(r.rows.map((row) => row[0])).toEqual(['a/older', 'a/old']);
+  });
+
+  it('breaks owner/language ties alphabetically', () => {
+    const tied = [
+      { id: 1, full_name: 'zeta/a', owner: 'zeta', language: 'Rust', needsCheckToday: false, archived: false, ignored: false },
+      { id: 2, full_name: 'alpha/a', owner: 'alpha', language: 'Elixir', needsCheckToday: false, archived: false, ignored: false },
+    ];
+    // Each owner and each language has the same count (1), so the alphabetical
+    // tie-breaker decides order.
+    expect(buildReport('owners', tied, { now: NOW }).rows.map((r) => r[0])).toEqual(['alpha', 'zeta']);
+    expect(buildReport('languages', tied, { now: NOW }).rows.map((r) => r[0])).toEqual(['Elixir', 'Rust']);
+  });
+
   it('throws on an unknown kind', () => {
     expect(() => buildReport('nope', REPOS)).toThrow(/unknown report/);
   });

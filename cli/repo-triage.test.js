@@ -257,4 +257,28 @@ describe('run', () => {
     }));
     await expect(run(['list'], out)).rejects.toThrow(/Is the server running/);
   });
+
+  it('surfaces the same friendly error for report (text GET) when unreachable', async () => {
+    let first = true;
+    vi.stubGlobal('fetch', vi.fn(async (url) => {
+      // The repo lookup (JSON) succeeds; the report text GET is what fails.
+      if (url.endsWith('/api/repos') && first) {
+        first = false;
+        return { ok: true, status: 200, text: async () => JSON.stringify({ repos: REPOS }) };
+      }
+      throw new Error('ECONNREFUSED');
+    }));
+    await expect(run(['report', 'summary'], out)).rejects.toThrow(/Is the server running/);
+  });
+
+  it('priority clears with the "clear" keyword and defaults a missing arg to none', async () => {
+    let calls = stubApi();
+    await run(['priority', 'me/alpha', 'clear'], out);
+    expect(calls.find((c) => c.url.includes('/priority'))).toMatchObject({ body: { priority: null } });
+
+    vi.unstubAllGlobals();
+    calls = stubApi();
+    await run(['priority', 'me/alpha'], out);
+    expect(calls.find((c) => c.url.includes('/priority'))).toMatchObject({ body: { priority: null } });
+  });
 });

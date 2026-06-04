@@ -165,7 +165,9 @@ so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
 * [ ] **(P1)** Multi-select cards → bulk ignore / tag / schedule.
 * [ ] **(P1)** Undo (toast with "undo") for destructive actions: delete notice,
   clear check, bulk ops.
-* [ ] **(P1)** Confirm before destructive actions (delete notice / bulk clear).
+* [x] **(P1)** Confirm before destructive actions — deleting a notice now arms
+  an inline **Delete / Cancel** confirm (no blocking `window.confirm`). Pattern
+  ready to reuse for bulk clear once multi-select lands.
 * [ ] **(P2)** Toast/notification system for action feedback.
 * [ ] **(P2)** Persist view/display prefs server-side so web + CLI agree.
 * [ ] **(P2)** Settings panel (review cycle, sync interval, owners) editable in-app

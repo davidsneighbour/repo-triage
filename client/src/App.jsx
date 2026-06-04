@@ -470,6 +470,8 @@ function NoticesDialog({ scope, repos, onClose, onScopeChange, onChanged }) {
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState('date');
   const [dir, setDir] = useState('desc');
+  // Two-step delete: the first click arms a confirm on that notice id.
+  const [confirmId, setConfirmId] = useState(null);
   const dialogRef = useDialog(onClose);
 
   const isAll = scope === 'all';
@@ -492,6 +494,7 @@ function NoticesDialog({ scope, repos, onClose, onScopeChange, onChanged }) {
   const sorted = useMemo(() => sortNotices(notices, sort, dir), [notices, sort, dir]);
 
   const removeNotice = async (noticeId) => {
+    setConfirmId(null);
     await api.deleteNotice(noticeId);
     await reload();
     onChanged?.();
@@ -569,9 +572,27 @@ function NoticesDialog({ scope, repos, onClose, onScopeChange, onChanged }) {
                     <span className="text-[10px] tabular-nums text-neutral-500" title={new Date(n.created_at).toLocaleString()}>
                       {timeAgo(n.created_at)}
                     </span>
-                    <button onClick={() => removeNotice(n.id)} aria-label="Delete notice" className="text-neutral-600 hover:text-rose-300">
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
+                    {confirmId === n.id ? (
+                      <span className="flex items-center gap-1">
+                        <button
+                          onClick={() => removeNotice(n.id)}
+                          className="rounded-sm bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-rose-200 hover:bg-rose-500/30"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => setConfirmId(null)}
+                          aria-label="Cancel delete"
+                          className="rounded-sm px-1 py-0.5 text-[10px] text-neutral-400 hover:text-neutral-200"
+                        >
+                          Cancel
+                        </button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmId(n.id)} aria-label="Delete notice" className="text-neutral-600 hover:text-rose-300">
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}

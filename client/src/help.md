@@ -89,7 +89,8 @@ Timestamped notes attached to a repo (e.g. "waiting on upstream release").
   the card.
 * The card menu's **View all (N)** link, and the toolbar **Notices** button,
   open the Notices dialog — per-repo or across all repos, sortable by date or
-  repo name. Delete a note from there.
+  repo name. Deleting a note is a two-step confirm (the trash icon arms a
+  **Delete / Cancel** pair) so you can't lose one by a stray click.
 
 ## Ignore
 

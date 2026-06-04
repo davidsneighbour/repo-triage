@@ -679,6 +679,11 @@ Anatomy:
   (`label` scale, `text-muted`), the notice body, and a delete affordance.
 * Empty state: "no notices yet" in `text-faint`.
 
+Deleting a notice is **two-step**: the trash affordance first arms an inline
+confirm (a rose "Delete" button + a neutral "Cancel"); only the explicit Delete
+calls the API. This is the standard guard for destructive actions — prefer an
+inline confirm over a blocking `window.confirm`.
+
 Sort by repo name uses the same muted treatment as other metadata; do not
 introduce accent colour here. The dialog reads and writes notices through the
 API and refreshes the board on change so card previews and counts stay current.

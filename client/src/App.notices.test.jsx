@@ -127,9 +127,27 @@ describe('ignore flag + notices UI', () => {
     fireEvent.click(screen.getByRole('button', { name: 'repo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Toggle sort direction' }));
 
+    // Deleting is a two-step confirm: arm, then confirm.
     const deleteButtons = screen.getAllByRole('button', { name: 'Delete notice' });
     fireEvent.click(deleteButtons[0]);
+    expect(api.deleteNotice).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(api.deleteNotice).toHaveBeenCalled());
+  });
+
+  it('cancels an armed notice delete without calling the API', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'repo-a' });
+
+    fireEvent.click(screen.getByRole('button', { name: /notices/i }));
+    await screen.findByText('alpha note');
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete notice' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel delete' }));
+
+    expect(api.deleteNotice).not.toHaveBeenCalled();
+    // Back to the armed-off state: the trash button is shown again.
+    expect(screen.getAllByRole('button', { name: 'Delete notice' }).length).toBeGreaterThan(0);
   });
 
   it('opens the notices dialog scoped to a single repo from the card menu', async () => {

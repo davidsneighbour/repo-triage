@@ -10,7 +10,12 @@ what's next.*
   Rolldown Vite 8). **Properly fixed** by the dependency upgrade below: Vite 8 +
   `@vitejs/plugin-react` 6 (Rolldown-native) + React 19 + Express 5. The temporary
   `customLogger` filter is gone; output is clean.
-* [ ] check and merge all open PRs (owner action — not done automatically)
+* [x] open PRs cleared. The only one (Dependabot: bump Vite 5.4.21→8.0.16) was
+  superseded by the manual Vite 8 upgrade already on `main`, so it couldn't merge
+  (lockfile conflict) and was closed as obsolete. No open PRs remain.
+* [ ] adding tags via interface is impossible or not easily found
+* [ ] add a filter option (independent of others) for repo priority (1-2)
+* [ ] write an extensive documentation that can be loaded via F1 and a direct link in the UI, describing all features and how to use them (including the CLI companion app once it's implemented). Use Markdown format and include screenshots where helpful.
 
 ## Snapshot (current state)
 

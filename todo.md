@@ -54,6 +54,13 @@ Priority key: **(P0)** next / quick win · **(P1)** soon · **(P2)** later.
 
 * [ ] **(P1)** Fetch through `gh api --paginate` (with REST fetch as fallback) to
   drop custom pagination and inherit `gh`'s auth, retry, and rate-limit handling.
+  **Deliberately deferred** (not overlooked): auth already falls back to
+  `gh auth token`, so this only changes the *transport*. Doing it well means
+  re-routing the most intricate, security-sensitive code (`fetchOwnerRepos`
+  org-membership detection, 403→public fallbacks, rate-limit/`x-ratelimit-*`
+  parsing — all keyed on HTTP status/headers that `gh api` doesn't surface the
+  same way) and is high-risk for repo loading. Worth its own focused pass with
+  the existing `github.fetch.test.js` matrix kept green, not a rushed change.
 * [x] **(P1)** Enrich repo metadata — added the fields that ship **free** in the
   REST repos-list response (no extra calls): `forks_count`, `default_branch`,
   `topics`, `license`. Forks now show as a card stat + sortable list column

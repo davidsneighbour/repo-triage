@@ -9,6 +9,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ priority }),
     }).then(json),
+  clearSchedule: (id) => fetch(`/api/repos/${id}/clear`, { method: 'POST' }).then(json),
   setChecked: (id, daysAgo = 0) =>
     fetch(`/api/repos/${id}/check`, {
       method: 'POST',

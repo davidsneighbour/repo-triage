@@ -42,6 +42,16 @@ export function tagColor(tag) {
   return OWNER_PALETTE[h % OWNER_PALETTE.length];
 }
 
+// Triage priority is an independent axis from scheduling. P1/P2/P3 map to a
+// fixed tone (warm = more urgent); null means unprioritised. The state colours
+// here are deliberate semantic accents, not the categorical owner/tag palette.
+export const PRIORITY_LEVELS = [1, 2, 3];
+export const PRIORITY_META = {
+  1: { label: 'P1', title: 'Priority 1 (high)', dot: '#f87171', chip: 'bg-rose-500/15 text-rose-200' },
+  2: { label: 'P2', title: 'Priority 2 (medium)', dot: '#fbbf24', chip: 'bg-amber-500/15 text-amber-200' },
+  3: { label: 'P3', title: 'Priority 3 (low)', dot: '#60a5fa', chip: 'bg-sky-500/15 text-sky-200' },
+};
+
 const EMPTY_DATA = {
   repos: [],
   cacheReady: false,
@@ -121,7 +131,7 @@ function Badge({ tone = 'neutral', children }) {
   return <span className={cx('rounded-sm px-1.5 py-0.5 text-[10px] font-medium', tones[tone])}>{children}</span>;
 }
 
-function CardMenu({ repo, anchorRef, autoFocusTag = false, defaultInactivity, allTags = [], onSetChecked, onClearCheck, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onAddTag, onRemoveTag, onClose }) {
+function CardMenu({ repo, anchorRef, autoFocusTag = false, defaultInactivity, allTags = [], onSetChecked, onClearCheck, onSetPriority, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onAddTag, onRemoveTag, onClose }) {
   const [days, setDays] = useState(repo.inactivity_days ?? '');
   const [notice, setNotice] = useState('');
   const [tag, setTag] = useState('');
@@ -199,6 +209,41 @@ function CardMenu({ repo, anchorRef, autoFocusTag = false, defaultInactivity, al
           >
             Clear check date
           </button>
+        </div>
+
+        <div className="mt-2 border-t border-neutral-800 pt-2">
+          <label className="block px-1 text-[10px] uppercase tracking-widest text-neutral-500">Priority</label>
+          <div className="mt-1 grid grid-cols-4 gap-1" role="group" aria-label="Set triage priority">
+            {PRIORITY_LEVELS.map((level) => {
+              const active = repo.priority === level;
+              const meta = PRIORITY_META[level];
+              return (
+                <button
+                  key={level}
+                  aria-pressed={active}
+                  title={meta.title}
+                  onClick={() => onSetPriority(repo.id, active ? null : level)}
+                  className={cx(
+                    'rounded-md py-1 text-xs font-semibold',
+                    active ? meta.chip : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                  )}
+                >
+                  {meta.label}
+                </button>
+              );
+            })}
+            <button
+              aria-pressed={repo.priority == null}
+              title="No priority"
+              onClick={() => onSetPriority(repo.id, null)}
+              className={cx(
+                'rounded-md py-1 text-xs font-semibold',
+                repo.priority == null ? 'bg-neutral-700 text-neutral-100' : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+              )}
+            >
+              None
+            </button>
+          </div>
         </div>
 
         <div className="mt-2 border-t border-neutral-800 pt-2">
@@ -576,6 +621,15 @@ function RepoCard({ repo, column, menuOpenId, menuIntent, showOwner, density = '
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {PRIORITY_META[repo.priority] && (
+          <span
+            className={cx('inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold', PRIORITY_META[repo.priority].chip)}
+            title={PRIORITY_META[repo.priority].title}
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: PRIORITY_META[repo.priority].dot }} aria-hidden="true" />
+            {PRIORITY_META[repo.priority].label}
+          </span>
+        )}
         {ownerTint && (
           <span
             className="inline-flex items-center gap-1 rounded-sm bg-neutral-800 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300"
@@ -1142,7 +1196,8 @@ export default function App() {
   const mutate = (fn) => fn().then(load);
 
   const onSetChecked = (id, daysAgo = 0) => mutate(() => api.setChecked(id, daysAgo));
-  const onClearCheck = (id) => mutate(() => api.setPriority(id, null));
+  const onClearCheck = (id) => mutate(() => api.clearSchedule(id));
+  const onSetPriority = (id, priority) => mutate(() => api.setPriority(id, priority));
   const onSetInactivity = (id, days) => mutate(() => api.setInactivity(id, days));
   const onSetIgnored = (id, ignored) => mutate(() => api.setIgnored(id, ignored));
   const onAddNotice = (id, body) => mutate(() => api.addNotice(id, body));
@@ -1235,6 +1290,7 @@ export default function App() {
     onDropOnCard,
     onSetChecked,
     onClearCheck,
+    onSetPriority,
     onSetInactivity,
     onSetIgnored,
     onAddNotice,

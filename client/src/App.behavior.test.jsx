@@ -8,6 +8,7 @@ vi.mock('./api.js', () => ({
     list: vi.fn(),
     refresh: vi.fn(),
     setPriority: vi.fn(),
+    clearSchedule: vi.fn(),
     setChecked: vi.fn(),
     touch: vi.fn(),
     setInactivity: vi.fn(),
@@ -61,6 +62,7 @@ describe('App behavior coverage', () => {
     window.localStorage.clear();
     api.setChecked.mockResolvedValue({ ok: true });
     api.setPriority.mockResolvedValue({ ok: true });
+    api.clearSchedule.mockResolvedValue({ ok: true });
     api.setInactivity.mockResolvedValue({ ok: true });
   });
 
@@ -105,7 +107,7 @@ describe('App behavior coverage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Clear check date' }));
 
     await waitFor(() => {
-      expect(api.setPriority).toHaveBeenCalledWith(1, null);
+      expect(api.clearSchedule).toHaveBeenCalledWith(1);
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open repository settings' }));

@@ -34,6 +34,12 @@ what's next.*
   markdown renderer gained h3/ol/links/bold/rules/table support to render it.
   (Screenshots deferred — can't capture a real browser in this environment; the
   guide describes the UI textually instead.)
+* [x] Add cspell configuration — `cspell.json` (British English, `en-GB`) with a
+  project dictionary at `.vscode/dictionary.txt`, recommended the Code Spell
+  Checker extension, and cleared all flagged words (anglicised `behavior` →
+  `behaviour`, expanded `incl.`, added genuine tech terms like `dialog`/
+  `schedulable`/`unstub`). `npx cspell` is clean across the project.
+* [ ] check project and list deprecations. remove those deprecations if they are used and replace them with the suggested replacements. If there are no replacements remove the deprecation and list it as a breaking change in the todo.md for manual check.
 
 ## Snapshot (current state)
 

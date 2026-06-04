@@ -759,7 +759,7 @@ Hovering reveals a tooltip with used/limit/reset-time detail.
 * **Do** add new components to the **Components** section of this file before
   implementing them in code.
 * **Do** respect `prefers-reduced-motion`: a global media query in `index.css`
-  near-instantly resolves all animations/transitions (incl. the sync spinner),
+  near-instantly resolves all animations/transitions (including the sync spinner),
   so prefer CSS `transition`/`animation` over JS-driven motion.
 * **Do** keep dialogs/popovers accessible via the `useDialog` hook (focus in,
   trap, Escape, restore) with `role="dialog"` + a label, and label board groups

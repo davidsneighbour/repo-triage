@@ -416,7 +416,7 @@ describe('backup & restore (runs last — mutates shared triage state)', () => {
         { repo_id: REPO.id }, // no body → skipped
       ],
       repo_tag: [
-        { repo_id: REPO.id, tag: 'MixedCase' }, // normalised to lower-case
+        { repo_id: REPO.id, tag: 'Roadmap' }, // normalised to lower-case
         { repo_id: REPO.id }, // no tag → skipped
       ],
     });
@@ -425,7 +425,7 @@ describe('backup & restore (runs last — mutates shared triage state)', () => {
 
     const board = await request(app).get('/api/repos');
     const repo = board.body.repos.find((r) => r.id === REPO.id);
-    expect(repo.tags).toEqual(['mixedcase']);
+    expect(repo.tags).toEqual(['roadmap']);
     expect(repo.notice_count).toBe(1);
     expect(repo.priority).toBeNull();
   });

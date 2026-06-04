@@ -137,5 +137,5 @@ Single-component React UI in `App.jsx`:
 
 * No TypeScript.
 * Tailwind class names must remain static strings.
-* Keep the test suites green; add/adjust tests alongside behavior changes.
+* Keep the test suites green; add/adjust tests alongside behaviour changes.
 * Do not cache GitHub repo list to disk.

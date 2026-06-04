@@ -56,7 +56,7 @@ const payload = {
   rateLimit: { remaining: 1000, limit: 5000, used: 4000, authInvalid: false },
 };
 
-describe('App behavior coverage', () => {
+describe('App behaviour coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();

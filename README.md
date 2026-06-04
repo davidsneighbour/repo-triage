@@ -147,7 +147,7 @@ Rendering boundaries:
     (`client/src/help-diagram.svg` via `scripts/build-help-diagram.mjs`) — Mermaid
     is never run in the browser.
 
-## GitHub API behavior
+## GitHub API behaviour
 
 * Auth resolves `GITHUB_TOKEN`, else `gh auth token`; the active source is
     reported as `authSource` in `GET /api/repos`.
@@ -159,7 +159,7 @@ Rendering boundaries:
     in `GET /api/repos`; `401` shows an auth banner; an exhausted limit blocks
     refresh until reset.
 
-## Cache-first startup behavior
+## Cache-first startup behaviour
 
 The client stores the latest successful board payload in browser `localStorage`
 (`repo-triage-board-cache-v1`). On next load:
@@ -173,7 +173,7 @@ Acceptance criteria:
 * Existing cached repos are visible before the first API call resolves.
 * A short "showing cached board" hint is visible while refresh is in-flight.
 * Once the API returns, cached content is replaced by fresh payload data.
-* If no cache exists, startup behavior remains the normal loading state.
+* If no cache exists, startup behaviour remains the normal loading state.
 
 ## Architecture
 
@@ -281,7 +281,7 @@ npm run test           # all client + server + cli tests (Vitest), no Docker
 npm run test:coverage  # same, with coverage report + enforced thresholds
 ```
 
-* `client/`: Vitest + jsdom + React Testing Library (component/behavior tests).
+* `client/`: Vitest + jsdom + React Testing Library (component/behaviour tests).
 * `server/`: Vitest with in-process route tests via `supertest`, plus pure
     schedule/GitHub-client unit tests.
 * Coverage thresholds live in each `vitest.config.js` and fail the run on

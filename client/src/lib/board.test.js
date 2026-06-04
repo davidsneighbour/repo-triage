@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDayColumns, collectTags, defaultFilters, filterRepos, groupRepos, groupReposBy, matchesTagFilter, matchesPriorityFilter, repoMatchesQuery, sortNotices } from './board.js';
+import { buildDayColumns, collectTags, defaultFilters, filterRepos, groupRepos, groupReposBy, matchesTagFilter, matchesPriorityFilter, repoMatchesQuery, sortNotices, sortReposForList } from './board.js';
 
 const repos = [
     { id: 1, name: 'own-live', description: 'alpha', language: 'JS', fork: false, archived: false, column: 'day-0', position: 2 },
@@ -96,6 +96,49 @@ describe('collectTags', () => {
             { tag: 'a', count: 2 },
             { tag: 'b', count: 1 },
         ]);
+    });
+});
+
+describe('sortReposForList', () => {
+    const repos = [
+        { id: 1, name: 'banana', owner: 'me', priority: 2, language: 'Go', pushed_at: '2026-01-01T00:00:00.000Z', stargazers_count: 5, open_issues_count: 1, dueInDays: 3, checkedAgeDays: 2 },
+        { id: 2, name: 'apple', owner: 'dnbhq', priority: 1, language: 'JS', pushed_at: '2026-06-01T00:00:00.000Z', stargazers_count: 9, open_issues_count: 4, dueInDays: 1, checkedAgeDays: null },
+        { id: 3, name: 'cherry', owner: 'me', priority: null, language: 'Go', pushed_at: '2026-03-01T00:00:00.000Z', stargazers_count: 1, open_issues_count: 0, dueInDays: 7, checkedAgeDays: 0 },
+    ];
+    const ids = (col, dir) => sortReposForList(repos, col, dir).map((r) => r.id);
+
+    it('sorts by name ascending by default', () => {
+        expect(ids('repo')).toEqual([2, 1, 3]); // apple, banana, cherry
+    });
+
+    it('sorts by priority (P1 first), with unset last', () => {
+        expect(ids('priority', 'asc')).toEqual([2, 1, 3]);
+    });
+
+    it('sorts numeric/recency columns descending', () => {
+        expect(ids('stars', 'desc')).toEqual([2, 1, 3]);
+        expect(ids('pushed', 'desc')).toEqual([2, 3, 1]);
+    });
+
+    it('sorts due ascending and treats a missing checked age as oldest-last', () => {
+        expect(ids('due', 'asc')).toEqual([2, 1, 3]);
+        expect(ids('checked', 'asc')).toEqual([3, 1, 2]); // 0, 2, then null(Infinity)
+    });
+
+    it('does not mutate the input', () => {
+        const before = repos.map((r) => r.id);
+        sortReposForList(repos, 'stars', 'desc');
+        expect(repos.map((r) => r.id)).toEqual(before);
+    });
+
+    it('tolerates sparse repos (missing fields) across every column', () => {
+        const sparse = [{ id: 9 }, { id: 8, name: 'z', owner: 'z', priority: 1, language: 'Z', pushed_at: '2026-01-01T00:00:00.000Z', stargazers_count: 1, open_issues_count: 1, dueInDays: 1, checkedAgeDays: 1 }];
+        for (const col of ['repo', 'owner', 'priority', 'language', 'pushed', 'stars', 'issues', 'due', 'checked']) {
+            expect(() => sortReposForList(sparse, col, 'asc')).not.toThrow();
+            expect(() => sortReposForList(sparse, col, 'desc')).not.toThrow();
+        }
+        // Unknown column falls back to the repo-name sorter.
+        expect(sortReposForList(sparse, 'bogus').map((r) => r.id)).toEqual([9, 8]);
     });
 });
 

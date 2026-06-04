@@ -86,8 +86,10 @@ so flags/tags/notices can be scripted. `gh`-aware for GitHub-side actions.
 
 ### 5. Display & board options
 
-* [ ] **(P1)** List/table view as an alternative to the board (sortable columns,
-  good for bulk scanning and reports).
+* [x] **(P1)** List/table view — a board/list toolbar toggle swaps the columns
+  for a single sortable `ListView` table (click-to-sort columns, per-row gear
+  reuses `CardMenu`, field toggles hide columns). Persisted; pure sort helper
+  `sortReposForList` in `board.js`.
 
 ### 6. Accessibility
 

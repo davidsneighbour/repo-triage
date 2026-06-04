@@ -116,6 +116,10 @@ reloads; search, tag and priority are per-session queries.
 
 ## Display options
 
+* **Board / list** — the toolbar toggle swaps the column board for a single
+  **sortable table** of the same repos (click any column header to sort; the
+  per-row gear opens the same menu as a card). Handy for bulk scanning. The
+  group selector doesn't apply in list view, so it's disabled there.
 * **Group** — the toolbar **group** selector re-columns the board: **Day
   schedule** (the default — drag-to-schedule board), or by **Owner**, **Tag**,
   or **Language**. The non-day views are read-only organisers: cards aren't

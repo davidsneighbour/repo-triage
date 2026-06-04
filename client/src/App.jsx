@@ -5,6 +5,7 @@ import { defaultFilters, filterRepos, buildDayColumns, groupRepos, groupReposBy,
 import { cx, ICON, SORT_LABELS, GROUP_BY_LABELS, DEFAULT_FIELDS } from './lib/constants.js';
 import { EMPTY_DATA, readBoardCache, writeBoardCache } from './lib/boardCache.js';
 import { Column } from './components/Column.jsx';
+import { ListView } from './components/ListView.jsx';
 import { HelpDialog } from './components/HelpDialog.jsx';
 import { NoticesDialog } from './components/NoticesDialog.jsx';
 import { ReportsDialog } from './components/ReportsDialog.jsx';
@@ -178,6 +179,26 @@ export default function App() {
       /* ignore */
     }
   };
+
+  // Board (columns) vs list (sortable table) view, persisted.
+  const VIEW_KEY = 'repo-triage-view';
+  const [view, setView] = useState(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'board';
+    } catch {
+      return 'board';
+    }
+  });
+  const toggleView = () =>
+    setView((prev) => {
+      const next = prev === 'list' ? 'board' : 'list';
+      try {
+        localStorage.setItem(VIEW_KEY, next);
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
 
   const load = useCallback(async () => {
     try {
@@ -454,15 +475,29 @@ export default function App() {
           )}
         </div>
         <div className="flex items-center gap-2 border-l border-neutral-800 pl-3">
-          <label className="flex items-center gap-1 text-[11px] text-neutral-600">
+          <button
+            onClick={toggleView}
+            aria-pressed={view === 'list'}
+            title={view === 'list' ? 'List view (click for board)' : 'Board view (click for list)'}
+            className={cx(
+              'rounded-md border px-2 py-1 text-[11px] transition-colors',
+              view === 'list'
+                ? 'border-neutral-600 bg-neutral-800 text-neutral-200'
+                : 'border-neutral-800 bg-transparent text-neutral-600'
+            )}
+          >
+            {view === 'list' ? 'list' : 'board'}
+          </button>
+          <label className={cx('flex items-center gap-1 text-[11px] text-neutral-600', view === 'list' && 'opacity-40')}>
             <span className="sr-only">Group board by</span>
             <span aria-hidden="true" className="text-[10px] uppercase tracking-wider">group</span>
             <select
               value={groupBy}
               onChange={(e) => changeGroupBy(e.target.value)}
+              disabled={view === 'list'}
               aria-label="Group board by"
               className={cx(
-                'rounded-md border px-1.5 py-1 text-[11px] outline-hidden transition-colors focus:border-neutral-500',
+                'rounded-md border px-1.5 py-1 text-[11px] outline-hidden transition-colors focus:border-neutral-500 disabled:cursor-not-allowed',
                 groupBy === 'day'
                   ? 'border-neutral-800 bg-transparent text-neutral-500'
                   : 'border-neutral-600 bg-neutral-800 text-neutral-200'
@@ -577,6 +612,8 @@ export default function App() {
               {!loading && !data.cacheReady && <div className="mt-1 text-xs text-neutral-700">the server is still talking to the GitHub API</div>}
             </div>
           </div>
+        ) : view === 'list' ? (
+          <ListView repos={filtered} {...cardProps} />
         ) : (
           <div role="group" aria-label="Repository board" aria-busy={data.syncing || undefined} className="flex min-h-0 flex-1 gap-4 overflow-hidden">
             {groupBy === 'day' ? (

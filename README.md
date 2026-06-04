@@ -15,7 +15,8 @@ age (`DEFAULT_INACTIVITY_DAYS`), it returns to **Today** automatically.
   show-ignored toggle
 * Inclusive repository filtering (`own`, `forks`, `archived`) + per-column filter
 * Group the board by day schedule, owner, tag, or language; sort cards within
-  columns (name / recently pushed / stars / due)
+  columns (name / recently pushed / stars / due); or switch to a sortable
+  **list/table view**
 * **Reports** (overdue / stale / per-owner / …) viewable in-app or exported as
   Markdown/CSV, shared with the **`repo-triage` CLI**
 * Auto-sync with GitHub on startup and/or interval (background, non-blocking)

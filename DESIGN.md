@@ -444,8 +444,9 @@ Full-width bar below header:
 
 * Left: text filter input (fixed `256px` width)
 * Middle: filter pills (own / forks / archived) + conditional "show all" button
-* Right: a separate group, divided by a `border-l`, holding the **group-by**
-  selector (Day schedule/Owner/Tag/Language), the **density** toggle, the
+* Right: a separate group, divided by a `border-l`, holding the **board/list**
+  view toggle, the **group-by** selector (Day schedule/Owner/Tag/Language; muted
+  and disabled in list view), the **density** toggle, the
   within-column **sort** selector (Manual/Name/Recently pushed/Stars/Due
   soonest), the **fields** menu (toggle language/pushed/stars/issues/notice
   preview on cards), the global **show ignored** toggle, the **tag filter**, the
@@ -464,6 +465,18 @@ bucket — "untagged"/"no owner"/"no language" — pinned last), cards are not
 draggable, and `[`/`]` scheduling is disabled (`schedulable=false`). Grouping by
 tag fans a repo out under each of its tags. The card menu still works in every
 view. Within-column sort applies to all groupings.
+
+### List view
+
+The board/list toggle swaps the column layout for a single **sortable table**
+(`ListView`) over the same filtered repos — good for bulk scanning and reporting.
+Columns: Repo (link), Owner (only when the board mixes owners), Priority,
+Language, Tags, Pushed, ★, Issues, Due, Checked, plus a per-row gear. Column
+headers are click-to-sort (numeric/recency columns default to descending, the
+rest ascending; re-clicking flips direction); the gear opens the same `CardMenu`
+as a card. Field-visibility toggles hide their columns too. The group-by
+selector has no meaning here, so it is muted and disabled. Empty result →
+"no repositories match". The view choice persists in localStorage.
 
 ## Elevation & depth
 

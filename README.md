@@ -45,6 +45,7 @@ docker compose --env-file .env up --build
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
 | `GITHUB_TOKEN` | no* | none | GitHub API auth token. *If unset, falls back to `gh auth token` (run `gh auth login`) |
+| `HOST` | no | `0.0.0.0` | Backend bind address. `0.0.0.0` makes dev/production reachable from other devices on your LAN |
 | `GITHUB_OWNERS` | no | empty | Users/orgs to load. Comma list or JSON array. Blank = the token owner's full set. Own login / member orgs include private; other users/orgs are public-only (a warning is shown) |
 | `GITHUB_USERNAME` | no | empty | Deprecated single-owner alias for `GITHUB_OWNERS` |
 | `DEFAULT_INACTIVITY_DAYS` | no | `7` | Due age in days for returning a repo to Today |
@@ -53,10 +54,35 @@ docker compose --env-file .env up --build
 | `SYNC_INTERVAL_MINUTES` | no | `60` | Sync interval minutes (min 1) |
 | `DATA_DIR` | no | `/data` in Docker, `./data` fallback | SQLite data directory |
 
-### Token scopes
+### GitHub token permissions
 
-* Classic token: `repo` scope for private repos
-* Fine-grained token: read access to repository metadata
+`GITHUB_TOKEN` is optional if you have already run `gh auth login`; the server
+falls back to `gh auth token`. The dashboard only reads repository metadata from
+GitHub. It does not write to GitHub.
+
+Minimum permissions:
+
+* Public repositories only: no special scopes are needed, but a token increases
+  the GitHub API rate limit.
+* Personal/private repositories for the token owner:
+  * Fine-grained PAT: **Repository permissions → Metadata: Read-only**
+  * Classic PAT: `repo`
+* Private organization repositories via `GITHUB_OWNERS`:
+  * Fine-grained PAT: create the token for that organization as the resource
+    owner, grant access to the relevant repositories, then set:
+    **Repository permissions → Metadata: Read-only** and
+    **Organization permissions → Members: Read-only**
+  * Classic PAT: `repo` and `read:org`; authorize SSO if the organization
+    requires it.
+
+Fine-grained PAT template for personal repositories:
+[https://github.com/settings/personal-access-tokens/new?name=Repo-triage&description=Read-only+repository+metadata+for+Repo-triage&expires_in=90&metadata=read](https://github.com/settings/personal-access-tokens/new?name=Repo-triage&description=Read-only+repository+metadata+for+Repo-triage&expires_in=90&metadata=read)
+
+Fine-grained PAT template for an organization, replacing `YOUR_ORG` first:
+[https://github.com/settings/personal-access-tokens/new?name=Repo-triage&description=Read-only+repository+metadata+for+Repo-triage&target_name=YOUR_ORG&expires_in=90&metadata=read&members=read](https://github.com/settings/personal-access-tokens/new?name=Repo-triage&description=Read-only+repository+metadata+for+Repo-triage&target_name=YOUR_ORG&expires_in=90&metadata=read&members=read)
+
+Note: a fine-grained PAT is limited to one resource owner, so multiple private
+organizations may require separate tokens or a classic PAT / `gh auth login`.
 
 ## Day-Schedule model
 
@@ -243,7 +269,10 @@ Run both backend (`:8787`) and frontend (`:5173`) together, no Docker needed:
 npm install && npm run dev
 ```
 
-The backend auto-loads the root `.env`, so set `GITHUB_TOKEN` there.
+The dev servers listen on the network by default. From another device on your
+LAN, open `http://192.168.1.201:5173` for the Vite app, or
+`http://192.168.1.201:8787` for the backend/API. The backend auto-loads the
+root `.env`, so set `GITHUB_TOKEN` there.
 `npm run server` runs only the backend. You can still run each side in its own
 terminal if you prefer:
 

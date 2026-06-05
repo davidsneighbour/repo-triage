@@ -9,6 +9,7 @@ import { buildReport, toMarkdown, toCsv, REPORT_KINDS } from './report.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8787);
+const HOST = process.env.HOST || '0.0.0.0';
 const DEFAULT_INACTIVITY_DAYS = Number(process.env.DEFAULT_INACTIVITY_DAYS || 7);
 const SYNC_ON_STARTUP = process.env.SYNC_ON_STARTUP !== 'false';
 const SYNC_AUTO = process.env.SYNC_AUTO !== 'false';
@@ -469,8 +470,13 @@ if (fs.existsSync(publicDir)) {
 }
 
 function startServer() {
-  app.listen(PORT, () => {
-    console.log(`\n  Repo Triage Dashboard → http://localhost:${PORT}\n`);
+  app.listen(PORT, HOST, () => {
+    const displayHost = HOST === '0.0.0.0' || HOST === '::' ? 'localhost' : HOST;
+    console.log(`\n  Repo Triage Dashboard -> http://${displayHost}:${PORT}`);
+    if (HOST === '0.0.0.0' || HOST === '::') {
+      console.log(`  Listening on all network interfaces, including http://<your-lan-ip>:${PORT}`);
+    }
+    console.log('');
     console.log(`  Sync on startup: ${SYNC_ON_STARTUP} | Auto-sync: ${SYNC_AUTO} every ${SYNC_INTERVAL_MINUTES}m`);
 
     // Kick off the initial GitHub load in the background so a slow fetch never

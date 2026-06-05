@@ -76,6 +76,15 @@ describe('multi-select bulk actions', () => {
     expect(api.setChecked).toHaveBeenCalledWith(2, 0);
   });
 
+  it('moves the selection to any chosen day column via the dropdown', async () => {
+    await selectBoth();
+    // "Today" (day-0) targets the full review age; "Tomorrow" (day-1) one less.
+    fireEvent.change(screen.getByRole('combobox', { name: 'Move selected to column' }), { target: { value: '6' } });
+    await waitFor(() => expect(api.setChecked).toHaveBeenCalledTimes(2));
+    expect(api.setChecked).toHaveBeenCalledWith(1, 6);
+    expect(api.setChecked).toHaveBeenCalledWith(2, 6);
+  });
+
   it('bulk-tags every selected repo', async () => {
     await selectBoth();
     fireEvent.change(screen.getByLabelText('Bulk tag'), { target: { value: 'sweep' } });
@@ -83,6 +92,17 @@ describe('multi-select bulk actions', () => {
     await waitFor(() => expect(api.addTag).toHaveBeenCalledTimes(2));
     expect(api.addTag).toHaveBeenCalledWith(1, 'sweep');
     expect(api.addTag).toHaveBeenCalledWith(2, 'sweep');
+  });
+
+  it('selects every visible repo in a column via the column "select all"', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+    // Both alpha and beta live in the Today column.
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all in Today' }));
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    // Toggling it again clears the selection.
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all in Today' }));
+    expect(screen.queryByText('2 selected')).not.toBeInTheDocument();
   });
 
   it('Deselect clears the selection without calling the API', async () => {

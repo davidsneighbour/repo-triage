@@ -14,6 +14,7 @@ vi.mock('./api.js', () => ({
     reorder: vi.fn(),
     addTag: vi.fn(),
     removeTag: vi.fn(),
+    deleteTag: vi.fn(),
   },
 }));
 
@@ -45,6 +46,7 @@ describe('tags UI', () => {
     api.list.mockResolvedValue(payload);
     api.addTag.mockResolvedValue({ ok: true });
     api.removeTag.mockResolvedValue({ ok: true });
+    api.deleteTag.mockResolvedValue({ ok: true });
   });
 
   it('renders tag chips on cards', async () => {
@@ -79,6 +81,31 @@ describe('tags UI', () => {
     fireEvent.change(input, { target: { value: 'db' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add tag' }));
     await waitFor(() => expect(api.addTag).toHaveBeenCalledWith(1, 'db'));
+  });
+
+  it('opens a tag-only menu from the "+ tag" affordance (no review-timing controls)', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add tag to alpha' }));
+    // The tag input is present...
+    expect(await screen.findByLabelText('New tag')).toBeInTheDocument();
+    // ...but the full settings sections are not.
+    expect(screen.queryByRole('button', { name: 'Checked now' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Move to Today' })).not.toBeInTheDocument();
+  });
+
+  it('deletes a tag everywhere from the tag-filter dropdown (after confirm)', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter by tag' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete tag infra' }));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    await waitFor(() => expect(api.deleteTag).toHaveBeenCalledWith('infra'));
+    confirmSpy.mockRestore();
   });
 
   it('filters the board by a selected tag', async () => {

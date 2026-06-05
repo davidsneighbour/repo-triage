@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { cx, ICON, ownerColor, tagColor, PRIORITY_META } from '../lib/constants.js';
 import { timeAgo } from '../lib/date.js';
 import { sortReposForList } from '../lib/board.js';
@@ -8,12 +8,11 @@ const checkedLabel = (r) =>
   r.checkedAgeDays == null ? '—' : r.checkedAgeDays === 0 ? 'today' : `${r.checkedAgeDays}d`;
 const dueLabel = (r) => (r.needsCheckToday ? 'today' : `${r.dueInDays}d`);
 
-function ListRow({ repo, showOwner, fields, selectedIds, onToggleSelect, menuOpenId, menuIntent, onToggleMenu, ...handlers }) {
+const ListRow = memo(function ListRow({ repo, showOwner, fields, selected = false, onToggleSelect, menuOpenId, menuIntent, onToggleMenu, ...handlers }) {
   const SettingsIcon = ICON.settings;
   const btnRef = useRef(null);
   const show = (k) => fields[k] !== false;
   const meta = PRIORITY_META[repo.priority];
-  const selected = selectedIds ? selectedIds.has(repo.id) : false;
 
   return (
     <tr className={cx('border-b border-neutral-800/60 hover:bg-neutral-900/50', selected && 'bg-neutral-900/70')}>
@@ -88,7 +87,7 @@ function ListRow({ repo, showOwner, fields, selectedIds, onToggleSelect, menuOpe
       </td>
     </tr>
   );
-}
+});
 
 // Read/scan-oriented table alternative to the day-schedule board. Columns are
 // click-to-sort; the per-row gear opens the same CardMenu as a card.
@@ -173,7 +172,7 @@ export function ListView({ repos, showOwner, fields = {}, onToggleSelect, onSele
         </thead>
         <tbody>
           {sorted.map((repo) => (
-            <ListRow key={repo.id} repo={repo} showOwner={showOwner} fields={fields} selectedIds={selectedIds} onToggleSelect={onToggleSelect} {...rowProps} />
+            <ListRow key={repo.id} repo={repo} showOwner={showOwner} fields={fields} selected={selectedIds ? selectedIds.has(repo.id) : false} onToggleSelect={onToggleSelect} {...rowProps} />
           ))}
         </tbody>
       </table>

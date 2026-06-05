@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDayColumns, collectTags, defaultFilters, filterRepos, groupRepos, groupReposBy, matchesTagFilter, matchesPriorityFilter, repoMatchesQuery, sortNotices, sortReposForList } from './board.js';
+import { buildDayColumns, collectTags, defaultFilters, filterRepos, groupRepos, groupReposBy, matchesTagFilter, matchesPriorityFilter, repoMatchesQuery, sortColumnRepos, sortNotices, sortReposForList } from './board.js';
 
 const repos = [
     { id: 1, name: 'own-live', description: 'alpha', language: 'JS', fork: false, archived: false, column: 'day-0', position: 2 },
@@ -140,6 +140,35 @@ describe('sortReposForList', () => {
         }
         // Unknown column falls back to the repo-name sorter.
         expect(sortReposForList(sparse, 'bogus').map((r) => r.id)).toEqual([9, 8]);
+    });
+});
+
+describe('sortColumnRepos', () => {
+    const repos = [
+        { id: 1, name: 'banana', owner: 'me', stargazers_count: 5 },
+        { id: 2, name: 'apple', owner: 'zeta', stargazers_count: 9 },
+        { id: 3, name: 'cherry', owner: 'amy', stargazers_count: 1 },
+    ];
+    const ids = (key, dir) => sortColumnRepos(repos, key, dir).map((r) => r.id);
+
+    it('returns the input untouched for an unknown/empty key', () => {
+        expect(sortColumnRepos(repos, null)).toBe(repos);
+        expect(sortColumnRepos(repos, 'bogus')).toBe(repos);
+    });
+
+    it('sorts by name, stars and owner in both directions', () => {
+        expect(ids('name', 'asc')).toEqual([2, 1, 3]); // apple, banana, cherry
+        expect(ids('name', 'desc')).toEqual([3, 1, 2]);
+        expect(ids('stars', 'asc')).toEqual([3, 1, 2]); // 1, 5, 9
+        expect(ids('stars', 'desc')).toEqual([2, 1, 3]);
+        expect(ids('owner', 'asc')).toEqual([3, 1, 2]); // amy, me, zeta
+        expect(ids('owner', 'desc')).toEqual([2, 1, 3]);
+    });
+
+    it('does not mutate the input', () => {
+        const before = repos.map((r) => r.id);
+        sortColumnRepos(repos, 'stars', 'desc');
+        expect(repos.map((r) => r.id)).toEqual(before);
     });
 });
 

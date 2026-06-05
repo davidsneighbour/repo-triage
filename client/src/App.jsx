@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { api } from './api.js';
 import { timeAgo, calendarLabel } from './lib/date.js';
 import { defaultFilters, filterRepos, buildDayColumns, groupRepos, groupReposBy, collectTags, SORT_KEYS, GROUP_BY_KEYS } from './lib/board.js';
@@ -203,16 +203,20 @@ export default function App() {
       return 'board';
     }
   });
-  const toggleView = () =>
-    setView((prev) => {
-      const next = prev === 'list' ? 'board' : 'list';
-      try {
-        localStorage.setItem(VIEW_KEY, next);
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+  // Switching view re-renders the whole board/list subtree, which can take a
+  // beat on large repo sets. Mark it as a transition so the click stays
+  // responsive and we can surface a "switching" indicator while React renders
+  // the new view in the background.
+  const [viewPending, startViewTransition] = useTransition();
+  const toggleView = () => {
+    const next = view === 'list' ? 'board' : 'list';
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      /* ignore */
+    }
+    startViewTransition(() => setView(next));
+  };
 
   const showToast = useCallback((message, undo = null) => setToast({ message, undo }), []);
 
@@ -556,9 +560,16 @@ export default function App() {
         onClick={toggleView}
         title={view === 'list' ? 'Switch to board view' : 'Switch to list view'}
         aria-label={view === 'list' ? 'Switch to board view' : 'Switch to list view'}
+        aria-busy={viewPending || undefined}
         className="flex items-center rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-300 transition-colors hover:bg-neutral-800 hover:text-neutral-100"
       >
-        {view === 'list' ? <BoardIcon className="h-4 w-4" aria-hidden="true" /> : <ListIcon className="h-4 w-4" aria-hidden="true" />}
+        {viewPending ? (
+          <SyncIcon className="h-4 w-4 animate-spin" aria-hidden="true" />
+        ) : view === 'list' ? (
+          <BoardIcon className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <ListIcon className="h-4 w-4" aria-hidden="true" />
+        )}
       </button>
       <label className={cx('flex items-center gap-1 text-[11px] text-neutral-600', view === 'list' && 'opacity-40')}>
         <span className="sr-only">Group board by</span>

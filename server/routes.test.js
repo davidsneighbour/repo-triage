@@ -307,6 +307,17 @@ describe('tags', () => {
     const list = await request(app).get(`/api/repos/${REPO.id}/tags`);
     expect(list.body.tags).toEqual(['oss']);
   });
+
+  it('deletes a tag everywhere it is used', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: 'doomed' });
+    const del = await request(app).delete('/api/tags/Doomed'); // normalised to lower-case
+    expect(del.status).toBe(200);
+    expect(del.body.ok).toBe(true);
+    expect(del.body.removed).toBe(1);
+
+    const all = await request(app).get('/api/tags');
+    expect(all.body.tags.find((t) => t.tag === 'doomed')).toBeUndefined();
+  });
 });
 
 describe('reports', () => {

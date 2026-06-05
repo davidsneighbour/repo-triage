@@ -71,6 +71,7 @@ set in each `vitest.config.js` and fail the run on regression.
 | `GITHUB_OWNERS` | no | empty | Users/orgs to load. Comma list or JSON array. Blank = token owner's full set. Own login / member orgs include private; other users/orgs are public-only (warning shown) |
 | `GITHUB_USERNAME` | no | empty | Deprecated single-owner alias for `GITHUB_OWNERS` (used only when `GITHUB_OWNERS` is unset) |
 | `DEFAULT_INACTIVITY_DAYS` | no | `7` | Due age in days for Today |
+| `DAY_ROLLOVER_HOUR` | no | `4` | Hour (0-23, local) when "tomorrow" becomes "today" on the board |
 | `SYNC_ON_STARTUP` | no | `true` | Startup GitHub sync |
 | `SYNC_AUTO` | no | `true` | Interval GitHub sync |
 | `SYNC_INTERVAL_MINUTES` | no | `60` | Auto-sync interval, min 1 |
@@ -142,6 +143,7 @@ persisted); header shows sync status and GitHub API remaining/limit.
 | POST | `/api/repos/:id/clear` | Clear the scheduling state (anchor + checked_at); keeps priority |
 | POST | `/api/repos/:id/touch` | Reset check timestamp to now |
 | POST | `/api/reorder` | Save order positions |
+| DELETE | `/api/tags/:tag` | Delete a tag from every repo that carries it |
 | GET | `/api/backup` | Export all triage state (repo_state/notice/tag) as JSON |
 | POST | `/api/restore` | Replace all triage state from a backup payload (transactional) |
 

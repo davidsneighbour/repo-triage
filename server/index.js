@@ -11,6 +11,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || '0.0.0.0';
 const DEFAULT_INACTIVITY_DAYS = Number(process.env.DEFAULT_INACTIVITY_DAYS || 7);
+// The hour (0-23, local time) at which the board rolls a new day over — i.e.
+// when "tomorrow" becomes "today". Defaults to 04:00 so the small hours still
+// belong to the previous review day.
+const DAY_ROLLOVER_HOUR = Math.min(23, Math.max(0, Math.floor(Number(process.env.DAY_ROLLOVER_HOUR ?? 4)) || 0));
 const SYNC_ON_STARTUP = process.env.SYNC_ON_STARTUP !== 'false';
 const SYNC_AUTO = process.env.SYNC_AUTO !== 'false';
 const SYNC_INTERVAL_MINUTES = Math.max(1, Number(process.env.SYNC_INTERVAL_MINUTES || 60));
@@ -101,7 +105,7 @@ function buildPayload() {
       notice_count: countByRepo.get(r.id) ?? 0,
       latest_notice: latestByRepo.get(r.id) ?? null,
       tags: tagsByRepo.get(r.id) ?? [],
-      ...effectiveState(s, DEFAULT_INACTIVITY_DAYS),
+      ...effectiveState(s, DEFAULT_INACTIVITY_DAYS, Date.now(), DAY_ROLLOVER_HOUR),
     };
   });
 }

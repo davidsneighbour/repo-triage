@@ -32,6 +32,8 @@ export default function App() {
   const DensityIcon = ICON.density;
   const SortIcon = ICON.sort;
   const MoreIcon = ICON.more;
+  const ListIcon = ICON.list;
+  const BoardIcon = ICON.board;
 
   const [data, setData] = useState(() => readBoardCache() ?? EMPTY_DATA);
   const [loading, setLoading] = useState(() => !readBoardCache());
@@ -212,7 +214,7 @@ export default function App() {
       return next;
     });
 
-  const showToast = (message, undo = null) => setToast({ message, undo });
+  const showToast = useCallback((message, undo = null) => setToast({ message, undo }), []);
 
   // Auto-dismiss the toast after a few seconds (re-armed whenever it changes).
   useEffect(() => {
@@ -287,50 +289,68 @@ export default function App() {
     }
   };
 
-  const mutate = (fn) => fn().then(load);
+  // Card-facing handlers are wrapped in useCallback so their identity is stable
+  // across re-renders. That lets the memoised RepoCard skip re-rendering when an
+  // unrelated bit of state (e.g. a selection toggle) changes — keeping selection
+  // instant even on large boards.
+  const mutate = useCallback((fn) => fn().then(load), [load]);
 
-  const onSetChecked = (id, daysAgo = 0) => mutate(() => api.setChecked(id, daysAgo));
-  const onClearCheck = (id) => mutate(() => api.clearSchedule(id));
-  const onSetPriority = (id, priority) => mutate(() => api.setPriority(id, priority));
-  const onSetInactivity = (id, days) => mutate(() => api.setInactivity(id, days));
+  const onSetChecked = useCallback((id, daysAgo = 0) => mutate(() => api.setChecked(id, daysAgo)), [mutate]);
+  const onClearCheck = useCallback((id) => mutate(() => api.clearSchedule(id)), [mutate]);
+  const onSetPriority = useCallback((id, priority) => mutate(() => api.setPriority(id, priority)), [mutate]);
+  const onSetInactivity = useCallback((id, days) => mutate(() => api.setInactivity(id, days)), [mutate]);
   // "Mark done for N days" from the mobile move sheet. See issue #17: the final
   // mapping is a one-off `snooze_until`; until that lands this approximates it
   // with check-now + a per-repo review-interval override (option B), which
   // resurfaces the repo in N days at the cost of (temporarily) changing its
   // review cadence. The MoveSheet's UI contract — a single field — is unaffected.
-  const onSnooze = (id, days) =>
-    api
-      .setChecked(id, 0)
-      .then(() => api.setInactivity(id, days))
-      .then(load);
-  const onSetIgnored = (id, ignored) => {
-    const result = mutate(() => api.setIgnored(id, ignored));
-    // Ignoring hides the repo — offer a one-click undo. (Unignoring needs none.)
-    if (ignored) {
-      const name = data.repos.find((r) => r.id === id)?.name ?? 'repo';
-      showToast(`Ignored ${name}`, () => onSetIgnored(id, false));
-    }
-    return result;
-  };
-  const onAddNotice = (id, body) => mutate(() => api.addNotice(id, body));
-  const onViewNotices = (scope) => setNoticesScope(scope);
-  const onAddTag = (id, tag) => mutate(() => api.addTag(id, tag));
-  const onRemoveTag = (id, tag) => mutate(() => api.removeTag(id, tag));
-  const onToggleMenu = (id, intent = null) => {
+  const onSnooze = useCallback(
+    (id, days) => api.setChecked(id, 0).then(() => api.setInactivity(id, days)).then(load),
+    [load]
+  );
+  const onSetIgnored = useCallback(
+    (id, ignored) => {
+      const result = mutate(() => api.setIgnored(id, ignored));
+      // Ignoring hides the repo — offer a one-click undo. (Unignoring needs none.)
+      if (ignored) {
+        const name = data.repos.find((r) => r.id === id)?.name ?? 'repo';
+        showToast(`Ignored ${name}`, () => mutate(() => api.setIgnored(id, false)));
+      }
+      return result;
+    },
+    [mutate, data.repos, showToast]
+  );
+  const onAddNotice = useCallback((id, body) => mutate(() => api.addNotice(id, body)), [mutate]);
+  const onViewNotices = useCallback((scope) => setNoticesScope(scope), []);
+  const onAddTag = useCallback((id, tag) => mutate(() => api.addTag(id, tag)), [mutate]);
+  const onRemoveTag = useCallback((id, tag) => mutate(() => api.removeTag(id, tag)), [mutate]);
+  // Delete a tag from every repo that carries it (from the tag-filter dropdown).
+  const onDeleteTag = useCallback((tag) => mutate(() => api.deleteTag(tag)), [mutate]);
+  const onToggleMenu = useCallback((id, intent = null) => {
     // An explicit intent (the "+ tag" chip) always opens and focuses; a plain
     // gear click toggles the menu open/closed.
     setOpenMenuId((cur) => (intent ? id : cur === id ? null : id));
     setMenuIntent(intent);
-  };
+  }, []);
 
-  const onToggleSelect = (id) =>
+  const onToggleSelect = useCallback((id) =>
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
-    });
+    }), []);
   const clearSelection = () => setSelectedIds(new Set());
+  // Bulk select/deselect a set of ids at once (column / list "select all").
+  const onSelectMany = useCallback((ids, selected) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (selected) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    }), []);
 
   // Apply an action to every selected repo, then refresh once. `ids` is captured
   // up front so the set can be cleared immediately for snappy feedback.
@@ -345,6 +365,8 @@ export default function App() {
   const bulkActions = {
     checkedNow: () => bulkApply((id) => api.setChecked(id, 0)),
     moveToday: () => bulkApply((id) => api.setChecked(id, data.defaultInactivityDays)),
+    // Move the selection to any day column (by its check-age target).
+    moveTo: (daysAgoTarget) => bulkApply((id) => api.setChecked(id, daysAgoTarget)),
     clear: () => bulkApply((id) => api.clearSchedule(id)),
     ignore: () => {
       const ids = [...selectedIds];
@@ -356,21 +378,22 @@ export default function App() {
     tag: (tag) => bulkApply((id) => api.addTag(id, tag)),
   };
 
-  const onDragStartCard = (e, id) => {
+  const onDragStartCard = useCallback((e, id) => {
     e.dataTransfer.setData('text/plain', String(id));
     e.dataTransfer.effectAllowed = 'move';
-  };
-  const onDropColumn = (id, daysAgoTarget) => onSetChecked(id, daysAgoTarget);
-  const onDropOnCard = (e, targetId, daysAgoTarget) => {
+  }, []);
+  const onDropColumn = useCallback((id, daysAgoTarget) => onSetChecked(id, daysAgoTarget), [onSetChecked]);
+  const onDropOnCard = useCallback((e, targetId, daysAgoTarget) => {
     const id = Number(e.dataTransfer.getData('text/plain'));
     if (id && id !== targetId) onSetChecked(id, daysAgoTarget);
-  };
+  }, [onSetChecked]);
 
   const filtered = useMemo(() => {
     return filterRepos(data.repos, q, filters, showIgnored, tagFilter, priorityFilter);
   }, [data.repos, q, filters, showIgnored, tagFilter, priorityFilter]);
 
   const availableTags = useMemo(() => collectTags(data.repos), [data.repos]);
+  const allTags = useMemo(() => availableTags.map((t) => t.tag), [availableTags]);
 
   // Drop selected ids that no longer exist after a refresh so the bulk bar can't
   // act on (or count) repos that have gone away.
@@ -416,12 +439,25 @@ export default function App() {
     return groupBy === 'day' ? null : groupReposBy(filtered, groupBy, sortKey);
   }, [filtered, groupBy, sortKey]);
 
+  // Owners shown in the header link out to their GitHub profile/org page. When
+  // the set is large we collapse to a count (nothing meaningful to link to).
+  const ownerLink = (login) => (
+    <a
+      key={login}
+      href={`https://github.com/${login}`}
+      target="_blank"
+      rel="noreferrer"
+      className="text-neutral-500 hover:text-neutral-300 hover:underline"
+    >
+      @{login}
+    </a>
+  );
   const ownerLabel = data.owners?.length
     ? data.owners.length <= 3
-      ? data.owners.map((o) => `@${o}`).join(', ')
+      ? data.owners.map((o, i) => <span key={o}>{i > 0 ? ', ' : ''}{ownerLink(o)}</span>)
       : `${data.owners.length} owners`
     : data.username
-    ? `@${data.username}`
+    ? ownerLink(data.username)
     : 'authenticated user';
 
   // Single polite live-region message; screen readers announce it on change.
@@ -474,7 +510,8 @@ export default function App() {
     onRemoveTag,
     selectedIds,
     onToggleSelect,
-    allTags: availableTags.map((t) => t.tag),
+    onSelectMany,
+    allTags,
     defaultInactivity: data.defaultInactivityDays,
   };
 
@@ -517,14 +554,11 @@ export default function App() {
     <>
       <button
         onClick={toggleView}
-        aria-pressed={view === 'list'}
-        title={view === 'list' ? 'List view (click for board)' : 'Board view (click for list)'}
-        className={cx(
-          'rounded-md border px-2 py-1 text-[11px] transition-colors',
-          view === 'list' ? 'border-neutral-600 bg-neutral-800 text-neutral-200' : 'border-neutral-800 bg-transparent text-neutral-600'
-        )}
+        title={view === 'list' ? 'Switch to board view' : 'Switch to list view'}
+        aria-label={view === 'list' ? 'Switch to board view' : 'Switch to list view'}
+        className="flex items-center rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-300 transition-colors hover:bg-neutral-800 hover:text-neutral-100"
       >
-        {view === 'list' ? 'list' : 'board'}
+        {view === 'list' ? <BoardIcon className="h-4 w-4" aria-hidden="true" /> : <ListIcon className="h-4 w-4" aria-hidden="true" />}
       </button>
       <label className={cx('flex items-center gap-1 text-[11px] text-neutral-600', view === 'list' && 'opacity-40')}>
         <span className="sr-only">Group board by</span>
@@ -585,7 +619,7 @@ export default function App() {
         <IgnoredIcon className="h-3 w-3" aria-hidden="true" />
         show ignored
       </button>
-      <TagFilter available={availableTags} value={tagFilter} onChange={setTagFilter} />
+      <TagFilter available={availableTags} value={tagFilter} onChange={setTagFilter} onDelete={onDeleteTag} />
       <PriorityFilter value={priorityFilter} onChange={setPriorityFilter} />
       <button
         onClick={() => setReportsOpen(true)}
@@ -721,7 +755,7 @@ export default function App() {
             Showing cached board while refreshing from GitHub.
           </div>
         )}
-        {selectedIds.size > 0 && <BulkBar count={selectedIds.size} actions={bulkActions} onClear={clearSelection} />}
+        {selectedIds.size > 0 && <BulkBar count={selectedIds.size} actions={bulkActions} columns={dayColumns} onClear={clearSelection} />}
         {loading || (!data.cacheReady && !showingCachedData) ? (
           <div className="grid h-40 place-items-center text-center text-sm text-neutral-600">
             <div>

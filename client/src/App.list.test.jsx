@@ -48,7 +48,7 @@ describe('list/table view', () => {
     render(<App />);
     await screen.findByRole('link', { name: 'banana' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'board' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to list view' }));
     expect(window.localStorage.getItem('repo-triage-view')).toBe('list');
 
     // A table renders both repos as rows; default sort is by name ascending.
@@ -70,7 +70,7 @@ describe('list/table view', () => {
   it('opens the shared card menu from a table row', async () => {
     render(<App />);
     await screen.findByRole('link', { name: 'banana' });
-    fireEvent.click(screen.getByRole('button', { name: 'board' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to list view' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Settings for banana' }));
     // The CardMenu (priority controls etc.) appears.

@@ -52,6 +52,7 @@ export const api = {
       body: JSON.stringify({ tag }),
     }).then(json),
   removeTag: (id, tag) => fetch(`/api/repos/${id}/tags/${encodeURIComponent(tag)}`, { method: 'DELETE' }).then(json),
+  deleteTag: (tag) => fetch(`/api/tags/${encodeURIComponent(tag)}`, { method: 'DELETE' }).then(json),
   reportKinds: () => fetch('/api/reports').then(json),
   report: (kind, { format = 'json', days } = {}) => {
     const qs = new URLSearchParams({ format });

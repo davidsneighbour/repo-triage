@@ -1,4 +1,4 @@
-import { ArrowDownUp, Archive, BarChart3, CalendarDays, CircleDot, CircleHelp, EyeOff, GitFork, MoreHorizontal, RefreshCw, Rows2, Search, Settings2, Star, StickyNote, Tag, User } from 'lucide-react';
+import { ArrowDownUp, Archive, BarChart3, CalendarDays, CircleDot, CircleHelp, EyeOff, GitFork, LayoutGrid, List, MoreHorizontal, RefreshCw, Rows2, Search, Settings2, Star, StickyNote, Tag, User } from 'lucide-react';
 
 // Tiny className joiner used throughout the UI.
 export const cx = (...a) => a.filter(Boolean).join(' ');
@@ -67,6 +67,8 @@ export const ICON = {
   sort: ArrowDownUp,
   calendar: CalendarDays,
   more: MoreHorizontal,
+  list: List,
+  board: LayoutGrid,
 };
 
 // Labels for the within-column sort selector (keys come from board.js SORT_KEYS).

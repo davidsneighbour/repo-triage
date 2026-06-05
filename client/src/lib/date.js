@@ -15,6 +15,8 @@ export function timeAgo(iso, nowMs = Date.now()) {
     return 'just now';
 }
 
+// Column heads lead with the relative phrase (Today / Tomorrow / In N days) and
+// keep the concrete weekday as the muted subtitle, e.g. "Tomorrow · Saturday".
 export function calendarLabel(offset, now = new Date()) {
     if (offset === 0) return { title: 'Today', subtitle: 'needs review' };
 
@@ -22,7 +24,7 @@ export function calendarLabel(offset, now = new Date()) {
     date.setDate(date.getDate() + offset);
     const weekday = new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(date);
 
-    if (offset === 1) return { title: weekday, subtitle: 'tomorrow' };
-    if (offset === 2) return { title: weekday, subtitle: 'day after tomorrow' };
-    return { title: weekday, subtitle: `in ${offset} days` };
+    if (offset === 1) return { title: 'Tomorrow', subtitle: weekday };
+    if (offset === 2) return { title: 'Day after', subtitle: weekday };
+    return { title: `In ${offset} days`, subtitle: weekday };
 }

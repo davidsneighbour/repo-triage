@@ -25,12 +25,13 @@ describe('calendarLabel', () => {
         expect(calendarLabel(0, baseDate)).toEqual({ title: 'Today', subtitle: 'needs review' });
     });
 
-    it('returns tomorrow/day-after labels for offsets 1 and 2', () => {
-        expect(calendarLabel(1, baseDate).subtitle).toBe('tomorrow');
-        expect(calendarLabel(2, baseDate).subtitle).toBe('day after tomorrow');
+    it('leads with the relative phrase and keeps the weekday as subtitle', () => {
+        // baseDate is a Wednesday, so offset 1 is Thursday, offset 2 Friday.
+        expect(calendarLabel(1, baseDate)).toEqual({ title: 'Tomorrow', subtitle: 'Thursday' });
+        expect(calendarLabel(2, baseDate)).toEqual({ title: 'Day after', subtitle: 'Friday' });
     });
 
     it('returns generic future label for offsets > 2', () => {
-        expect(calendarLabel(4, baseDate).subtitle).toBe('in 4 days');
+        expect(calendarLabel(4, baseDate).title).toBe('In 4 days');
     });
 });

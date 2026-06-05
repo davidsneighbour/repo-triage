@@ -6,7 +6,7 @@ import { cx } from '../lib/constants.js';
 // the whole selection (via App's bulkActions) and then clears it. On mobile it
 // pins to the bottom edge as a thumb-reachable action bar (see DESIGN.md →
 // Layout → Responsive / mobile).
-export function BulkBar({ count, actions, onClear }) {
+export function BulkBar({ count, actions, columns = [], onClear }) {
   const [tag, setTag] = useState('');
   const isMobile = useIsMobile();
 
@@ -36,7 +36,26 @@ export function BulkBar({ count, actions, onClear }) {
       </span>
       <span className="mx-1 h-4 w-px bg-neutral-800" aria-hidden="true" />
       <button className={btn} onClick={actions.checkedNow}>Checked now</button>
-      <button className={btn} onClick={actions.moveToday}>Move to Today</button>
+      {columns.length > 0 ? (
+        <label className="flex items-center gap-1">
+          <span className="text-[11px] text-neutral-400">Move to</span>
+          <select
+            value=""
+            onChange={(e) => {
+              if (e.target.value !== '') actions.moveTo(Number(e.target.value));
+            }}
+            aria-label="Move selected to column"
+            className="rounded-md border border-neutral-700 bg-neutral-950 px-2 py-1 text-[11px] text-neutral-200 outline-hidden focus:border-neutral-500"
+          >
+            <option value="" disabled>column…</option>
+            {columns.map((c) => (
+              <option key={c.key} value={c.daysAgoTarget}>{c.title}</option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <button className={btn} onClick={actions.moveToday}>Move to Today</button>
+      )}
       <button className={btn} onClick={actions.clear}>Clear check</button>
       <button className={btn} onClick={actions.ignore}>Ignore</button>
       <button className={btn} onClick={actions.unignore}>Unignore</button>

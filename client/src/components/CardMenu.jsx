@@ -5,7 +5,7 @@ import { useDialog } from '../lib/useDialog.js';
 import { useIsMobile } from '../lib/useIsMobile.js';
 import { cx, tagColor, PRIORITY_LEVELS, PRIORITY_META } from '../lib/constants.js';
 
-export function CardMenu({ repo, anchorRef, autoFocusTag = false, defaultInactivity, allTags = [], onSetChecked, onClearCheck, onSetPriority, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onAddTag, onRemoveTag, onClose }) {
+export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = false, defaultInactivity, allTags = [], onSetChecked, onClearCheck, onSetPriority, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onAddTag, onRemoveTag, onClose }) {
   const [days, setDays] = useState(repo.inactivity_days ?? '');
   const [notice, setNotice] = useState('');
   const [tag, setTag] = useState('');
@@ -54,7 +54,7 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, defaultInactiv
       <div
         ref={dialogRef}
         role="dialog"
-        aria-label={`Settings for ${repo.name}`}
+        aria-label={tagOnly ? `Tags for ${repo.name}` : `Settings for ${repo.name}`}
         tabIndex={-1}
         className={cx(
           'fixed z-20 border border-neutral-700 bg-neutral-900 p-2 shadow-2xl',
@@ -64,6 +64,8 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, defaultInactiv
         )}
         style={isMobile ? undefined : pos ? { top: pos.top, left: pos.left } : { visibility: 'hidden' }}
       >
+        {!tagOnly && (
+        <>
         <p className="px-1 pb-1 text-[10px] uppercase tracking-widest text-neutral-500">Review timing</p>
         <div className="grid grid-cols-2 gap-1">
           <button
@@ -153,8 +155,10 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, defaultInactiv
           </div>
           <p className="mt-1 px-1 text-[10px] text-neutral-600">Blank = default ({defaultInactivity}d)</p>
         </div>
+        </>
+        )}
 
-        <div className="mt-2 border-t border-neutral-800 pt-2">
+        <div className={cx('mt-2 pt-2', !tagOnly && 'border-t border-neutral-800')}>
           <label className="block px-1 text-[10px] uppercase tracking-widest text-neutral-500">Tags</label>
           {repo.tags?.length > 0 && (
             <div className="mt-1 flex flex-wrap gap-1">
@@ -203,6 +207,8 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, defaultInactiv
           )}
         </div>
 
+        {!tagOnly && (
+        <>
         <div className="mt-2 border-t border-neutral-800 pt-2">
           <button
             onClick={() => {
@@ -248,6 +254,8 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, defaultInactiv
             </button>
           </div>
         </div>
+        </>
+        )}
       </div>
     </>,
     document.body

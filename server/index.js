@@ -168,6 +168,7 @@ const addTagStmt = db.prepare(`
   VALUES (@id, @full_name, @tag, @now)
 `);
 const removeTagStmt = db.prepare('DELETE FROM repo_tag WHERE repo_id = ? AND tag = ?');
+const deleteTagEverywhereStmt = db.prepare('DELETE FROM repo_tag WHERE tag = ?');
 const tagsForRepoStmt = db.prepare('SELECT tag FROM repo_tag WHERE repo_id = ? ORDER BY tag');
 const allTagsStmt = db.prepare('SELECT tag, COUNT(*) AS count FROM repo_tag GROUP BY tag ORDER BY count DESC, tag ASC');
 
@@ -365,6 +366,12 @@ app.delete('/api/repos/:id/tags/:tag', (req, res) => {
 // Distinct tags across all repos with usage counts (for the CLI and reports).
 app.get('/api/tags', (req, res) => {
   res.json({ tags: allTagsStmt.all() });
+});
+
+// Delete a tag everywhere — removes it from every repo that carries it.
+app.delete('/api/tags/:tag', (req, res) => {
+  const info = deleteTagEverywhereStmt.run(normalizeTag(req.params.tag));
+  res.json({ ok: true, removed: info.changes });
 });
 
 // ---- Reports ---------------------------------------------------------------

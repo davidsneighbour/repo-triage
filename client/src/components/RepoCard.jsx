@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import { cx, ICON, ownerColor, tagColor, PRIORITY_META } from '../lib/constants.js';
 import { timeAgo } from '../lib/date.js';
 import { Badge } from './Badge.jsx';
@@ -9,7 +9,7 @@ import { MoveSheet } from './MoveSheet.jsx';
 const LONG_PRESS_MS = 450;
 const MOVE_THRESHOLD_PX = 10;
 
-export function RepoCard({ repo, column, menuOpenId, menuIntent, showOwner, density = 'comfortable', schedulable = true, mobile = false, fields = {}, selectedIds, onToggleSelect, onToggleMenu, onDragStartCard, onDropOnCard, ...handlers }) {
+function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density = 'comfortable', schedulable = true, mobile = false, fields = {}, selected = false, onToggleSelect, onToggleMenu, onDragStartCard, onDropOnCard, ...handlers }) {
   // Field visibility: a field shows unless explicitly toggled off.
   const show = (k) => fields[k] !== false;
   const SettingsIcon = ICON.settings;
@@ -20,7 +20,6 @@ export function RepoCard({ repo, column, menuOpenId, menuIntent, showOwner, dens
   const menuButtonRef = useRef(null);
   const ownerTint = showOwner && repo.owner ? ownerColor(repo.owner) : null;
   const compact = density === 'compact';
-  const selected = selectedIds ? selectedIds.has(repo.id) : false;
 
   // Mobile-only long-press → move sheet. Additive to (not a replacement for)
   // the desktop drag/`[`/`]` paths, which stay untouched. A long press on the
@@ -247,7 +246,7 @@ export function RepoCard({ repo, column, menuOpenId, menuIntent, showOwner, dens
       )}
 
       {menuOpenId === repo.id && (
-        <CardMenu repo={repo} anchorRef={menuButtonRef} autoFocusTag={menuIntent === 'tag'} onClose={() => onToggleMenu(repo.id)} {...handlers} />
+        <CardMenu repo={repo} anchorRef={menuButtonRef} autoFocusTag={menuIntent === 'tag'} tagOnly={menuIntent === 'tag'} onClose={() => onToggleMenu(repo.id)} {...handlers} />
       )}
 
       {longPressEnabled && moveOpen && (
@@ -264,3 +263,8 @@ export function RepoCard({ repo, column, menuOpenId, menuIntent, showOwner, dens
     </div>
   );
 }
+
+// Memoised so a selection toggle (or any unrelated board state change) only
+// re-renders the card whose props actually changed — handlers are stable
+// (useCallback in App) and `selected` is a per-card boolean.
+export const RepoCard = memo(RepoCardImpl);

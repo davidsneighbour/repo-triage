@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Trash2 } from 'lucide-react';
 import { useDialog } from '../lib/useDialog.js';
 import { useIsMobile } from '../lib/useIsMobile.js';
 import { cx, ICON, tagColor } from '../lib/constants.js';
 
-function TagFilterPanel({ available, value, onChange, anchorRef, onClose }) {
+function TagFilterPanel({ available, value, onChange, onDelete, anchorRef, onClose }) {
   const [pos, setPos] = useState(null);
   const dialogRef = useDialog(onClose);
   const isMobile = useIsMobile();
@@ -68,12 +69,27 @@ function TagFilterPanel({ available, value, onChange, anchorRef, onClose }) {
                   <p className="px-1 py-2 text-center text-[11px] text-neutral-600">no tags yet</p>
                 ) : (
                   available.map(({ tag, count }) => (
-                    <label key={tag} className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1 text-[11px] text-neutral-300 hover:bg-neutral-800">
-                      <input type="checkbox" checked={selected.includes(tag)} onChange={() => toggleTag(tag)} className="accent-neutral-500" />
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tagColor(tag) }} aria-hidden="true" />
-                      <span className="flex-1 truncate">#{tag}</span>
+                    <div key={tag} className="group flex items-center gap-2 rounded-sm px-1 py-1 text-[11px] text-neutral-300 hover:bg-neutral-800">
+                      <label className="flex flex-1 cursor-pointer items-center gap-2 truncate">
+                        <input type="checkbox" checked={selected.includes(tag)} onChange={() => toggleTag(tag)} className="accent-neutral-500" />
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tagColor(tag) }} aria-hidden="true" />
+                        <span className="flex-1 truncate">#{tag}</span>
+                      </label>
                       <span className="tabular-nums text-neutral-600">{count}</span>
-                    </label>
+                      {onDelete && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Delete tag "#${tag}" from all ${count} rep${count === 1 ? 'o' : 'os'}?`)) onDelete(tag);
+                          }}
+                          aria-label={`Delete tag ${tag}`}
+                          title={`Delete tag #${tag} everywhere`}
+                          className="rounded-sm p-0.5 text-neutral-600 hover:text-rose-300 focus:text-rose-300"
+                        >
+                          <Trash2 className="h-3 w-3" aria-hidden="true" />
+                        </button>
+                      )}
+                    </div>
                   ))
                 )}
               </div>
@@ -83,7 +99,7 @@ function TagFilterPanel({ available, value, onChange, anchorRef, onClose }) {
   );
 }
 
-export function TagFilter({ available, value, onChange }) {
+export function TagFilter({ available, value, onChange, onDelete }) {
   const TagIcon = ICON.tag;
   const [open, setOpen] = useState(false);
   const btnRef = useRef(null);
@@ -103,7 +119,7 @@ export function TagFilter({ available, value, onChange }) {
         <TagIcon className="h-3 w-3" aria-hidden="true" />
         tags{selected.length ? ` (${selected.length})` : ''}
       </button>
-      {open && <TagFilterPanel available={available} value={value} onChange={onChange} anchorRef={btnRef} onClose={() => setOpen(false)} />}
+      {open && <TagFilterPanel available={available} value={value} onChange={onChange} onDelete={onDelete} anchorRef={btnRef} onClose={() => setOpen(false)} />}
     </>
   );
 }

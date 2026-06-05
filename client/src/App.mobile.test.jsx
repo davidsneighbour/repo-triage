@@ -77,8 +77,8 @@ describe('mobile board', () => {
     // The dropdown lists all 7 day columns.
     expect(within(dialog).getAllByRole('button').length).toBe(7);
 
-    // Pick the column holding the day-3 repo (Thursday, "in 3 days").
-    fireEvent.click(within(dialog).getByRole('button', { name: /in 3 days/ }));
+    // Pick the column holding the day-3 repo ("In 3 days", weekday subtitle).
+    fireEvent.click(within(dialog).getByRole('button', { name: /In 3 days/ }));
 
     expect(screen.getByRole('link', { name: 'later' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'due-now' })).not.toBeInTheDocument();

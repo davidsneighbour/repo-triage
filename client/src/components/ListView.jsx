@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cx, ICON, ownerColor, tagColor, PRIORITY_META } from '../lib/constants.js';
 import { timeAgo } from '../lib/date.js';
 import { sortReposForList } from '../lib/board.js';
@@ -92,12 +92,23 @@ function ListRow({ repo, showOwner, fields, selectedIds, onToggleSelect, menuOpe
 
 // Read/scan-oriented table alternative to the day-schedule board. Columns are
 // click-to-sort; the per-row gear opens the same CardMenu as a card.
-export function ListView({ repos, showOwner, fields = {}, onToggleSelect, ...rowProps }) {
+export function ListView({ repos, showOwner, fields = {}, onToggleSelect, onSelectMany, selectedIds, ...rowProps }) {
   const [sortCol, setSortCol] = useState('repo');
   const [sortDir, setSortDir] = useState('asc');
   const show = (k) => fields[k] !== false;
 
   const sorted = useMemo(() => sortReposForList(repos, sortCol, sortDir), [repos, sortCol, sortDir]);
+
+  // Header "select all" toggles every row currently in the table.
+  const canSelect = Boolean(onToggleSelect && onSelectMany);
+  const allIds = useMemo(() => sorted.map((r) => r.id), [sorted]);
+  const selectedCount = canSelect ? allIds.filter((id) => selectedIds?.has(id)).length : 0;
+  const allSelected = allIds.length > 0 && selectedCount === allIds.length;
+  const someSelected = selectedCount > 0 && !allSelected;
+  const selectAllRef = useRef(null);
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected;
+  }, [someSelected]);
 
   // Descending-first for the numeric/recency columns; ascending-first otherwise.
   const onSort = (col) => {
@@ -132,7 +143,20 @@ export function ListView({ repos, showOwner, fields = {}, onToggleSelect, ...row
       <table className="w-full text-left text-[11px]">
         <thead className="sticky top-0 bg-neutral-950">
           <tr className="border-b border-neutral-800">
-            {onToggleSelect && <th className="px-2 py-1.5" />}
+            {onToggleSelect && (
+              <th className="px-2 py-1.5">
+                {canSelect && (
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={(e) => onSelectMany(allIds, e.target.checked)}
+                    aria-label="Select all repositories"
+                    className="accent-neutral-400"
+                  />
+                )}
+              </th>
+            )}
             <Th col="repo" label="Repo" />
             {showOwner && <Th col="owner" label="Owner" />}
             <Th col="priority" label="Priority" />
@@ -149,7 +173,7 @@ export function ListView({ repos, showOwner, fields = {}, onToggleSelect, ...row
         </thead>
         <tbody>
           {sorted.map((repo) => (
-            <ListRow key={repo.id} repo={repo} showOwner={showOwner} fields={fields} onToggleSelect={onToggleSelect} {...rowProps} />
+            <ListRow key={repo.id} repo={repo} showOwner={showOwner} fields={fields} selectedIds={selectedIds} onToggleSelect={onToggleSelect} {...rowProps} />
           ))}
         </tbody>
       </table>

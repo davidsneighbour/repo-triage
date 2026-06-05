@@ -174,6 +174,23 @@ export function groupReposBy(repos, field, sortKey = 'manual') {
     return cols;
 }
 
+// Per-column, on-demand ordering chosen from a column's own sort dropdown. This
+// overrides the board-wide within-column sort for that single column only. Keys
+// map to ascending comparators; `dir` flips the sign. An unknown/empty key
+// returns the repos untouched (i.e. keep the incoming board order).
+export const COLUMN_SORT_KEYS = ['name', 'stars', 'owner'];
+const COLUMN_SORTERS = {
+    name: (a, b) => (a.name || '').localeCompare(b.name || ''),
+    stars: (a, b) => (a.stargazers_count || 0) - (b.stargazers_count || 0),
+    owner: (a, b) => (a.owner || '').localeCompare(b.owner || ''),
+};
+export function sortColumnRepos(repos, key, dir = 'asc') {
+    const cmp = COLUMN_SORTERS[key];
+    if (!cmp) return repos;
+    const sign = dir === 'desc' ? -1 : 1;
+    return [...repos].sort((a, b) => cmp(a, b) * sign || (a.name || '').localeCompare(b.name || ''));
+}
+
 export function groupRepos(repos, dayColumns, sortKey = 'manual') {
     const groups = Object.fromEntries(dayColumns.map((col) => [col.key, []]));
 

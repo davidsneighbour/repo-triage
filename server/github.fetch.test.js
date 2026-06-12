@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { authStatus, fetchAllRepos, parseOwners, rateLimit, sourceStatus } from './github.js';
+import { authStatus, enrichRepos, fetchAllRepos, parseOwners, rateLimit, sourceStatus } from './github.js';
 
 // `gh auth token` is shelled out via execFileSync — mock it so it's deterministic.
 vi.mock('node:child_process', () => ({
@@ -438,5 +438,101 @@ describe('fetchAllRepos — configured owners', () => {
     expect(repos).toEqual([]);
     expect(sourceStatus.owners[0]).toMatchObject({ owner: 'secret-org', scope: 'public', count: 0 });
     expect(sourceStatus.warnings.join(' ')).toMatch(/not authorized for organization "secret-org" \(403\)/);
+  });
+});
+
+describe('enrichRepos', () => {
+  const makeRepo = (id, full_name) => ({ id, full_name });
+
+  const graphqlResponse = (repos) => {
+    const data = {};
+    for (const r of repos) {
+      data[`r${r.id}`] = {
+        pullRequests: { totalCount: 2 },
+        releases: { nodes: [{ tagName: 'v1.2.3', publishedAt: '2024-03-01T00:00:00Z' }] },
+        defaultBranchRef: {
+          target: {
+            committedDate: '2024-06-01T12:00:00Z',
+            author: { name: 'Alice' },
+            statusCheckRollup: { state: 'SUCCESS' },
+          },
+        },
+      };
+    }
+    return JSON.stringify({ data });
+  };
+
+  it('returns enrichment data from a successful graphql call', () => {
+    const repos = [makeRepo(42, 'org/repo')];
+    execFileSync.mockReturnValueOnce(graphqlResponse(repos));
+
+    const result = enrichRepos(repos, 'tok');
+
+    expect(execFileSync).toHaveBeenCalledWith(
+      'gh',
+      expect.arrayContaining(['api', 'graphql', '--header', 'Authorization: Bearer tok']),
+      expect.objectContaining({ encoding: 'utf8' })
+    );
+    expect(result.get(42)).toEqual({
+      open_prs: 2,
+      latest_release: { tag: 'v1.2.3', published_at: '2024-03-01T00:00:00Z' },
+      last_commit: { date: '2024-06-01T12:00:00Z', author: 'Alice' },
+      ci_status: 'SUCCESS',
+    });
+  });
+
+  it('returns empty map when gh is unavailable', () => {
+    execFileSync.mockImplementation(() => { throw new Error('gh not found'); });
+    const result = enrichRepos([makeRepo(1, 'a/b')], 'tok');
+    expect(result.size).toBe(0);
+  });
+
+  it('returns empty map for an empty repo list', () => {
+    const result = enrichRepos([], 'tok');
+    expect(result.size).toBe(0);
+    expect(execFileSync).not.toHaveBeenCalled();
+  });
+
+  it('handles repos with no release gracefully', () => {
+    const repos = [makeRepo(7, 'x/y')];
+    execFileSync.mockReturnValueOnce(JSON.stringify({
+      data: {
+        r7: {
+          pullRequests: { totalCount: 0 },
+          releases: { nodes: [] },
+          defaultBranchRef: null,
+        },
+      },
+    }));
+    const result = enrichRepos(repos, 'tok');
+    expect(result.get(7)).toMatchObject({
+      open_prs: 0,
+      latest_release: null,
+      last_commit: null,
+      ci_status: null,
+    });
+  });
+
+  it('batches repos in groups and calls execFileSync once per batch', () => {
+    // Build 26 repos so we get 2 batches (25 + 1).
+    const repos = Array.from({ length: 26 }, (_, i) => makeRepo(i + 1, `org/repo${i + 1}`));
+    const batch1 = repos.slice(0, 25);
+    const batch2 = repos.slice(25);
+    execFileSync
+      .mockReturnValueOnce(graphqlResponse(batch1))
+      .mockReturnValueOnce(graphqlResponse(batch2));
+
+    const result = enrichRepos(repos, 'tok');
+
+    expect(execFileSync).toHaveBeenCalledTimes(2);
+    expect(result.size).toBe(26);
+  });
+
+  it('does not pass --header when token is falsy', () => {
+    const repos = [makeRepo(1, 'a/b')];
+    execFileSync.mockReturnValueOnce(graphqlResponse(repos));
+    enrichRepos(repos, null);
+    const [, args] = execFileSync.mock.calls[0];
+    expect(args).not.toContain('--header');
   });
 });

@@ -271,6 +271,87 @@ function mapRepo(r) {
   };
 }
 
+// ---- Per-repo enrichment via gh api graphql --------------------------------
+// Opt-in (ENRICH_METADATA=true). Runs after the repo list is fetched; the
+// results live in memory alongside repoCache and are merged into buildPayload.
+
+const ENRICH_BATCH = 25;
+
+function buildEnrichQuery(repos) {
+  const fragment = `
+    pullRequests(states: OPEN) { totalCount }
+    releases(first: 1, orderBy: {field: CREATED_AT, direction: DESC}) {
+      nodes { tagName publishedAt }
+    }
+    defaultBranchRef {
+      target {
+        ... on Commit {
+          committedDate
+          author { name }
+          statusCheckRollup { state }
+        }
+      }
+    }`;
+  const parts = repos.map((r) => {
+    const [owner, name] = r.full_name.split('/');
+    return `r${r.id}: repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) { ${fragment} }`;
+  });
+  return `query { ${parts.join('\n')} }`;
+}
+
+function parseEnrichData(data, repos) {
+  const out = new Map();
+  for (const r of repos) {
+    const node = data[`r${r.id}`];
+    if (!node) continue;
+    out.set(r.id, {
+      open_prs: node.pullRequests?.totalCount ?? null,
+      latest_release: node.releases?.nodes?.[0]
+        ? { tag: node.releases.nodes[0].tagName, published_at: node.releases.nodes[0].publishedAt }
+        : null,
+      last_commit: node.defaultBranchRef?.target?.committedDate
+        ? { date: node.defaultBranchRef.target.committedDate, author: node.defaultBranchRef.target.author?.name ?? null }
+        : null,
+      ci_status: node.defaultBranchRef?.target?.statusCheckRollup?.state ?? null,
+    });
+  }
+  return out;
+}
+
+/**
+ * Enrich repo list with per-repo GraphQL data (open PR count, latest release,
+ * last commit, CI status). Batches ENRICH_BATCH repos per `gh api graphql` call.
+ * Returns a Map<repoId, enrichmentObject>. Silently skips batches that fail
+ * (gh unavailable, permission denied, etc.) so the board never hard-errors.
+ */
+export function enrichRepos(repos, token) {
+  const out = new Map();
+  if (!repos.length) return out;
+  for (let i = 0; i < repos.length; i += ENRICH_BATCH) {
+    const batch = repos.slice(i, i + ENRICH_BATCH);
+    const query = buildEnrichQuery(batch);
+    try {
+      const args = ['api', 'graphql'];
+      if (token) args.push('--header', `Authorization: Bearer ${token}`);
+      args.push('-f', `query=${query}`);
+      const raw = execFileSync('gh', args, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 30000,
+      });
+      const parsed = JSON.parse(raw);
+      if (parsed?.data) {
+        for (const [id, val] of parseEnrichData(parsed.data, batch)) {
+          out.set(id, val);
+        }
+      }
+    } catch {
+      // gh unavailable, query failed, or JSON parse error — skip this batch
+    }
+  }
+  return out;
+}
+
 /**
  * Fetch repositories for the dashboard.
  *

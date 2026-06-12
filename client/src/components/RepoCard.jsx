@@ -17,6 +17,8 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
   const IssueIcon = ICON.issues;
   const ForkIcon = ICON.forks;
   const TagIcon = ICON.tag;
+  const PRIcon = ICON.pullRequest;
+  const ReleaseIcon = ICON.release;
   const menuButtonRef = useRef(null);
   const ownerTint = showOwner && repo.owner ? ownerColor(repo.owner) : null;
   const compact = density === 'compact';
@@ -218,6 +220,36 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
             <span className="flex shrink-0 items-center gap-0.5 tabular-nums" title={`${repo.forks_count} forks`}>
               <ForkIcon className="h-3 w-3" aria-hidden="true" />
               {repo.forks_count}
+            </span>
+          )}
+          {show('open_prs') && repo.open_prs != null && repo.open_prs > 0 && (
+            <span className="flex shrink-0 items-center gap-0.5 tabular-nums" title={`${repo.open_prs} open PRs`}>
+              <PRIcon className="h-3 w-3" aria-hidden="true" />
+              {repo.open_prs}
+            </span>
+          )}
+          {show('latest_release') && repo.latest_release?.tag && (
+            <span className="flex shrink-0 items-center gap-0.5" title={`Latest release: ${repo.latest_release.tag}`}>
+              <ReleaseIcon className="h-3 w-3" aria-hidden="true" />
+              {repo.latest_release.tag}
+            </span>
+          )}
+          {show('last_commit') && repo.last_commit?.date && (
+            <span className="truncate" title={repo.last_commit.author ? `Last commit by ${repo.last_commit.author}` : 'Last commit'}>
+              commit {timeAgo(repo.last_commit.date)}
+            </span>
+          )}
+          {show('ci_status') && repo.ci_status && (
+            <span
+              className={cx(
+                'inline-flex items-center gap-0.5 rounded-sm px-1 py-0.5 text-[10px] font-medium uppercase',
+                repo.ci_status === 'SUCCESS' ? 'bg-emerald-500/15 text-emerald-300' :
+                repo.ci_status === 'FAILURE' || repo.ci_status === 'ERROR' ? 'bg-rose-500/15 text-rose-300' :
+                'bg-amber-500/15 text-amber-300'
+              )}
+              title={`CI: ${repo.ci_status}`}
+            >
+              {repo.ci_status === 'SUCCESS' ? '✓' : repo.ci_status === 'FAILURE' || repo.ci_status === 'ERROR' ? '✗' : '⏳'} CI
             </span>
           )}
         </span>

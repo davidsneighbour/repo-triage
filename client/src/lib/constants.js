@@ -1,4 +1,4 @@
-import { ArrowDownUp, Archive, BarChart3, CalendarDays, CircleDot, CircleHelp, EyeOff, GitFork, LayoutGrid, List, MoreHorizontal, RefreshCw, Rows2, Search, Settings2, Star, StickyNote, Tag, User } from 'lucide-react';
+import { ArrowDownUp, Archive, BarChart3, CalendarDays, CircleDot, CircleHelp, EyeOff, GitFork, GitPullRequest, LayoutGrid, List, MoreHorizontal, RefreshCw, Rows2, Search, Settings2, Star, StickyNote, Tag, User } from 'lucide-react';
 
 // Tiny className joiner used throughout the UI.
 export const cx = (...a) => a.filter(Boolean).join(' ');
@@ -69,6 +69,8 @@ export const ICON = {
   more: MoreHorizontal,
   list: List,
   board: LayoutGrid,
+  pullRequest: GitPullRequest,
+  release: Tag,
 };
 
 // Labels for the within-column sort selector (keys come from board.js SORT_KEYS).
@@ -96,6 +98,11 @@ export const FIELD_OPTIONS = [
   { key: 'issues', label: 'Open issues' },
   { key: 'forks', label: 'Forks' },
   { key: 'notice', label: 'Notice preview' },
+  // Enriched fields — only populated when ENRICH_METADATA=true on the server.
+  { key: 'open_prs', label: 'Open PRs' },
+  { key: 'latest_release', label: 'Latest release' },
+  { key: 'last_commit', label: 'Last commit' },
+  { key: 'ci_status', label: 'CI status' },
 ];
 export const DEFAULT_FIELDS = Object.fromEntries(FIELD_OPTIONS.map((f) => [f.key, true]));
 

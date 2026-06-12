@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import db from './db.js';
-import { fetchAllRepos, rateLimit, sourceStatus, authStatus, parseOwners } from './github.js';
+import { fetchAllRepos, enrichRepos, resolveToken, rateLimit, sourceStatus, authStatus, parseOwners } from './github.js';
 import { effectiveState } from './schedule.js';
 import { buildReport, toMarkdown, toCsv, REPORT_KINDS } from './report.js';
 
@@ -18,12 +18,14 @@ const DAY_ROLLOVER_HOUR = Math.min(23, Math.max(0, Math.floor(Number(process.env
 const SYNC_ON_STARTUP = process.env.SYNC_ON_STARTUP !== 'false';
 const SYNC_AUTO = process.env.SYNC_AUTO !== 'false';
 const SYNC_INTERVAL_MINUTES = Math.max(1, Number(process.env.SYNC_INTERVAL_MINUTES || 60));
+const ENRICH_METADATA = (process.env.ENRICH_METADATA || '').toLowerCase() === 'true';
 
 const app = express();
 app.use(express.json());
 
-// ---- GitHub repo cache -----------------------------------------------------
+// ---- GitHub repo cache + optional enrichment cache ------------------------
 let repoCache = [];
+let enrichCache = new Map(); // repoId → { open_prs, latest_release, last_commit, ci_status }
 let lastFetch = null;
 let lastError = null;
 let cacheReady = false; // false until the first successful GitHub fetch completes
@@ -39,6 +41,11 @@ async function refreshRepos() {
     lastFetch = new Date().toISOString();
     lastError = null;
     cacheReady = true;
+
+    if (ENRICH_METADATA) {
+      const { token } = resolveToken();
+      enrichCache = enrichRepos(repoCache, token);
+    }
 
     // Make sure every repo has a state row so settings can be attached later.
     const insert = db.prepare(
@@ -102,8 +109,10 @@ function buildPayload() {
 
   return repoCache.map((r) => {
     const s = byId.get(r.id) || { priority: null, priority_set_at: null, inactivity_days: null, position: 0, ignored: 0 };
+    const enrich = enrichCache.get(r.id) ?? {};
     return {
       ...r,
+      ...enrich,
       priority: s.priority,
       priority_set_at: s.priority_set_at,
       checked_at: s.checked_at ?? null,

@@ -76,13 +76,14 @@ set in each `vitest.config.js` and fail the run on regression.
 | `SYNC_AUTO` | no | `true` | Interval GitHub sync |
 | `SYNC_INTERVAL_MINUTES` | no | `60` | Auto-sync interval, min 1 |
 | `DATA_DIR` | no | `/data` (Docker), `./data` fallback | SQLite directory |
+| `ENRICH_METADATA` | no | `false` | Run per-repo GraphQL enrichment after each sync (open PRs, latest release, last commit, CI status). Requires `gh` CLI to be logged in. Costs rate-limit budget. |
 
 ## Architecture
 
 ### Backend (`server/`)
 
 * `index.js`: Express app, in-memory `repoCache`, schedule logic (`effectiveState`), sync loop.
-* `github.js`: GitHub API pagination, multi-owner loading (`parseOwners` + per-owner fetch with org-membership detection), auth-invalid detection, rate-limit state parsing, non-fatal `sourceStatus.warnings`.
+* `github.js`: GitHub API pagination, multi-owner loading (`parseOwners` + per-owner fetch with org-membership detection), auth-invalid detection, rate-limit state parsing, non-fatal `sourceStatus.warnings`. `enrichRepos()` runs opt-in per-repo GraphQL enrichment via `gh api graphql` after each sync.
 * `db.js`: SQLite setup and schema for `repo_state`, `repo_notice`, `repo_tag`.
 
 ### CLI (`cli/`)

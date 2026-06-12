@@ -10,10 +10,11 @@
  *
  *   Run `repo-triage help` to list all commands.
  */
+import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { readFileSync } from 'node:fs';
 
-const VALUE_FLAGS = new Set(['api', 'days', 'owner', 'tag', 'language', 'lang', 'format']);
+const VALUE_FLAGS = new Set(['api', 'days', 'owner', 'tag', 'language', 'lang', 'format', 'all-matching']);
 
 // ---- pure helpers (unit-tested) -------------------------------------------
 
@@ -70,6 +71,8 @@ export function apiBase(flags = {}) {
  * Resolves an `"owner/name"` or bare `"name"` identifier to exactly one repo
  * from the list, or throws a descriptive error.
  *
+ * Resolution order: exact full_name → exact name → name substring (fuzzy).
+ *
  * @param {object[]} repos - Board payload array (from `GET /api/repos`).
  * @param {string} ident - Repository identifier (`"owner/name"` or `"name"`).
  * @returns {object} The matched repo object.
@@ -80,11 +83,39 @@ export function resolveRepo(repos, ident) {
   if (!needle) throw new Error('a repo (owner/name or name) is required');
   let matches = repos.filter((r) => (r.full_name || '').toLowerCase() === needle);
   if (matches.length === 0) matches = repos.filter((r) => (r.name || '').toLowerCase() === needle);
+  if (matches.length === 0) matches = repos.filter((r) => (r.name || '').toLowerCase().includes(needle));
   if (matches.length === 0) throw new Error(`no repo matching "${ident}"`);
   if (matches.length > 1) {
     throw new Error(`"${ident}" is ambiguous — use owner/name. Matches: ${matches.map((r) => r.full_name).join(', ')}`);
   }
   return matches[0];
+}
+
+/**
+ * Resolves one or more repos for a bulk operation.
+ *
+ * - If `opts['all-matching']` is set: returns all repos whose `full_name` or
+ *   `name` matches the glob pattern (`*` is a wildcard, case-insensitive).
+ * - Otherwise: delegates to `resolveRepo(repos, ident)` and wraps in an array.
+ *
+ * @param {object[]} repos - Board payload array.
+ * @param {string|undefined} ident - Single-repo identifier (ignored when `opts['all-matching']` is set).
+ * @param {object} [opts={}] - Parsed CLI flags.
+ * @returns {object[]} One or more matched repo objects.
+ * @throws {Error} If the pattern matches nothing or `ident` resolves to nothing.
+ */
+export function resolveRepos(repos, ident, opts = {}) {
+  const pattern = opts['all-matching'];
+  if (pattern) {
+    const re = new RegExp(
+      '^' + String(pattern).replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$',
+      'i'
+    );
+    const filtered = repos.filter((r) => re.test(r.full_name || '') || re.test(r.name || ''));
+    if (filtered.length === 0) throw new Error(`no repos matching "${pattern}"`);
+    return filtered;
+  }
+  return [resolveRepo(repos, ident)];
 }
 
 /**
@@ -211,6 +242,11 @@ async function withRepo(base, ident) {
   return resolveRepo(repos, ident);
 }
 
+async function withRepos(base, ident, flags) {
+  const { repos } = await getRepos(base);
+  return resolveRepos(repos, ident, flags);
+}
+
 const HELP = `repo-triage — CLI for the repo.triage dashboard
 
 Usage: repo-triage [--api <url>] [--json] <command> [args]
@@ -220,6 +256,7 @@ Commands:
                               List repositories (hides ignored by default).
                               --priority takes a comma list of 1|2|3|none
   tags                        List all tags with usage counts
+  open     <repo>             Open the repo on GitHub in the browser (requires gh)
   ignore   <repo>             Hide a repo from the board
   unignore <repo>             Un-ignore a repo
   check    <repo> [--days N]  Mark reviewed N days ago (default 0 = now)
@@ -237,12 +274,15 @@ Commands:
   restore  <file.json>        Replace all triage state from a backup file
   help
 
-A repo is "owner/name" (or a bare "name" when unambiguous).
+A repo is "owner/name", a bare "name" (unambiguous), or a name substring (fuzzy).
+Add --all-matching <glob> to any repo command to act on every matching repo
+  e.g.  repo-triage check --all-matching "me/*" --days 1
+        repo-triage ignore --all-matching "*/archived-*"
 The server must be running; override its URL with --api or REPO_TRIAGE_API.`;
 
 // ---- commands -------------------------------------------------------------
 
-async function run(argv, out = console.log) {
+async function run(argv, out = console.log, { execFile = execFileSync } = {}) {
   const { command, positionals, flags } = parseArgs(argv);
   const base = apiBase(flags);
 
@@ -262,36 +302,52 @@ async function run(argv, out = console.log) {
       out(flags.json ? JSON.stringify(tags, null, 2) : tags.map((t) => `${String(t.count).padStart(4)}  #${t.tag}`).join('\n') || 'no tags yet.');
       return 0;
     }
+    case 'open': {
+      const repos = await withRepos(base, positionals[0], flags);
+      for (const repo of repos) {
+        execFile('gh', ['repo', 'view', '--web', repo.full_name], { stdio: 'inherit' });
+        out(`opened ${repo.full_name}`);
+      }
+      return 0;
+    }
     case 'ignore':
     case 'unignore': {
-      const repo = await withRepo(base, positionals[0]);
-      await call(base, 'POST', `/api/repos/${repo.id}/ignore`, { ignored: command === 'ignore' });
-      out(`${command}d ${repo.full_name}`);
+      const repos = await withRepos(base, positionals[0], flags);
+      for (const repo of repos) {
+        await call(base, 'POST', `/api/repos/${repo.id}/ignore`, { ignored: command === 'ignore' });
+        out(`${command}d ${repo.full_name}`);
+      }
       return 0;
     }
     case 'check': {
-      const repo = await withRepo(base, positionals[0]);
+      const repos = await withRepos(base, positionals[0], flags);
       const days = flags.days === undefined ? 0 : Number(flags.days);
       if (!Number.isFinite(days) || days < 0) throw new Error('--days must be a non-negative number');
-      await call(base, 'POST', `/api/repos/${repo.id}/check`, { daysAgo: days });
-      out(`checked ${repo.full_name} (${days}d ago)`);
+      for (const repo of repos) {
+        await call(base, 'POST', `/api/repos/${repo.id}/check`, { daysAgo: days });
+        out(`checked ${repo.full_name} (${days}d ago)`);
+      }
       return 0;
     }
     case 'clear': {
-      const repo = await withRepo(base, positionals[0]);
-      await call(base, 'POST', `/api/repos/${repo.id}/clear`);
-      out(`cleared check date for ${repo.full_name}`);
+      const repos = await withRepos(base, positionals[0], flags);
+      for (const repo of repos) {
+        await call(base, 'POST', `/api/repos/${repo.id}/clear`);
+        out(`cleared check date for ${repo.full_name}`);
+      }
       return 0;
     }
     case 'priority': {
-      const repo = await withRepo(base, positionals[0]);
+      const repos = await withRepos(base, positionals[0], flags);
       const raw = positionals[1];
       const priority = raw === 'none' || raw === 'clear' || raw === undefined ? null : Number(raw);
       if (priority !== null && ![1, 2, 3].includes(priority)) {
         throw new Error('usage: priority <repo> <1|2|3|none>');
       }
-      await call(base, 'POST', `/api/repos/${repo.id}/priority`, { priority });
-      out(`set priority for ${repo.full_name} to ${priority === null ? 'none' : `P${priority}`}`);
+      for (const repo of repos) {
+        await call(base, 'POST', `/api/repos/${repo.id}/priority`, { priority });
+        out(`set priority for ${repo.full_name} to ${priority === null ? 'none' : `P${priority}`}`);
+      }
       return 0;
     }
     case 'interval': {

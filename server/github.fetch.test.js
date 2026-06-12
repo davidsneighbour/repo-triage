@@ -1,13 +1,31 @@
+import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { authStatus, enrichRepos, fetchAllRepos, isGhPaginateEnabled, parseOwners, rateLimit, sourceStatus } from './github.js';
 
-// `gh auth token` is shelled out via execFileSync — mock it so it's deterministic.
+// `gh auth token` + enrichRepos use execFileSync; paginateViaGh uses spawn.
 vi.mock('node:child_process', () => ({
-  execFileSync: vi.fn(() => {
-    throw new Error('gh not available');
-  }),
+  execFileSync: vi.fn(() => { throw new Error('gh not available'); }),
+  spawn: vi.fn(),
 }));
+
+// Simulate a gh spawn call: emits stdout data then closes.
+function mockSpawnOnce({ stdout = '', stderr = '', code = 0 } = {}) {
+  spawn.mockImplementationOnce(() => {
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = vi.fn(() => child.emit('close', 1));
+    child.stdout.setEncoding = vi.fn();
+    child.stderr.setEncoding = vi.fn();
+    process.nextTick(() => {
+      if (stdout) child.stdout.emit('data', stdout);
+      if (stderr) child.stderr.emit('data', stderr);
+      child.emit('close', code);
+    });
+    return child;
+  });
+}
 
 // Build a minimal fetch Response stand-in.
 function makeRes({ status = 200, body = [], headers = {} } = {}) {
@@ -60,6 +78,7 @@ beforeEach(() => {
   execFileSync.mockImplementation(() => {
     throw new Error('gh not available');
   });
+  spawn.mockReset();
 });
 
 afterEach(() => {
@@ -557,16 +576,16 @@ describe('fetchAllRepos — PAGINATE_VIA_GH mode', () => {
 
   it('calls gh api --paginate for the self repo path when no owners configured', async () => {
     const ghRepos = [repo({ id: 1, full_name: 'me/r', owner: { login: 'me', type: 'User' } })];
-    execFileSync.mockReturnValueOnce(JSON.stringify(ghRepos) + '\n');
+    mockSpawnOnce({ stdout: JSON.stringify(ghRepos) + '\n' });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeRes({ body: {}, headers: RATE_HEADERS })));
 
     const result = await fetchAllRepos();
 
-    const ghCall = execFileSync.mock.calls[0];
-    expect(ghCall[0]).toBe('gh');
-    expect(ghCall[1]).toEqual(expect.arrayContaining(['api', '--paginate']));
-    expect(ghCall[1][2]).toContain('/user/repos');
-    expect(ghCall[1]).toContain('Authorization: Bearer test-token');
+    const spawnCall = spawn.mock.calls[0];
+    expect(spawnCall[0]).toBe('gh');
+    expect(spawnCall[1]).toEqual(expect.arrayContaining(['api', '--paginate']));
+    expect(spawnCall[1][2]).toContain('/user/repos');
+    expect(spawnCall[1]).toContain('Authorization: Bearer test-token');
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ id: 1, owner: 'me' });
   });
@@ -576,7 +595,7 @@ describe('fetchAllRepos — PAGINATE_VIA_GH mode', () => {
       repo({ id: i + 1, full_name: `me/r${i}`, owner: { login: 'me', type: 'User' } })
     );
     const page2 = [repo({ id: 10, full_name: 'me/last', owner: { login: 'me', type: 'User' } })];
-    execFileSync.mockReturnValueOnce(JSON.stringify(page1) + '\n' + JSON.stringify(page2) + '\n');
+    mockSpawnOnce({ stdout: JSON.stringify(page1) + '\n' + JSON.stringify(page2) + '\n' });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeRes({ body: {}, headers: RATE_HEADERS })));
 
     const result = await fetchAllRepos();
@@ -584,25 +603,37 @@ describe('fetchAllRepos — PAGINATE_VIA_GH mode', () => {
   });
 
   it('throws repoListError when gh exits with a 404 (no-owners path)', async () => {
-    const err = new Error('gh error');
-    err.stderr = 'error (HTTP 404): Not Found';
-    execFileSync.mockImplementationOnce(() => { throw err; });
+    mockSpawnOnce({ stderr: 'error (HTTP 404): Not Found', code: 1 });
     vi.stubGlobal('fetch', vi.fn());
 
     await expect(fetchAllRepos()).rejects.toThrow(/GitHub API 404/);
   });
 
-  it('throws repoListError when gh exits with a 500 and no HTTP status in stderr', async () => {
-    const err = new Error('unexpected error');
-    err.stderr = '';
-    execFileSync.mockImplementationOnce(() => { throw err; });
+  it('throws repoListError when gh exits non-zero with no HTTP status in stderr', async () => {
+    mockSpawnOnce({ stderr: '', code: 1 });
+    vi.stubGlobal('fetch', vi.fn());
+
+    await expect(fetchAllRepos()).rejects.toThrow(/GitHub API 500/);
+  });
+
+  it('resolves with empty list when spawn emits error event', async () => {
+    spawn.mockImplementationOnce(() => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      child.kill = vi.fn();
+      child.stdout.setEncoding = vi.fn();
+      child.stderr.setEncoding = vi.fn();
+      process.nextTick(() => child.emit('error', new Error('spawn ENOENT')));
+      return child;
+    });
     vi.stubGlobal('fetch', vi.fn());
 
     await expect(fetchAllRepos()).rejects.toThrow(/GitHub API 500/);
   });
 
   it('refreshes rate-limit via REST after a successful gh sync', async () => {
-    execFileSync.mockReturnValueOnce(JSON.stringify([]) + '\n');
+    mockSpawnOnce({ stdout: JSON.stringify([]) + '\n' });
     const fetchMock = vi.fn().mockResolvedValue(makeRes({ body: {}, headers: RATE_HEADERS }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -616,7 +647,7 @@ describe('fetchAllRepos — PAGINATE_VIA_GH mode', () => {
   it('routes org owner through gh api --paginate for the repo list, REST for membership', async () => {
     process.env.GITHUB_OWNERS = 'my-org';
     const ghRepos = [repo({ id: 5, full_name: 'my-org/r', owner: { login: 'my-org', type: 'Organization' } })];
-    execFileSync.mockReturnValueOnce(JSON.stringify(ghRepos) + '\n');
+    mockSpawnOnce({ stdout: JSON.stringify(ghRepos) + '\n' });
 
     const fetchMock = routeFetch([
       ['/user', () => makeRes({ body: { login: 'me' }, headers: RATE_HEADERS })],
@@ -627,21 +658,17 @@ describe('fetchAllRepos — PAGINATE_VIA_GH mode', () => {
 
     const result = await fetchAllRepos();
 
-    const ghCall = execFileSync.mock.calls[0];
-    expect(ghCall[1][2]).toContain('/orgs/my-org/repos');
+    const spawnCall = spawn.mock.calls[0];
+    expect(spawnCall[1][2]).toContain('/orgs/my-org/repos');
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ id: 5, owner: 'my-org' });
   });
 
   it('falls back to user path via gh when org returns 404', async () => {
     process.env.GITHUB_OWNERS = 'octocat';
-    const orgErr = new Error('gh error');
-    orgErr.stderr = 'error (HTTP 404): Not Found';
     const ghRepos = [repo({ id: 3, full_name: 'octocat/hello', owner: { login: 'octocat', type: 'User' } })];
-
-    execFileSync
-      .mockImplementationOnce(() => { throw orgErr; })  // org path → 404
-      .mockReturnValueOnce(JSON.stringify(ghRepos) + '\n');  // user path
+    mockSpawnOnce({ stderr: 'error (HTTP 404): Not Found', code: 1 });  // org path → 404
+    mockSpawnOnce({ stdout: JSON.stringify(ghRepos) + '\n' });           // user path
 
     const fetchMock = routeFetch([
       ['/user', () => makeRes({ body: { login: 'me' }, headers: RATE_HEADERS })],
@@ -651,14 +678,14 @@ describe('fetchAllRepos — PAGINATE_VIA_GH mode', () => {
 
     const result = await fetchAllRepos();
 
-    const userCall = execFileSync.mock.calls[1];
+    const userCall = spawn.mock.calls[1];
     expect(userCall[1][2]).toContain('/users/octocat/repos');
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ id: 3 });
   });
 
   it('rate-limit refresh failure does not abort the sync', async () => {
-    execFileSync.mockReturnValueOnce(JSON.stringify([]) + '\n');
+    mockSpawnOnce({ stdout: JSON.stringify([]) + '\n' });
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')));
 
     // Should resolve, not reject

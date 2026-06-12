@@ -4,7 +4,7 @@
  *   rate-limit tracking, per-repo GraphQL enrichment via `gh api graphql`,
  *   and token resolution from `GITHUB_TOKEN` env or `gh auth token`.
  */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -216,30 +216,48 @@ export function isGhPaginateEnabled() {
 
 // Paginate via `gh api --paginate`. Returns same { ok, status, repos } shape
 // as paginateRepos. gh outputs one JSON array per page on its own line; we
-// concatenate them. On non-zero exit the error's stderr carries the HTTP status.
+// concatenate them. Runs async (spawn) so the event loop is not blocked.
 function paginateViaGh(ghPath, token) {
   const args = ['api', '--paginate', ghPath];
   if (token) args.push('--header', `Authorization: Bearer ${token}`);
-  try {
-    const raw = execFileSync('gh', args, {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: 60000,
+  return new Promise((resolve) => {
+    const child = spawn('gh', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const settle = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(result);
+    };
+    const timer = setTimeout(() => {
+      child.kill();
+      settle({ ok: false, status: 500, repos: [] });
+    }, 60000);
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.on('close', (code) => {
+      if (code !== 0) {
+        const m = stderr.match(/HTTP (\d{3})/);
+        settle({ ok: false, status: m ? Number(m[1]) : 500, repos: [] });
+        return;
+      }
+      const repos = [];
+      for (const line of stdout.split('\n')) {
+        const t = line.trim();
+        if (!t) continue;
+        try {
+          const parsed = JSON.parse(t);
+          if (Array.isArray(parsed)) repos.push(...parsed);
+        } catch { /* skip malformed line */ }
+      }
+      settle({ ok: true, status: 200, repos });
     });
-    const repos = [];
-    for (const line of raw.split('\n')) {
-      const t = line.trim();
-      if (!t) continue;
-      const parsed = JSON.parse(t);
-      if (Array.isArray(parsed)) repos.push(...parsed);
-    }
-    return { ok: true, status: 200, repos };
-  } catch (e) {
-    const stderr = typeof e.stderr === 'string' ? e.stderr : String(e.stderr || e.message || '');
-    const m = stderr.match(/HTTP (\d{3})/);
-    const status = m ? Number(m[1]) : 500;
-    return { ok: false, status, repos: [] };
-  }
+    child.on('error', () => settle({ ok: false, status: 500, repos: [] }));
+  });
 }
 
 const selfReposUrl = (page, perPage) =>
@@ -269,17 +287,17 @@ async function isOrgMember(owner, headers) {
 async function fetchOwnerRepos(owner, viewerLogin, token, headers) {
   // The token's own account → use /user/repos so private repos are included.
   if (viewerLogin && owner.toLowerCase() === viewerLogin) {
-    const r = isGhPaginateEnabled()
+    const r = await (isGhPaginateEnabled()
       ? paginateViaGh(selfReposGhPath, token)
-      : await paginateRepos(selfReposUrl, headers);
+      : paginateRepos(selfReposUrl, headers));
     if (!r.ok) throw repoListError(r);
     return { repos: r.repos, scope: 'self' };
   }
 
   // Try the org endpoint first (exposes private org repos when authorized).
-  const orgRes = isGhPaginateEnabled()
+  const orgRes = await (isGhPaginateEnabled()
     ? paginateViaGh(orgReposGhPath(owner), token)
-    : await paginateRepos(orgReposUrl(owner), headers);
+    : paginateRepos(orgReposUrl(owner), headers));
 
   if (orgRes.ok) {
     const member = await isOrgMember(owner, headers);
@@ -294,9 +312,9 @@ async function fetchOwnerRepos(owner, viewerLogin, token, headers) {
 
   // Not an org (404) → it's a user account; load their public repos.
   if (orgRes.status === 404) {
-    const userRes = isGhPaginateEnabled()
+    const userRes = await (isGhPaginateEnabled()
       ? paginateViaGh(userReposGhPath(owner), token)
-      : await paginateRepos(userReposUrl(owner), headers);
+      : paginateRepos(userReposUrl(owner), headers));
     if (!userRes.ok) throw repoListError(userRes);
     return { repos: userRes.repos, scope: 'public' };
   }
@@ -306,9 +324,9 @@ async function fetchOwnerRepos(owner, viewerLogin, token, headers) {
     sourceStatus.warnings.push(
       `Token is not authorized for organization "${owner}" (403) — loaded its public repositories only.`
     );
-    const userRes = isGhPaginateEnabled()
+    const userRes = await (isGhPaginateEnabled()
       ? paginateViaGh(userReposGhPath(owner), token)
-      : await paginateRepos(userReposUrl(owner), headers);
+      : paginateRepos(userReposUrl(owner), headers));
     return { repos: userRes.ok ? userRes.repos : [], scope: 'public' };
   }
 
@@ -499,12 +517,9 @@ export async function fetchAllRepos(ownersOverride = undefined) {
 
   let raw;
   if (owners.length === 0) {
-    let r;
-    if (isGhPaginateEnabled()) {
-      r = paginateViaGh(selfReposGhPath, token);
-    } else {
-      r = await paginateRepos(selfReposUrl, headers);
-    }
+    const r = await (isGhPaginateEnabled()
+      ? paginateViaGh(selfReposGhPath, token)
+      : paginateRepos(selfReposUrl, headers));
     if (!r.ok) throw repoListError(r);
     raw = r.repos;
     sourceStatus.owners.push({ owner: null, count: raw.length, scope: 'self' });

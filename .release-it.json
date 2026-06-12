@@ -18,13 +18,13 @@
         "name": "conventionalcommits",
         "types": [
           { "type": "feat", "section": "Features" },
-          { "type": "fix", "section": "Bug Fixes" },
-          { "type": "perf", "section": "Performance Improvements" },
+          { "type": "fix", "section": "Bug fixes" },
+          { "type": "perf", "section": "Performance improvements" },
           { "type": "refactor", "section": "Refactoring" },
           { "type": "docs", "section": "Documentation" },
           { "type": "style", "section": "Styles" },
           { "type": "test", "section": "Tests" },
-          { "type": "build", "section": "Build System" },
+          { "type": "build", "section": "Build system" },
           { "type": "ci", "section": "CI" },
           { "type": "chore", "section": "Miscellaneous" }
         ]

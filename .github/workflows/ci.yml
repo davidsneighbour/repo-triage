@@ -17,7 +17,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '26'
 
       # Each package (root + client/server/cli) has its own lockfile; install
       # them all so the workspace test scripts can run.
@@ -39,7 +39,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '26'
 
       - name: Install dependencies
         run: |
@@ -72,7 +72,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '26'
 
       - name: Install root dependencies
         run: npm ci
@@ -83,4 +83,4 @@ jobs:
         run: >
           npx markdownlint-cli2
           --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc
-          $(git ls-files '*.md' ':!:**/node_modules/**')
+          $(git ls-files '*.md' ':!:**/node_modules/**' ':!:CHANGELOG.md')

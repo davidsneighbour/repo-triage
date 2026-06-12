@@ -41,7 +41,9 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
       const r = el.getBoundingClientRect();
       const width = 256;
       const left = Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8));
-      setPos({ top: r.bottom + 4, left });
+      const top = r.bottom + 4;
+      const maxHeight = window.innerHeight - top - 8;
+      setPos({ top, left, maxHeight });
     };
     update();
     window.addEventListener('resize', update);
@@ -59,10 +61,10 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
         className={cx(
           'fixed z-20 border border-neutral-700 bg-neutral-900 p-2 shadow-2xl',
           isMobile
-            ? 'inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg [&_button]:min-h-[44px]'
-            : 'w-64 max-h-[85vh] overflow-y-auto rounded-lg'
+            ? 'inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg [&_button]:min-h-11'
+            : 'w-64 overflow-y-auto rounded-lg'
         )}
-        style={isMobile ? undefined : pos ? { top: pos.top, left: pos.left } : { visibility: 'hidden' }}
+        style={isMobile ? undefined : pos ? { top: pos.top, left: pos.left, maxHeight: pos.maxHeight } : { visibility: 'hidden' }}
       >
         {!tagOnly && (
         <>

@@ -16,18 +16,14 @@ export function findRepo(id) {
 
 export async function refreshRepos() {
   syncing = true;
+  let fetched;
   try {
-    const fetched = await fetchAllRepos(getEffectiveOwners());
+    fetched = await fetchAllRepos(getEffectiveOwners());
     repoCache = fetched;
     lastFetch = new Date().toISOString();
     lastError = null;
     cacheReady = true;
     invalidatePayloadCache();
-
-    if (ENRICH_METADATA) {
-      const { token } = resolveToken();
-      enrichCache = enrichRepos(repoCache, token);
-    }
 
     const insert = db.prepare(
       `INSERT OR IGNORE INTO repo_state (repo_id, full_name, updated_at) VALUES (?, ?, ?)`
@@ -37,10 +33,22 @@ export async function refreshRepos() {
       for (const r of repos) insert.run(r.id, r.full_name, now);
     });
     tx(repoCache);
-    return repoCache;
   } finally {
     syncing = false;
   }
+
+  // Board is usable now. Run enrichment in the background so GraphQL batches
+  // don't delay the first GET /api/repos response after a sync.
+  if (ENRICH_METADATA) {
+    const snap = repoCache;
+    const { token } = resolveToken();
+    enrichRepos(snap, token).then((map) => {
+      enrichCache = map;
+      invalidatePayloadCache();
+    }).catch(() => {});
+  }
+
+  return repoCache;
 }
 
 export function queueRefresh() {

@@ -260,6 +260,33 @@ function paginateViaGh(ghPath, token) {
   });
 }
 
+// Run `gh <args>` and resolve with its full stdout string. Rejects on non-zero
+// exit, spawn error, or timeout. Used by enrichRepos for single-shot GraphQL calls.
+function spawnGhText(args, timeoutMs = 30000) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('gh', args, { stdio: ['ignore', 'pipe', 'ignore'] });
+    let stdout = '';
+    let settled = false;
+    const settle = (fn) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fn();
+    };
+    const timer = setTimeout(() => {
+      child.kill();
+      settle(() => reject(new Error('gh timeout')));
+    }, timeoutMs);
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.on('close', (code) => {
+      if (code !== 0) settle(() => reject(new Error(`gh exited ${code}`)));
+      else settle(() => resolve(stdout));
+    });
+    child.on('error', (err) => settle(() => reject(err)));
+  });
+}
+
 const selfReposUrl = (page, perPage) =>
   `${GITHUB_API}/user/repos?per_page=${perPage}&page=${page}&affiliation=owner&visibility=all&sort=full_name`;
 const orgReposUrl = (owner) => (page, perPage) =>
@@ -450,7 +477,7 @@ function parseEnrichData(data, repos) {
  * @param {string|null} token - GitHub token to pass via `--header`. If falsy, gh's own auth is used.
  * @returns {Map<number, {open_prs: number|null, latest_release: object|null, last_commit: object|null, ci_status: string|null}>}
  */
-export function enrichRepos(repos, token) {
+export async function enrichRepos(repos, token) {
   const out = new Map();
   if (!repos.length) return out;
   for (let i = 0; i < repos.length; i += ENRICH_BATCH) {
@@ -460,11 +487,7 @@ export function enrichRepos(repos, token) {
       const args = ['api', 'graphql'];
       if (token) args.push('--header', `Authorization: Bearer ${token}`);
       args.push('-f', `query=${query}`);
-      const raw = execFileSync('gh', args, {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-        timeout: 30000,
-      });
+      const raw = await spawnGhText(args, 30000);
       const parsed = JSON.parse(raw);
       if (parsed?.data) {
         for (const [id, val] of parseEnrichData(parsed.data, batch)) {

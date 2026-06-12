@@ -467,17 +467,14 @@ describe('enrichRepos', () => {
     return JSON.stringify({ data });
   };
 
-  it('returns enrichment data from a successful graphql call', () => {
+  it('returns enrichment data from a successful graphql call', async () => {
     const repos = [makeRepo(42, 'org/repo')];
-    execFileSync.mockReturnValueOnce(graphqlResponse(repos));
+    mockSpawnOnce({ stdout: graphqlResponse(repos) });
 
-    const result = enrichRepos(repos, 'tok');
+    const result = await enrichRepos(repos, 'tok');
 
-    expect(execFileSync).toHaveBeenCalledWith(
-      'gh',
-      expect.arrayContaining(['api', 'graphql', '--header', 'Authorization: Bearer tok']),
-      expect.objectContaining({ encoding: 'utf8' })
-    );
+    const [, args] = spawn.mock.calls[0];
+    expect(args).toEqual(expect.arrayContaining(['api', 'graphql', '--header', 'Authorization: Bearer tok']));
     expect(result.get(42)).toEqual({
       open_prs: 2,
       latest_release: { tag: 'v1.2.3', published_at: '2024-03-01T00:00:00Z' },
@@ -486,21 +483,21 @@ describe('enrichRepos', () => {
     });
   });
 
-  it('returns empty map when gh is unavailable', () => {
-    execFileSync.mockImplementation(() => { throw new Error('gh not found'); });
-    const result = enrichRepos([makeRepo(1, 'a/b')], 'tok');
+  it('returns empty map when gh is unavailable', async () => {
+    mockSpawnOnce({ code: 1 });
+    const result = await enrichRepos([makeRepo(1, 'a/b')], 'tok');
     expect(result.size).toBe(0);
   });
 
-  it('returns empty map for an empty repo list', () => {
-    const result = enrichRepos([], 'tok');
+  it('returns empty map for an empty repo list', async () => {
+    const result = await enrichRepos([], 'tok');
     expect(result.size).toBe(0);
-    expect(execFileSync).not.toHaveBeenCalled();
+    expect(spawn).not.toHaveBeenCalled();
   });
 
-  it('handles repos with no release gracefully', () => {
+  it('handles repos with no release gracefully', async () => {
     const repos = [makeRepo(7, 'x/y')];
-    execFileSync.mockReturnValueOnce(JSON.stringify({
+    mockSpawnOnce({ stdout: JSON.stringify({
       data: {
         r7: {
           pullRequests: { totalCount: 0 },
@@ -508,8 +505,8 @@ describe('enrichRepos', () => {
           defaultBranchRef: null,
         },
       },
-    }));
-    const result = enrichRepos(repos, 'tok');
+    }) });
+    const result = await enrichRepos(repos, 'tok');
     expect(result.get(7)).toMatchObject({
       open_prs: 0,
       latest_release: null,
@@ -518,26 +515,25 @@ describe('enrichRepos', () => {
     });
   });
 
-  it('batches repos in groups and calls execFileSync once per batch', () => {
+  it('batches repos in groups and calls spawn once per batch', async () => {
     // Build 26 repos so we get 2 batches (25 + 1).
     const repos = Array.from({ length: 26 }, (_, i) => makeRepo(i + 1, `org/repo${i + 1}`));
     const batch1 = repos.slice(0, 25);
     const batch2 = repos.slice(25);
-    execFileSync
-      .mockReturnValueOnce(graphqlResponse(batch1))
-      .mockReturnValueOnce(graphqlResponse(batch2));
+    mockSpawnOnce({ stdout: graphqlResponse(batch1) });
+    mockSpawnOnce({ stdout: graphqlResponse(batch2) });
 
-    const result = enrichRepos(repos, 'tok');
+    const result = await enrichRepos(repos, 'tok');
 
-    expect(execFileSync).toHaveBeenCalledTimes(2);
+    expect(spawn).toHaveBeenCalledTimes(2);
     expect(result.size).toBe(26);
   });
 
-  it('does not pass --header when token is falsy', () => {
+  it('does not pass --header when token is falsy', async () => {
     const repos = [makeRepo(1, 'a/b')];
-    execFileSync.mockReturnValueOnce(graphqlResponse(repos));
-    enrichRepos(repos, null);
-    const [, args] = execFileSync.mock.calls[0];
+    mockSpawnOnce({ stdout: graphqlResponse(repos) });
+    await enrichRepos(repos, null);
+    const [, args] = spawn.mock.calls[0];
     expect(args).not.toContain('--header');
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { api } from './api.js';
 import { timeAgo, calendarLabel } from './lib/date.js';
 import { defaultFilters, filterRepos, buildDayColumns, groupRepos, groupReposBy, collectTags, SORT_KEYS, GROUP_BY_KEYS } from './lib/board.js';
@@ -261,6 +261,8 @@ export default function App() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  const lastLoadAt = useRef(0);
+
   const load = useCallback(async () => {
     try {
       const d = await api.list();
@@ -280,11 +282,24 @@ export default function App() {
       }
     } finally {
       setLoading(false);
+      lastLoadAt.current = Date.now();
     }
   }, []);
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  // Steady-state 30-second poll. Skipped if a load (including mutation-triggered
+  // reloads) happened within the last 10 seconds to avoid double-fetching after
+  // user actions.
+  useEffect(() => {
+    const POLL_MS = 30_000;
+    const DEBOUNCE_MS = 10_000;
+    const t = setInterval(() => {
+      if (Date.now() - lastLoadAt.current >= DEBOUNCE_MS) load();
+    }, POLL_MS);
+    return () => clearInterval(t);
   }, [load]);
 
   // Poll while the backend is still warming up its cache or actively syncing,

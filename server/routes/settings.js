@@ -8,6 +8,7 @@ import {
   ALLOWED_SETTING_KEYS,
 } from '../lib/settings.js';
 import { queueRefresh, restartSyncInterval } from '../lib/sync.js';
+import { invalidatePayloadCache } from '../lib/payloadCache.js';
 
 const router = Router();
 
@@ -65,6 +66,7 @@ router.put('/settings', (req, res) => {
     parseOwners(body.githubOwners).join(',') !== prevOwners;
   if (ownersChanged) queueRefresh();
 
+  invalidatePayloadCache();
   res.json({ ok: true, resyncing: ownersChanged });
 });
 

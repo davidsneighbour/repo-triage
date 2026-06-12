@@ -2,8 +2,12 @@ import db from '../db.js';
 import { repoCache, enrichCache } from './sync.js';
 import { getEffectiveInactivityDays, DAY_ROLLOVER_HOUR } from './settings.js';
 import { effectiveState } from '../schedule.js';
+import { getPayloadCache, setPayloadCache } from './payloadCache.js';
 
 export function buildPayload() {
+  const cached = getPayloadCache();
+  if (cached) return cached;
+
   const states = db.prepare('SELECT * FROM repo_state').all();
   const byId = new Map(states.map((s) => [s.repo_id, s]));
 
@@ -35,7 +39,7 @@ export function buildPayload() {
     else flagsByRepo.set(f.repo_id, [f.flag]);
   }
 
-  return repoCache.map((r) => {
+  const result = repoCache.map((r) => {
     const s = byId.get(r.id) || { priority: null, priority_set_at: null, inactivity_days: null, position: 0, ignored: 0, snooze_until: null };
     const enrich = enrichCache.get(r.id) ?? {};
     const defaultInactivityDays = getEffectiveInactivityDays();
@@ -57,4 +61,6 @@ export function buildPayload() {
       ...effectiveState(s, defaultInactivityDays, Date.now(), DAY_ROLLOVER_HOUR),
     };
   });
+  setPayloadCache(result);
+  return result;
 }

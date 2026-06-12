@@ -4,6 +4,7 @@ import { rateLimit, sourceStatus, authStatus } from '../github.js';
 import { buildReport, toMarkdown, toCsv, REPORT_KINDS } from '../report.js';
 import { repoCache, cacheReady, syncing, lastFetch, lastError, findRepo } from '../lib/sync.js';
 import { buildPayload } from '../lib/payload.js';
+import { invalidatePayloadCache } from '../lib/payloadCache.js';
 import { getEffectiveInactivityDays, getEffectiveOwners } from '../lib/settings.js';
 
 const router = Router();
@@ -151,6 +152,7 @@ router.post('/repos/:id/priority', (req, res) => {
   }
   const now = new Date().toISOString();
   setPriorityStmt.run({ id, full_name: findRepo(id)?.full_name ?? null, priority, now });
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -158,6 +160,7 @@ router.post('/repos/:id/clear', (req, res) => {
   const id = Number(req.params.id);
   const now = new Date().toISOString();
   clearScheduleStmt.run({ id, full_name: findRepo(id)?.full_name ?? null, now });
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -167,6 +170,7 @@ router.post('/repos/:id/state', (req, res) => {
   const { priority_set_at = null, checked_at = null } = req.body || {};
   const now = new Date().toISOString();
   restoreScheduleStmt.run({ id, full_name: findRepo(id)?.full_name ?? null, priority_set_at, checked_at, now });
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -194,12 +198,14 @@ router.post('/repos/:id/check', (req, res) => {
     checked_at: isReview ? nowIso : null,
     now: nowIso,
   });
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
 router.post('/repos/:id/touch', (req, res) => {
   const now = new Date().toISOString();
   touchStmt.run(now, now, now, Number(req.params.id));
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -211,6 +217,7 @@ router.post('/repos/:id/inactivity', (req, res) => {
     if (!Number.isFinite(days) || days < 0) return res.status(400).json({ error: 'days must be a non-negative number or null' });
   }
   inactivityStmt.run({ id, full_name: findRepo(id)?.full_name ?? null, days, now: new Date().toISOString() });
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -227,6 +234,7 @@ router.post('/repos/:id/snooze', (req, res) => {
   const snoozeUntil = new Date(now.getTime() + days * 86400000).toISOString();
   const nowIso = now.toISOString();
   snoozeStmt.run({ id, full_name: findRepo(id)?.full_name ?? null, snooze_until: snoozeUntil, checked_at: nowIso, now: nowIso });
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -240,6 +248,7 @@ router.post('/repos/:id/ignore', (req, res) => {
     ignored: ignored ? 1 : 0,
     now: new Date().toISOString(),
   });
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -248,6 +257,7 @@ router.post('/reorder', (req, res) => {
   const now = new Date().toISOString();
   const tx = db.transaction((ids) => ids.forEach((id, i) => positionStmt.run(i, now, Number(id))));
   tx(Array.isArray(orderedIds) ? orderedIds : []);
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -264,6 +274,7 @@ router.post('/repos/:id/notices', (req, res) => {
     body,
     created_at,
   });
+  invalidatePayloadCache();
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
@@ -283,6 +294,7 @@ router.get('/notices', (req, res) => {
 
 router.delete('/notices/:noticeId', (req, res) => {
   deleteNoticeStmt.run(Number(req.params.noticeId));
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -296,11 +308,13 @@ router.post('/repos/:id/tags', (req, res) => {
   const tag = normalizeTag(req.body?.tag);
   if (!tag) return res.status(400).json({ error: 'tag must be a non-empty string' });
   addTagStmt.run({ id, full_name: findRepo(id)?.full_name ?? null, tag, now: new Date().toISOString() });
+  invalidatePayloadCache();
   res.json({ ok: true, tag });
 });
 
 router.delete('/repos/:id/tags/:tag', (req, res) => {
   removeTagStmt.run(Number(req.params.id), normalizeTag(req.params.tag));
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -310,6 +324,7 @@ router.get('/tags', (req, res) => {
 
 router.delete('/tags/:tag', (req, res) => {
   const info = deleteTagEverywhereStmt.run(normalizeTag(req.params.tag));
+  invalidatePayloadCache();
   res.json({ ok: true, removed: info.changes });
 });
 
@@ -323,11 +338,13 @@ router.post('/repos/:id/flags', (req, res) => {
   const flag = normalizeTag(req.body?.flag);
   if (!flag) return res.status(400).json({ error: 'flag must be a non-empty string' });
   addFlagStmt.run({ id, full_name: findRepo(id)?.full_name ?? null, flag, now: new Date().toISOString() });
+  invalidatePayloadCache();
   res.json({ ok: true, flag });
 });
 
 router.delete('/repos/:id/flags/:flag', (req, res) => {
   removeFlagStmt.run(Number(req.params.id), normalizeTag(req.params.flag));
+  invalidatePayloadCache();
   res.json({ ok: true });
 });
 
@@ -406,6 +423,7 @@ router.post('/restore', (req, res) => {
   } catch (e) {
     return res.status(400).json({ error: `restore failed: ${String(e.message || e)}` });
   }
+  invalidatePayloadCache();
   res.json({
     ok: true,
     restored: {

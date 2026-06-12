@@ -1,6 +1,7 @@
 import db from '../db.js';
 import { fetchAllRepos, enrichRepos, resolveToken } from '../github.js';
 import { ENRICH_METADATA, SYNC_AUTO, getEffectiveOwners } from './settings.js';
+import { invalidatePayloadCache } from './payloadCache.js';
 
 export let repoCache = [];
 export let enrichCache = new Map();
@@ -21,6 +22,7 @@ export async function refreshRepos() {
     lastFetch = new Date().toISOString();
     lastError = null;
     cacheReady = true;
+    invalidatePayloadCache();
 
     if (ENRICH_METADATA) {
       const { token } = resolveToken();

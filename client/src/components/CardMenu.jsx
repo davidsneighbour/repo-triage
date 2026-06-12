@@ -173,6 +173,28 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
               ))}
             </div>
           )}
+          {(() => {
+            const applied = new Set(repo.tags || []);
+            const suggestions = (repo.topics || [])
+              .map((t) => t.trim().toLowerCase().slice(0, 50))
+              .filter((t) => t && !applied.has(t));
+            if (suggestions.length === 0) return null;
+            return (
+              <div className="mt-1 flex flex-wrap items-center gap-1">
+                <span className="text-[10px] text-neutral-600">topics:</span>
+                {suggestions.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => onAddTag(repo.id, t)}
+                    aria-label={`Add topic ${t} as tag`}
+                    className="rounded-sm border border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+                  >
+                    +{t}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
           <div className="mt-1 flex items-center gap-1">
             <input
               ref={tagInputRef}

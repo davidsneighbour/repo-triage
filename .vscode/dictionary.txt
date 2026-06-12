@@ -1,4 +1,5 @@
-ananke
+<!-- vale off -->
+Ananke
 autoprefixer
 backend
 cutoff
@@ -14,8 +15,8 @@ focusables
 frobnicate
 frontend
 gfm
-gohugo
-graphql
+GoHugo
+GraphQL
 jsdom
 kanban
 kollitsch
@@ -40,8 +41,8 @@ schedulable
 snooze
 sqlite
 supertest
-tailwind
-tailwindcss
+Tailwind
+TailwindCSS
 toggleable
 triage
 triaging

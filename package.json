@@ -31,6 +31,8 @@
     "test:coverage:client": "npm --prefix client run test:coverage",
     "test:coverage:server": "npm --prefix server run test:coverage",
     "test:coverage:cli": "npm --prefix cli run test:coverage",
+    "test:e2e": "npm --prefix e2e run test",
+    "test:e2e:ui": "npm --prefix e2e run test:ui",
     "lint:markdown": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc \"**/*.{md,mdx}\"",
     "lint:markdown:fix": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc --fix \"**/*.{md,mdx}\"",
     "lint:markdown:single": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc"
@@ -40,5 +42,30 @@
   },
   "devDependencies": {
     "concurrently": "10.0.3"
+  },
+  "cspell": {
+    "version": "0.2",
+    "language": "en-GB",
+    "dictionaryDefinitions": [
+      {
+        "name": "project-words",
+        "path": ".vscode/dictionary.txt",
+        "addWords": true
+      }
+    ],
+    "dictionaries": [
+      "project-words"
+    ],
+    "ignorePaths": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/coverage/**",
+      "**/.git/**",
+      "**/*.lock",
+      "**/package-lock.json",
+      "**/*.min.js",
+      "client/src/help-diagram.svg",
+      ".vscode/dictionary.txt"
+    ]
   }
 }

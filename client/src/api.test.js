@@ -95,6 +95,27 @@ describe('api wrapper contract', () => {
         expect(fetchMock).toHaveBeenCalledWith('/api/reports/stale?format=md&days=90');
     });
 
+    it('fetches prefs with GET /api/prefs', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ prefs: null }) });
+
+        await api.getPrefs();
+
+        expect(fetchMock).toHaveBeenCalledWith('/api/prefs');
+    });
+
+    it('writes prefs with PUT /api/prefs', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ ok: true }) });
+        const payload = { density: 'compact', sort: 'alpha', view: 'list', groupBy: 'day' };
+
+        await api.putPrefs(payload);
+
+        expect(fetchMock).toHaveBeenCalledWith('/api/prefs', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+    });
+
     it('covers the remaining mutation wrappers', async () => {
         const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ ok: true }) });
 

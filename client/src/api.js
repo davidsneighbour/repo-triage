@@ -72,6 +72,13 @@ export const api = {
       body: JSON.stringify({ flag }),
     }).then(json),
   removeFlag: (id, flag) => fetch(`/api/repos/${id}/flags/${encodeURIComponent(flag)}`, { method: 'DELETE' }).then(json),
+  getPrefs: () => fetch('/api/prefs').then(json),
+  putPrefs: (prefs) =>
+    fetch('/api/prefs', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prefs),
+    }).then(json),
   reportKinds: () => fetch('/api/reports').then(json),
   report: (kind, { format = 'json', days } = {}) => {
     const qs = new URLSearchParams({ format });

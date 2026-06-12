@@ -1,10 +1,10 @@
 /**
  * @module db
  * @description SQLite database setup via `better-sqlite3`. Creates and
- *   migrates four tables — `repo_state`, `repo_notice`, `repo_tag`,
- *   `repo_flag` — and exports the open database handle as the default export.
- *   The database file lives in `DATA_DIR` (default `/data` in Docker,
- *   `./data` fallback) with WAL journalling enabled.
+ *   migrates five tables — `repo_state`, `repo_notice`, `repo_tag`,
+ *   `repo_flag`, `prefs` — and exports the open database handle as the
+ *   default export. The database file lives in `DATA_DIR` (default `/data`
+ *   in Docker, `./data` fallback) with WAL journalling enabled.
  */
 import Database from 'better-sqlite3';
 import path from 'node:path';
@@ -98,5 +98,14 @@ db.exec(`
   );
 `);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_repo_flag_repo ON repo_flag (repo_id)`);
+
+// Key/value store for user preferences (single row keyed to 'board').
+db.exec(`
+  CREATE TABLE IF NOT EXISTS prefs (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+`);
 
 export default db;

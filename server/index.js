@@ -515,6 +515,43 @@ app.get('/api/reports/:kind', (req, res) => {
   res.json(report);
 });
 
+// ---- User preferences ------------------------------------------------------
+// Stores view/display prefs (density, sort, view, groupBy, fields, filters,
+// showIgnored) as a single JSON blob keyed to 'board'. The client reads this
+// once on mount to hydrate prefs across sessions/devices, then writes back on
+// every change.
+const PREFS_KEY = 'board';
+const getPrefsStmt = db.prepare(`SELECT value FROM prefs WHERE key = ?`);
+const putPrefsStmt = db.prepare(`
+  INSERT INTO prefs (key, value, updated_at)
+  VALUES (?, ?, ?)
+  ON CONFLICT(key) DO UPDATE SET
+    value = excluded.value,
+    updated_at = excluded.updated_at
+`);
+
+const ALLOWED_PREF_KEYS = new Set(['density', 'sort', 'view', 'groupBy', 'fields', 'filters', 'showIgnored']);
+
+app.get('/api/prefs', (req, res) => {
+  const row = getPrefsStmt.get(PREFS_KEY);
+  if (!row) return res.json({ prefs: null });
+  try {
+    res.json({ prefs: JSON.parse(row.value) });
+  } catch {
+    res.json({ prefs: null });
+  }
+});
+
+app.put('/api/prefs', (req, res) => {
+  const body = req.body || {};
+  const prefs = {};
+  for (const k of ALLOWED_PREF_KEYS) {
+    if (k in body) prefs[k] = body[k];
+  }
+  putPrefsStmt.run(PREFS_KEY, JSON.stringify(prefs), new Date().toISOString());
+  res.json({ ok: true });
+});
+
 // ---- Backup / restore ------------------------------------------------------
 // Export every locally-stored triage table (the repo catalogue itself always
 // comes fresh from GitHub, so it's intentionally not included).

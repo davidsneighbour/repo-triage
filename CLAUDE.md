@@ -83,7 +83,7 @@ set in each `vitest.config.js` and fail the run on regression.
 
 * `index.js`: Express app, in-memory `repoCache`, schedule logic (`effectiveState`), sync loop.
 * `github.js`: GitHub API pagination, multi-owner loading (`parseOwners` + per-owner fetch with org-membership detection), auth-invalid detection, rate-limit state parsing, non-fatal `sourceStatus.warnings`. `enrichRepos()` runs opt-in per-repo GraphQL enrichment via `gh api graphql` after each sync.
-* `db.js`: SQLite setup and schema for `repo_state`, `repo_notice`, `repo_tag`.
+* `db.js`: SQLite setup and schema for `repo_state`, `repo_notice`, `repo_tag`, `repo_flag`, `prefs`.
 
 ### CLI (`cli/`)
 
@@ -147,6 +147,8 @@ persisted); header shows sync status and GitHub API remaining/limit.
 | DELETE | `/api/tags/:tag` | Delete a tag from every repo that carries it |
 | GET | `/api/backup` | Export all triage state (repo_state/notice/tag) as JSON |
 | POST | `/api/restore` | Replace all triage state from a backup payload (transactional) |
+| GET | `/api/prefs` | Read persisted view/display prefs blob (density, sort, view, groupBy, fields, filters, showIgnored) |
+| PUT | `/api/prefs` | Write view/display prefs blob (unknown keys stripped) |
 
 ## Implementation constraints
 

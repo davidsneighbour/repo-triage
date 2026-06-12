@@ -218,6 +218,36 @@ export default function App() {
     startViewTransition(() => setView(next));
   };
 
+  // ---- Server-side prefs sync -----------------------------------------------
+  // Tracks whether we've finished the one-time GET from /api/prefs (success or
+  // error). The write-back effect is gated on this flag to avoid overwriting
+  // server-side prefs with stale localStorage values on the very first render.
+  const [serverPrefsLoaded, setServerPrefsLoaded] = useState(false);
+
+  useEffect(() => {
+    api.getPrefs?.()
+      ?.then((d) => {
+        if (d?.prefs) {
+          const p = d.prefs;
+          if (p.density != null) setDensity(p.density === 'compact' ? 'compact' : 'comfortable');
+          if (p.sort != null) setSortKey(SORT_KEYS.includes(p.sort) ? p.sort : 'manual');
+          if (p.view != null) setView(p.view === 'list' ? 'list' : 'board');
+          if (p.groupBy != null) setGroupBy(GROUP_BY_KEYS.includes(p.groupBy) ? p.groupBy : 'day');
+          if (p.fields != null && typeof p.fields === 'object') setFields({ ...DEFAULT_FIELDS, ...p.fields });
+          if (p.filters != null && typeof p.filters === 'object') setFilters({ ...defaultFilters, ...p.filters });
+          if (p.showIgnored != null) setShowIgnored(Boolean(p.showIgnored));
+        }
+        setServerPrefsLoaded(true);
+      })
+      ?.catch(() => setServerPrefsLoaded(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!serverPrefsLoaded) return;
+    api.putPrefs?.({ density, sort: sortKey, view, groupBy, fields, filters, showIgnored })?.catch(() => {});
+  }, [serverPrefsLoaded, density, sortKey, view, groupBy, fields, filters, showIgnored]);
+
   const showToast = useCallback((message, undo = null) => setToast({ message, undo }), []);
 
   // Auto-dismiss the toast after a few seconds (re-armed whenever it changes).

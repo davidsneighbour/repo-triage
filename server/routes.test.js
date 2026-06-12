@@ -562,3 +562,36 @@ describe('POST /api/repos/:id/snooze', () => {
     expect(repo.snooze_until).toBeNull();
   });
 });
+
+describe('GET /api/prefs + PUT /api/prefs', () => {
+  it('returns null prefs when nothing has been saved yet', async () => {
+    const res = await request(app).get('/api/prefs');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ prefs: null });
+  });
+
+  it('PUT stores prefs and GET reads them back', async () => {
+    const payload = { density: 'compact', sort: 'alpha', view: 'list', groupBy: 'day', fields: { lang: false }, filters: { showOwn: true, showForks: false, showArchived: false }, showIgnored: false };
+    const put = await request(app).put('/api/prefs').send(payload);
+    expect(put.status).toBe(200);
+    expect(put.body).toEqual({ ok: true });
+
+    const get = await request(app).get('/api/prefs');
+    expect(get.status).toBe(200);
+    expect(get.body.prefs).toEqual(payload);
+  });
+
+  it('PUT strips unknown keys', async () => {
+    await request(app).put('/api/prefs').send({ density: 'comfortable', unknown_key: 'should be dropped' });
+    const get = await request(app).get('/api/prefs');
+    expect(get.body.prefs).not.toHaveProperty('unknown_key');
+    expect(get.body.prefs.density).toBe('comfortable');
+  });
+
+  it('PUT overwrites the previous value', async () => {
+    await request(app).put('/api/prefs').send({ density: 'comfortable' });
+    await request(app).put('/api/prefs').send({ density: 'compact' });
+    const get = await request(app).get('/api/prefs');
+    expect(get.body.prefs.density).toBe('compact');
+  });
+});

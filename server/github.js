@@ -1,9 +1,21 @@
+/**
+ * @module github
+ * @description GitHub REST API client: multi-owner repository fetching,
+ *   rate-limit tracking, per-repo GraphQL enrichment via `gh api graphql`,
+ *   and token resolution from `GITHUB_TOKEN` env or `gh auth token`.
+ */
 import { execFileSync } from 'node:child_process';
 
 const GITHUB_API = 'https://api.github.com';
 
 // ---- Shared rate-limit state -----------------------------------------------
 // Exported so server/index.js can include it in every API response.
+/**
+ * Shared rate-limit state updated after every GitHub API response.
+ * Included verbatim in `GET /api/repos` so the UI can show remaining quota.
+ *
+ * @type {{ limit: number|null, remaining: number|null, used: number|null, reset: number|null, lastChecked: string|null, authInvalid: boolean }}
+ */
 export const rateLimit = {
   limit: null,       // total requests allowed per window
   remaining: null,   // requests remaining in current window
@@ -16,17 +28,33 @@ export const rateLimit = {
 // ---- Per-sync source diagnostics -------------------------------------------
 // Reset at the start of every fetchAllRepos() and surfaced to the UI so the
 // user can see which owners loaded and any non-fatal access warnings.
+/**
+ * Per-sync source diagnostics reset at the start of every `fetchAllRepos()`.
+ *
+ * @type {{ owners: Array<{owner: string|null, count: number, scope: string}>, warnings: string[] }}
+ */
 export const sourceStatus = {
   owners: [],   // [{ owner, count, scope }] — scope: self|member|public|error
   warnings: [], // human-readable, non-fatal messages (e.g. org access fell back to public)
 };
 
-// Which credential the last token resolution used, surfaced in /api/repos.
+/**
+ * Which credential the last `resolveToken()` call used; surfaced in `/api/repos`.
+ *
+ * @type {{ source: 'env'|'gh'|null, present: boolean }}
+ */
 export const authStatus = {
   source: null,   // 'env' (GITHUB_TOKEN) | 'gh' (gh auth token) | null
   present: false, // whether a usable token was resolved
 };
 
+/**
+ * Parses GitHub rate-limit response headers into `target` (defaults to the
+ * shared {@link rateLimit} singleton). Safe to call on any response.
+ *
+ * @param {object} res - Fetch response (or any object with a `headers.get(key)` method).
+ * @param {object} [target=rateLimit] - Object to write the parsed values into.
+ */
 export function parseRateLimitHeaders(res, target = rateLimit) {
   const h = (k) => res.headers.get(k);
   if (h('x-ratelimit-limit') !== null) target.limit = Number(h('x-ratelimit-limit'));
@@ -37,9 +65,15 @@ export function parseRateLimitHeaders(res, target = rateLimit) {
 }
 
 /**
- * Parse the configured owner list. Accepts either a comma/space separated
- * string ("a, b c") or a JSON array string ('["a","b"]'). Returns a
- * de-duplicated (case-insensitive) array of owner logins in input order.
+ * Parses the configured owner list from `GITHUB_OWNERS` (or a raw string).
+ * Accepts a comma/space-separated string (`"a, b c"`) or a JSON array
+ * (`'["a","b"]'`). Returns a de-duplicated, case-preserving array in input order.
+ *
+ * @param {string|null|undefined} raw - Raw owner list string.
+ * @returns {string[]} Parsed, de-duplicated owner logins.
+ * @example
+ * parseOwners('davidsneighbour, dnbhq');     // ['davidsneighbour', 'dnbhq']
+ * parseOwners('["foo","foo","bar"]');         // ['foo', 'bar']
  */
 export function parseOwners(raw) {
   if (raw == null) return [];
@@ -68,8 +102,13 @@ export function parseOwners(raw) {
   return out;
 }
 
-// Ask the GitHub CLI for the user's token. Returns null if gh is missing, not
-// logged in, or errors — so resolveToken can fall through cleanly.
+/**
+ * Asks the GitHub CLI (`gh auth token`) for the authenticated user's token.
+ * Returns `null` if `gh` is missing, not logged in, or exits non-zero — so
+ * {@link resolveToken} can fall through to the "no token" path cleanly.
+ *
+ * @returns {string|null} The token string, or `null` on failure.
+ */
 export function ghAuthToken() {
   try {
     const out = execFileSync('gh', ['auth', 'token'], {
@@ -84,8 +123,12 @@ export function ghAuthToken() {
   }
 }
 
-// Prefer an explicit GITHUB_TOKEN; otherwise reuse the user's `gh` login so no
-// PAT is needed when they've already run `gh auth login`.
+/**
+ * Resolves the best available GitHub token. Prefers `GITHUB_TOKEN` env; falls
+ * back to `gh auth token` so no PAT is needed when `gh auth login` is active.
+ *
+ * @returns {{ token: string|null, source: 'env'|'gh'|null }} Token and its source.
+ */
 export function resolveToken() {
   const env = (process.env.GITHUB_TOKEN || '').trim();
   if (env) return { token: env, source: 'env' };
@@ -319,10 +362,22 @@ function parseEnrichData(data, repos) {
 }
 
 /**
- * Enrich repo list with per-repo GraphQL data (open PR count, latest release,
- * last commit, CI status). Batches ENRICH_BATCH repos per `gh api graphql` call.
- * Returns a Map<repoId, enrichmentObject>. Silently skips batches that fail
- * (gh unavailable, permission denied, etc.) so the board never hard-errors.
+ * Enriches a repo list with per-repo GraphQL data by batching up to 25 repos
+ * per `gh api graphql` call. Fields added per repo:
+ *
+ * | Field | Type | Description |
+ * |---|---|---|
+ * | `open_prs` | `number\|null` | Distinct open pull-request count |
+ * | `latest_release` | `{tag, published_at}\|null` | Most recent release tag |
+ * | `last_commit` | `{date, author}\|null` | Default-branch last commit |
+ * | `ci_status` | `'SUCCESS'\|'FAILURE'\|'ERROR'\|'PENDING'\|null` | Default-branch CI rollup |
+ *
+ * Batches that fail (gh unavailable, permission denied, JSON parse error) are
+ * skipped silently so the board never hard-errors.
+ *
+ * @param {object[]} repos - Mapped repo objects with `id` and `full_name`.
+ * @param {string|null} token - GitHub token to pass via `--header`. If falsy, gh's own auth is used.
+ * @returns {Map<number, {open_prs: number|null, latest_release: object|null, last_commit: object|null, ci_status: string|null}>}
  */
 export function enrichRepos(repos, token) {
   const out = new Map();
@@ -353,14 +408,21 @@ export function enrichRepos(repos, token) {
 }
 
 /**
- * Fetch repositories for the dashboard.
+ * Fetches repositories for the dashboard, respecting `GITHUB_OWNERS`.
  *
- * - No GITHUB_OWNERS / GITHUB_USERNAME: the authenticated token owner's repos,
- *   including private + archived.
- * - One or more owners configured (comma list or JSON array via GITHUB_OWNERS,
- *   or a single GITHUB_USERNAME): each is loaded individually — the token
- *   owner's own login pulls private repos; orgs you belong to pull private +
- *   public; orgs you don't, and plain users, pull public only (with a warning).
+ * - **No `GITHUB_OWNERS`**: loads the token owner's full repo set (including
+ *   private + archived) via `/user/repos`.
+ * - **One or more owners** (comma list or JSON array): each owner is resolved
+ *   individually — the token owner's own login pulls private repos; orgs the
+ *   token belongs to pull private + public; other orgs and plain users pull
+ *   public only (a warning is added to {@link sourceStatus}).
+ *
+ * Updates {@link rateLimit}, {@link sourceStatus}, and {@link authStatus} as a
+ * side-effect.
+ *
+ * @returns {Promise<object[]>} Array of mapped repo objects (see `mapRepo`).
+ * @throws {Error} If no token is available, the token is invalid (401), or the
+ *   rate limit is exhausted (403 with `remaining=0`).
  */
 export async function fetchAllRepos() {
   const { token, source } = resolveToken();

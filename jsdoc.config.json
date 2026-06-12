@@ -1,0 +1,33 @@
+{
+  "source": {
+    "include": [
+      "server/github.js",
+      "server/db.js",
+      "server/index.js",
+      "server/report.js",
+      "server/schedule.js",
+      "cli/repo-triage.mjs"
+    ],
+    "includePattern": ".+\\.m?js(doc)?$",
+    "excludePattern": "(node_modules|dist|docs)"
+  },
+  "opts": {
+    "destination": "./docs/api",
+    "recurse": false,
+    "readme": "README.md",
+    "package": "./package.json",
+    "template": "node_modules/clean-jsdoc-theme",
+    "extensions": ["js", "mjs"]
+  },
+  "plugins": ["plugins/markdown"],
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": true,
+    "default": { "includeDate": false }
+  },
+  "clean-jsdoc-theme-opts": {
+    "title": "repo-triage API",
+    "search": true,
+    "moduleDirectories": ["server", "cli"]
+  }
+}

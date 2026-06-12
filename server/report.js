@@ -1,7 +1,15 @@
-// Pure report builder over the board payload (buildPayload() output). Each
-// report normalises to a tabular shape { kind, title, generatedAt, columns,
-// rows } so the json/markdown/csv formatters below stay generic.
+/**
+ * @module report
+ * @description Pure report builders over the board payload (`buildPayload()` output).
+ *   Each report normalises to a tabular shape `{ kind, title, generatedAt, columns, rows }`
+ *   so the JSON / Markdown / CSV formatters stay generic. The `weekly` compound
+ *   report returns `{ kind, title, generatedAt, sections }` instead.
+ */
 
+/**
+ * All supported report kind identifiers.
+ * @type {string[]}
+ */
 export const REPORT_KINDS = ['summary', 'due', 'never-reviewed', 'stale', 'owners', 'languages', 'archived', 'active', 'weekly'];
 
 const tagStr = (r) => (r.tags || []).map((t) => `#${t}`).join(' ');
@@ -26,6 +34,31 @@ function summaryRows(repos) {
   ];
 }
 
+/**
+ * Build a report of the given `kind` over `repos`.
+ *
+ * Tabular reports (`summary`, `due`, `never-reviewed`, `stale`, `owners`,
+ * `languages`, `archived`, `active`) return:
+ * ```
+ * { kind, title, generatedAt, columns: string[], rows: Array<Array<string|number>> }
+ * ```
+ * The compound `weekly` report returns:
+ * ```
+ * { kind: 'weekly', title, generatedAt, sections: ReportObject[] }
+ * ```
+ *
+ * @param {string} kind - One of {@link REPORT_KINDS}.
+ * @param {object[]} repos - Board payload array from `buildPayload()`.
+ * @param {object} [opts] - Optional parameters.
+ * @param {string} [opts.now] - ISO timestamp to use as "now" (defaults to `new Date().toISOString()`).
+ * @param {number} [opts.days] - Stale threshold in days (used by `stale` and `weekly`).
+ * @returns {object} Report object with `kind`, `title`, `generatedAt`, and either
+ *   `columns` + `rows` (tabular reports) or `sections` (weekly digest).
+ * @throws {Error} If `kind` is not in {@link REPORT_KINDS}.
+ * @example
+ * const report = buildReport('summary', repos);
+ * console.log(report.rows); // [['total repos', 42], ...]
+ */
 export function buildReport(kind, repos, opts = {}) {
   const generatedAt = opts.now || new Date().toISOString();
   const report = (title, columns, rows) => ({ kind, title, generatedAt, columns, rows });
@@ -106,6 +139,13 @@ export function buildReport(kind, repos, opts = {}) {
   }
 }
 
+/**
+ * Renders a report (or a compound `weekly` report) as a GitHub-flavoured
+ * Markdown string with `##` section headers and pipe tables.
+ *
+ * @param {object} report - Report object from {@link buildReport}.
+ * @returns {string} Markdown text.
+ */
 export function toMarkdown(report) {
   if (report.sections) {
     const header = `# ${report.title}\n\n_${report.generatedAt}_\n`;
@@ -120,6 +160,13 @@ export function toMarkdown(report) {
   return `${head}\n${header}\n${sep}\n${body}\n`;
 }
 
+/**
+ * Renders a report (or a compound `weekly` report) as a CSV string.
+ * Field values containing commas, quotes, or newlines are quoted per RFC 4180.
+ *
+ * @param {object} report - Report object from {@link buildReport}.
+ * @returns {string} CSV text (newline-terminated).
+ */
 export function toCsv(report) {
   if (report.sections) {
     return report.sections.map((s) => `# ${s.title}\n${toCsv(s)}`).join('\n');

@@ -1,20 +1,45 @@
-// Repos are grouped by how long ago they were checked.
-// Bucket 0 is "today" (needs attention now), larger bucket index means later.
-// defaultInactivityDays is the due age, so only N-1 future buckets exist.
-// With default=7: checked 0d/1d ago -> day-6, checked 7+d ago (or never) -> day-0.
+/**
+ * @module schedule
+ * @description Day-schedule placement logic. Maps a repo's triage state to a
+ *   board column (`day-0` = Today, `day-1..N-1` = future weekday columns).
+ *   Repos are grouped by how long ago they were checked; bucket 0 is "today"
+ *   (needs attention now), larger indices mean later. With `defaultInactivityDays=7`:
+ *   checked 0–1 d ago → `day-6`, checked ≥7 d ago (or never) → `day-0`.
+ */
 
-// The board counts whole *calendar* days, with the day boundary ("when tomorrow
-// becomes today") configurable via DAY_ROLLOVER_HOUR. boardDayIndex maps a
-// timestamp to an integer day number for the local calendar, shifted back by the
-// rollover hour so a new day only begins at e.g. 04:00 local. Differences between
-// two timestamps that are an exact number of 24h periods apart are invariant to
-// both the rollover hour and the local timezone, which keeps the schedule stable.
+/**
+ * Maps a Unix timestamp to an integer "board day" number for the local
+ * calendar, shifted back by `rolloverHour` so a new day only begins at that
+ * hour (default 00:00). Differences between two timestamps that are exact
+ * multiples of 24 h are invariant to both the rollover hour and timezone.
+ *
+ * @param {number} ms - Unix timestamp in milliseconds.
+ * @param {number} [rolloverHour=0] - Hour (0–23, local time) at which the board advances to the next day.
+ * @returns {number} Integer day index — larger values are later days.
+ */
 export function boardDayIndex(ms, rolloverHour = 0) {
     const shifted = ms - rolloverHour * 3600000;
     const d = new Date(shifted);
     return Math.floor((shifted - d.getTimezoneOffset() * 60000) / 86400000);
 }
 
+/**
+ * Computes board placement for a single repo at read time.
+ *
+ * Placement rules:
+ * - No `priority_set_at` → `day-0` (Today / inbox).
+ * - Age since `priority_set_at` ≥ inactivity threshold → `day-0`.
+ * - Otherwise → future bucket `day-k` where k = remaining days.
+ *
+ * @param {object} state - Triage row from `repo_state` (or a partial default).
+ * @param {string|null} state.priority_set_at - ISO timestamp used as the scheduling anchor.
+ * @param {string|null} state.checked_at - ISO timestamp of the last actual review.
+ * @param {number|null} state.inactivity_days - Per-repo review interval override; `null` uses the global default.
+ * @param {number} [defaultInactivityDays=7] - Global review interval in days.
+ * @param {number} [nowMs=Date.now()] - Current time as a Unix timestamp (ms); override in tests.
+ * @param {number} [rolloverHour=0] - Hour (0–23) at which the board rolls over to a new day.
+ * @returns {{ column: string, checkedAgeDays: number|null, boardOffset: number, dueInDays: number, needsCheckToday: boolean }}
+ */
 export function effectiveState(state, defaultInactivityDays = 7, nowMs = Date.now(), rolloverHour = 0) {
     const repoDays = Math.max(0, Number(state.inactivity_days ?? defaultInactivityDays) || 0);
     const maxFutureOffset = Math.max(0, defaultInactivityDays - 1);

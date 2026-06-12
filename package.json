@@ -33,6 +33,7 @@
     "test:coverage:cli": "npm --prefix cli run test:coverage",
     "test:e2e": "npm --prefix e2e run test",
     "test:e2e:ui": "npm --prefix e2e run test:ui",
+    "docs:api": "jsdoc -c jsdoc.config.json",
     "lint:markdown": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc \"**/*.{md,mdx}\"",
     "lint:markdown:fix": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc --fix \"**/*.{md,mdx}\"",
     "lint:markdown:single": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc"
@@ -41,7 +42,9 @@
     "@dnbhq/markdownlint-config": "0.2.7"
   },
   "devDependencies": {
-    "concurrently": "10.0.3"
+    "clean-jsdoc-theme": "4.3.2",
+    "concurrently": "10.0.3",
+    "jsdoc": "4.0.5"
   },
   "cspell": {
     "version": "0.2",

@@ -1,3 +1,10 @@
+/**
+ * @module server
+ * @description Express HTTP server for the repo-triage dashboard. Manages the
+ *   in-memory `repoCache`, runs the GitHub sync loop, persists triage state to
+ *   SQLite, and exposes the board API (repos, notices, tags, flags, reports,
+ *   backup/restore).
+ */
 import express from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -31,6 +38,14 @@ let lastError = null;
 let cacheReady = false; // false until the first successful GitHub fetch completes
 let syncing = false; // true while a GitHub fetch is in flight
 
+/**
+ * Triggers a full GitHub repository sync, swapping `repoCache` atomically only
+ * on success. Also runs optional enrichment (`ENRICH_METADATA=true`) and
+ * upserts a `repo_state` row for every fetched repo.
+ *
+ * @returns {Promise<object[]>} The updated repo cache.
+ * @throws {Error} Propagates any fatal GitHub API error (invalid token, rate limit).
+ */
 async function refreshRepos() {
   syncing = true;
   try {
@@ -74,6 +89,18 @@ function queueRefresh() {
   return true;
 }
 
+/**
+ * Merges `repoCache` (GitHub metadata) with SQLite triage state, notices,
+ * tags, flags, and enrichment data into the board payload consumed by every
+ * API route and the report engine.
+ *
+ * @returns {object[]} Array of enriched repo objects, one per cached repository.
+ *   Each object includes all fields from `mapRepo()` plus: `priority`,
+ *   `priority_set_at`, `checked_at`, `inactivity_days`, `effective_inactivity_days`,
+ *   `position`, `ignored`, `notice_count`, `latest_notice`, `tags`, `flags`,
+ *   enrichment fields (`open_prs`, `latest_release`, `last_commit`, `ci_status`),
+ *   and the computed schedule fields from {@link module:schedule.effectiveState}.
+ */
 function buildPayload() {
   const states = db.prepare('SELECT * FROM repo_state').all();
   const byId = new Map(states.map((s) => [s.repo_id, s]));

@@ -1,3 +1,11 @@
+/**
+ * @module db
+ * @description SQLite database setup via `better-sqlite3`. Creates and
+ *   migrates four tables — `repo_state`, `repo_notice`, `repo_tag`,
+ *   `repo_flag` — and exports the open database handle as the default export.
+ *   The database file lives in `DATA_DIR` (default `/data` in Docker,
+ *   `./data` fallback) with WAL journalling enabled.
+ */
 import Database from 'better-sqlite3';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -24,7 +32,7 @@ db.exec(`
     full_name       TEXT,
     priority        INTEGER,          -- 1..3 = assigned, NULL = inbox / untriaged
     priority_set_at TEXT,             -- scheduling anchor (may be back-dated to place a card in a future column)
-    checked_at      TEXT,             -- ISO time the repo was actually last reviewed (drives "checked Nd ago")
+    checked_at      TEXT,             -- ISO time the repo was actually last reviewed (drives "checked 3d ago" display)
     inactivity_days INTEGER,          -- per-repo override; NULL = use the global default
     position        INTEGER DEFAULT 0,-- ordering within a column (for drag sorting)
     ignored         INTEGER DEFAULT 0,-- 1 = hidden from the board unless "show ignored" is on

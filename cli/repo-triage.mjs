@@ -1,12 +1,15 @@
 #!/usr/bin/env node
-// repo-triage — a small CLI companion for the repo.triage dashboard. It drives
-// the same triage state by talking to the local HTTP API (the repo catalogue
-// lives in the server's memory, merged with SQLite, so the server must be up).
-//
-//   repo-triage [--api <url>] [--json] <command> [args]
-//
-// See `repo-triage help`. Auth/GitHub access stays server-side; the CLI only
-// reads/writes triage state, so it never needs a token of its own.
+/**
+ * @module cli/repo-triage
+ * @description Zero-dependency CLI companion for the repo-triage dashboard.
+ *   Scripts triage state by talking to the local HTTP API — the server must
+ *   be running (`npm run server`). Auth and GitHub access stay server-side;
+ *   the CLI only reads/writes triage state and never needs a token.
+ *
+ *   Usage: `repo-triage [--api <url>] [--json] <command> [args]`
+ *
+ *   Run `repo-triage help` to list all commands.
+ */
 import { pathToFileURL } from 'node:url';
 import { readFileSync } from 'node:fs';
 
@@ -14,6 +17,17 @@ const VALUE_FLAGS = new Set(['api', 'days', 'owner', 'tag', 'language', 'lang', 
 
 // ---- pure helpers (unit-tested) -------------------------------------------
 
+/**
+ * Parses a raw `process.argv`-style array into a structured command object.
+ * `--flag` becomes `{ flags: { flag: true } }`; `--flag value` or `--flag=value`
+ * becomes `{ flags: { flag: 'value' } }` for flags listed in `VALUE_FLAGS`.
+ *
+ * @param {string[]} argv - Arguments array (typically `process.argv.slice(2)`).
+ * @returns {{ command: string|undefined, positionals: string[], flags: Record<string, string|boolean> }}
+ * @example
+ * parseArgs(['list', '--owner', 'davidsneighbour', '--json']);
+ * // { command: 'list', positionals: [], flags: { owner: 'davidsneighbour', json: true } }
+ */
 export function parseArgs(argv) {
   const positionals = [];
   const flags = {};
@@ -39,13 +53,28 @@ export function parseArgs(argv) {
   return { command, positionals: rest, flags };
 }
 
+/**
+ * Resolves the API base URL from `flags.api`, the `REPO_TRIAGE_API` env var,
+ * or the default `http://localhost:{PORT}`.
+ *
+ * @param {Record<string, string|boolean>} [flags={}] - Parsed CLI flags.
+ * @returns {string} Base URL with no trailing slash.
+ */
 export function apiBase(flags = {}) {
   if (typeof flags.api === 'string') return flags.api.replace(/\/$/, '');
   if (process.env.REPO_TRIAGE_API) return process.env.REPO_TRIAGE_API.replace(/\/$/, '');
   return `http://localhost:${process.env.PORT || 8787}`;
 }
 
-// Resolve "owner/name" or a bare "name" to exactly one repo, or throw.
+/**
+ * Resolves an `"owner/name"` or bare `"name"` identifier to exactly one repo
+ * from the list, or throws a descriptive error.
+ *
+ * @param {object[]} repos - Board payload array (from `GET /api/repos`).
+ * @param {string} ident - Repository identifier (`"owner/name"` or `"name"`).
+ * @returns {object} The matched repo object.
+ * @throws {Error} If `ident` is empty, matches nothing, or is ambiguous.
+ */
 export function resolveRepo(repos, ident) {
   const needle = String(ident || '').trim().toLowerCase();
   if (!needle) throw new Error('a repo (owner/name or name) is required');
@@ -58,6 +87,20 @@ export function resolveRepo(repos, ident) {
   return matches[0];
 }
 
+/**
+ * Filters the repo list by CLI options. All filters are additive (AND).
+ *
+ * @param {object[]} repos - Board payload array.
+ * @param {object} [opts={}] - Filter options.
+ * @param {boolean} [opts.all] - Include ignored repos.
+ * @param {boolean} [opts.ignored] - Show only ignored repos.
+ * @param {string} [opts.owner] - Filter by owner login (case-insensitive).
+ * @param {string} [opts.language] - Filter by primary language (case-insensitive). Alias: `opts.lang`.
+ * @param {string} [opts.tag] - Filter to repos carrying this tag.
+ * @param {boolean} [opts.due] - Filter to repos due today.
+ * @param {string|number} [opts.priority] - Comma list of priority levels; `"none"` matches unset.
+ * @returns {object[]} Filtered subset of `repos`.
+ */
 export function filterReposCli(repos, opts = {}) {
   const language = opts.language ?? opts.lang;
   return repos.filter((r) => {
@@ -80,6 +123,14 @@ export function filterReposCli(repos, opts = {}) {
 
 const dueLabel = (r) => (r.needsCheckToday ? 'today' : `in ${r.dueInDays}d`);
 
+/**
+ * Formats a repo list as either a compact aligned table or a JSON string.
+ *
+ * @param {object[]} repos - Repos to format.
+ * @param {object} [options={}]
+ * @param {boolean} [options.json=false] - Emit JSON instead of a text table.
+ * @returns {string} Formatted output ready for `process.stdout`.
+ */
 export function formatList(repos, { json = false } = {}) {
   if (json) {
     return JSON.stringify(

@@ -135,7 +135,7 @@ function buildPayload() {
   }
 
   return repoCache.map((r) => {
-    const s = byId.get(r.id) || { priority: null, priority_set_at: null, inactivity_days: null, position: 0, ignored: 0 };
+    const s = byId.get(r.id) || { priority: null, priority_set_at: null, inactivity_days: null, position: 0, ignored: 0, snooze_until: null };
     const enrich = enrichCache.get(r.id) ?? {};
     return {
       ...r,
@@ -147,6 +147,7 @@ function buildPayload() {
       effective_inactivity_days: s.inactivity_days ?? DEFAULT_INACTIVITY_DAYS,
       position: s.position ?? 0,
       ignored: Boolean(s.ignored),
+      snooze_until: s.snooze_until ?? null,
       notice_count: countByRepo.get(r.id) ?? 0,
       latest_notice: latestByRepo.get(r.id) ?? null,
       tags: tagsByRepo.get(r.id) ?? [],
@@ -177,6 +178,7 @@ const setCheckedStmt = db.prepare(`
     -- Only record a real review (checked_at = now) when this lands the card in a
     -- future column; a null means "make due" and must keep the prior checked_at.
     checked_at = COALESCE(excluded.checked_at, repo_state.checked_at),
+    snooze_until = NULL,
     updated_at = excluded.updated_at
 `);
 // "Clear check date" resets the scheduling axis only, leaving priority/tags/etc.
@@ -186,6 +188,7 @@ const clearScheduleStmt = db.prepare(`
   ON CONFLICT(repo_id) DO UPDATE SET
     priority_set_at = NULL,
     checked_at = NULL,
+    snooze_until = NULL,
     updated_at = excluded.updated_at
 `);
 // Restores a previously-snapshotted priority_set_at + checked_at (undo clear-check).
@@ -198,13 +201,21 @@ const restoreScheduleStmt = db.prepare(`
     updated_at = excluded.updated_at
 `);
 const getInactivityStmt = db.prepare('SELECT inactivity_days FROM repo_state WHERE repo_id = ?');
-const touchStmt = db.prepare(`UPDATE repo_state SET priority_set_at = ?, checked_at = ?, updated_at = ? WHERE repo_id = ?`);
+const touchStmt = db.prepare(`UPDATE repo_state SET priority_set_at = ?, checked_at = ?, snooze_until = NULL, updated_at = ? WHERE repo_id = ?`);
 const inactivityStmt = db.prepare(`
   INSERT INTO repo_state (repo_id, full_name, inactivity_days, updated_at)
   VALUES (@id, @full_name, @days, @now)
   ON CONFLICT(repo_id) DO UPDATE SET
     inactivity_days = excluded.inactivity_days,
     updated_at = excluded.updated_at
+`);
+const snoozeStmt = db.prepare(`
+  INSERT INTO repo_state (repo_id, full_name, snooze_until, checked_at, updated_at)
+  VALUES (@id, @full_name, @snooze_until, @checked_at, @now)
+  ON CONFLICT(repo_id) DO UPDATE SET
+    snooze_until = excluded.snooze_until,
+    checked_at   = excluded.checked_at,
+    updated_at   = excluded.updated_at
 `);
 const positionStmt = db.prepare(`UPDATE repo_state SET position = ?, updated_at = ? WHERE repo_id = ?`);
 const setIgnoredStmt = db.prepare(`
@@ -363,6 +374,23 @@ app.post('/api/repos/:id/inactivity', (req, res) => {
   res.json({ ok: true });
 });
 
+// One-off snooze: resurface the repo in exactly N days without touching its
+// review cadence. Records a real check timestamp so the "checked" age is current.
+// Cleared automatically by any subsequent check, touch, or clear.
+app.post('/api/repos/:id/snooze', (req, res) => {
+  const id = Number(req.params.id);
+  let { days } = req.body || {};
+  days = Number(days ?? 0);
+  if (!Number.isFinite(days) || days <= 0) {
+    return res.status(400).json({ error: 'days must be a positive number' });
+  }
+  const now = new Date();
+  const snoozeUntil = new Date(now.getTime() + days * 86400000).toISOString();
+  const nowIso = now.toISOString();
+  snoozeStmt.run({ id, full_name: findRepo(id)?.full_name ?? null, snooze_until: snoozeUntil, checked_at: nowIso, now: nowIso });
+  res.json({ ok: true });
+});
+
 app.post('/api/reorder', (req, res) => {
   const { orderedIds } = req.body || {};
   const now = new Date().toISOString();
@@ -503,8 +531,8 @@ app.get('/api/backup', (req, res) => {
 });
 
 const restoreStateStmt = db.prepare(`
-  INSERT INTO repo_state (repo_id, full_name, priority, priority_set_at, checked_at, inactivity_days, position, ignored, updated_at)
-  VALUES (@repo_id, @full_name, @priority, @priority_set_at, @checked_at, @inactivity_days, @position, @ignored, @updated_at)
+  INSERT INTO repo_state (repo_id, full_name, priority, priority_set_at, checked_at, inactivity_days, position, ignored, snooze_until, updated_at)
+  VALUES (@repo_id, @full_name, @priority, @priority_set_at, @checked_at, @inactivity_days, @position, @ignored, @snooze_until, @updated_at)
 `);
 const restoreNoticeStmt = db.prepare(
   `INSERT INTO repo_notice (repo_id, full_name, body, created_at) VALUES (@repo_id, @full_name, @body, @created_at)`
@@ -539,6 +567,7 @@ app.post('/api/restore', (req, res) => {
           inactivity_days: s.inactivity_days ?? null,
           position: s.position ?? 0,
           ignored: s.ignored ? 1 : 0,
+          snooze_until: s.snooze_until ?? null,
           updated_at: s.updated_at ?? now,
         });
       }

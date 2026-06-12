@@ -12,6 +12,7 @@ vi.mock('./api.js', () => ({
     setChecked: vi.fn(),
     touch: vi.fn(),
     setInactivity: vi.fn(),
+    snooze: vi.fn(),
     reorder: vi.fn(),
   },
 }));
@@ -95,18 +96,17 @@ describe('mobile board', () => {
   });
 });
 
-describe('mobile move sheet (interim snooze mapping)', () => {
+describe('mobile move sheet (snooze)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
     setMobileViewport();
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    api.setChecked.mockResolvedValue({});
-    api.setInactivity.mockResolvedValue({});
+    api.snooze.mockResolvedValue({});
   });
   afterEach(() => vi.useRealTimers());
 
-  it('long-press → "mark done for N days" calls check-now + inactivity=N', async () => {
+  it('long-press → "mark done for N days" calls snooze endpoint with N', async () => {
     api.list.mockResolvedValue(payload([card({ id: 1, name: 'widget', description: 'a thing', needsCheckToday: true })]));
 
     render(<App />);
@@ -121,8 +121,9 @@ describe('mobile move sheet (interim snooze mapping)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Mark done' }));
     });
 
-    expect(api.setChecked).toHaveBeenCalledWith(1, 0);
-    expect(api.setInactivity).toHaveBeenCalledWith(1, 20);
+    expect(api.snooze).toHaveBeenCalledWith(1, 20);
+    expect(api.setChecked).not.toHaveBeenCalled();
+    expect(api.setInactivity).not.toHaveBeenCalled();
   });
 });
 

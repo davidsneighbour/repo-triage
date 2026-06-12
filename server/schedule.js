@@ -26,7 +26,8 @@ export function boardDayIndex(ms, rolloverHour = 0) {
 /**
  * Computes board placement for a single repo at read time.
  *
- * Placement rules:
+ * Placement rules (in priority order):
+ * - Active `snooze_until` (not yet elapsed) → placed at the snooze target day, clamped to the board window.
  * - No `priority_set_at` → `day-0` (Today / inbox).
  * - Age since `priority_set_at` ≥ inactivity threshold → `day-0`.
  * - Otherwise → future bucket `day-k` where k = remaining days.
@@ -34,6 +35,7 @@ export function boardDayIndex(ms, rolloverHour = 0) {
  * @param {object} state - Triage row from `repo_state` (or a partial default).
  * @param {string|null} state.priority_set_at - ISO timestamp used as the scheduling anchor.
  * @param {string|null} state.checked_at - ISO timestamp of the last actual review.
+ * @param {string|null} state.snooze_until - ISO timestamp of a one-off snooze; takes precedence while in the future.
  * @param {number|null} state.inactivity_days - Per-repo review interval override; `null` uses the global default.
  * @param {number} [defaultInactivityDays=7] - Global review interval in days.
  * @param {number} [nowMs=Date.now()] - Current time as a Unix timestamp (ms); override in tests.
@@ -51,6 +53,23 @@ export function effectiveState(state, defaultInactivityDays = 7, nowMs = Date.no
     const checkedAgeDays = state.checked_at
         ? Math.max(0, nowDay - boardDayIndex(new Date(state.checked_at).getTime(), rolloverHour))
         : null;
+
+    // An active snooze overrides the normal interval math. Once the snooze date
+    // elapses (daysUntilSnooze <= 0) it falls through to regular scheduling.
+    if (state.snooze_until) {
+        const snoozeDay = boardDayIndex(new Date(state.snooze_until).getTime(), rolloverHour);
+        const daysUntilSnooze = snoozeDay - nowDay;
+        if (daysUntilSnooze > 0) {
+            const boardOffset = Math.min(maxFutureOffset, daysUntilSnooze);
+            return {
+                column: `day-${boardOffset}`,
+                checkedAgeDays,
+                boardOffset,
+                dueInDays: daysUntilSnooze,
+                needsCheckToday: false,
+            };
+        }
+    }
 
     if (!state.priority_set_at) {
         return {

@@ -313,13 +313,8 @@ export default function App() {
   );
   const onSetPriority = useCallback((id, priority) => mutate(() => api.setPriority(id, priority)), [mutate]);
   const onSetInactivity = useCallback((id, days) => mutate(() => api.setInactivity(id, days)), [mutate]);
-  // "Mark done for N days" from the mobile move sheet. See issue #17: the final
-  // mapping is a one-off `snooze_until`; until that lands this approximates it
-  // with check-now + a per-repo review-interval override (option B), which
-  // resurfaces the repo in N days at the cost of (temporarily) changing its
-  // review cadence. The MoveSheet's UI contract — a single field — is unaffected.
   const onSnooze = useCallback(
-    (id, days) => api.setChecked(id, 0).then(() => api.setInactivity(id, days)).then(load),
+    (id, days) => api.snooze(id, days).then(load),
     [load]
   );
   const onSetIgnored = useCallback(
@@ -726,7 +721,7 @@ export default function App() {
             onClick={() => setActionsOpen(true)}
             aria-label="More filters and options"
             aria-haspopup="dialog"
-            className="ml-auto flex min-h-[44px] items-center gap-1.5 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-200 hover:bg-neutral-800"
+            className="ml-auto flex min-h-11 items-center gap-1.5 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-200 hover:bg-neutral-800"
           >
             <MoreIcon className="h-4 w-4" aria-hidden="true" />
             filters
@@ -743,8 +738,8 @@ export default function App() {
         <MobileActionSheet title="Filters & options" onClose={() => setActionsOpen(false)}>
           {/* Bump relocated controls to the ≥44px mobile touch target (DESIGN.md
               → Touch targets) without altering the shared desktop fragments. */}
-          <div className="flex flex-wrap items-center gap-2 [&_button]:min-h-[44px] [&_label]:min-h-[44px] [&_select]:min-h-[44px]">{filterPills}</div>
-          <div className="flex flex-wrap items-center gap-2 border-t border-neutral-800 pt-3 [&_button]:min-h-[44px] [&_label]:min-h-[44px] [&_select]:min-h-[44px]">{optionControls}</div>
+          <div className="flex flex-wrap items-center gap-2 [&_button]:min-h-11 [&_label]:min-h-11 [&_select]:min-h-11">{filterPills}</div>
+          <div className="flex flex-wrap items-center gap-2 border-t border-neutral-800 pt-3 [&_button]:min-h-11 [&_label]:min-h-11 [&_select]:min-h-11">{optionControls}</div>
         </MobileActionSheet>
       )}
 

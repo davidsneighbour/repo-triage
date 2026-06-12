@@ -23,6 +23,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ days }),
     }).then(json),
+  snooze: (id, days) =>
+    fetch(`/api/repos/${id}/snooze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ days }),
+    }).then(json),
   reorder: (orderedIds) =>
     fetch('/api/reorder', {
       method: 'POST',

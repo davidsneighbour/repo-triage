@@ -36,6 +36,7 @@ db.exec(`
     inactivity_days INTEGER,          -- per-repo override; NULL = use the global default
     position        INTEGER DEFAULT 0,-- ordering within a column (for drag sorting)
     ignored         INTEGER DEFAULT 0,-- 1 = hidden from the board unless "show ignored" is on
+    snooze_until    TEXT,             -- nullable ISO datetime; one-off snooze that overrides normal interval until it elapses
     updated_at      TEXT
   );
 `);
@@ -51,6 +52,9 @@ if (!repoStateColumns.includes('checked_at')) {
   // Backfill from the old scheduling anchor so previously-triaged repos keep a
   // sensible "checked" display until their next interaction refines it.
   db.exec(`UPDATE repo_state SET checked_at = priority_set_at WHERE checked_at IS NULL AND priority_set_at IS NOT NULL`);
+}
+if (!repoStateColumns.includes('snooze_until')) {
+  db.exec(`ALTER TABLE repo_state ADD COLUMN snooze_until TEXT`);
 }
 
 // Free-form, timestamped notices attached to a repo. Many per repo; the newest

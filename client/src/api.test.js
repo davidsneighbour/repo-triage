@@ -46,6 +46,18 @@ describe('api wrapper contract', () => {
         });
     });
 
+    it('posts snooze payload to snooze endpoint', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ ok: true }) });
+
+        await api.snooze(42, 7);
+
+        expect(fetchMock).toHaveBeenCalledWith('/api/repos/42/snooze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ days: 7 }),
+        });
+    });
+
     it('posts priority payload to priority endpoint', async () => {
         const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ ok: true }) });
 

@@ -73,6 +73,37 @@ describe('effectiveState', () => {
         expect(defaultFromNull.dueInDays).toBe(7);
     });
 
+    describe('snooze_until', () => {
+        it('places a snoozed repo in the future column matching the snooze date', () => {
+            const snoozeUntil = new Date(nowMs + 3 * 86400000).toISOString();
+            const state = effectiveState({ priority_set_at: null, snooze_until: snoozeUntil, inactivity_days: null }, 7, nowMs);
+            expect(state.column).toBe('day-3');
+            expect(state.dueInDays).toBe(3);
+            expect(state.needsCheckToday).toBe(false);
+        });
+
+        it('clamps snooze offset to the board window', () => {
+            const snoozeUntil = new Date(nowMs + 20 * 86400000).toISOString();
+            const state = effectiveState({ priority_set_at: null, snooze_until: snoozeUntil, inactivity_days: null }, 7, nowMs);
+            expect(state.column).toBe('day-6');
+            expect(state.dueInDays).toBe(20);
+        });
+
+        it('falls back to normal scheduling when the snooze has elapsed', () => {
+            const snoozeUntil = new Date(nowMs - 1 * 86400000).toISOString();
+            const state = effectiveState({ priority_set_at: null, snooze_until: snoozeUntil, inactivity_days: null }, 7, nowMs);
+            expect(state.column).toBe('day-0');
+            expect(state.needsCheckToday).toBe(true);
+        });
+
+        it('snooze overrides a fresh priority_set_at that would otherwise place the card further out', () => {
+            const freshAnchor = new Date(nowMs).toISOString();
+            const snoozeUntil = new Date(nowMs + 2 * 86400000).toISOString();
+            const state = effectiveState({ priority_set_at: freshAnchor, snooze_until: snoozeUntil, inactivity_days: 7 }, 7, nowMs);
+            expect(state.column).toBe('day-2');
+        });
+    });
+
     describe('day rollover hour', () => {
         // Built in LOCAL time so the assertions hold in any machine timezone:
         // 02:00 and 06:00 straddle a 04:00 local rollover.

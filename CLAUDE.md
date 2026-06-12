@@ -139,6 +139,7 @@ persisted); header shows sync status and GitHub API remaining/limit.
 | POST | `/api/refresh` | Manual GitHub refresh |
 | POST | `/api/repos/:id/check` | Set effective check age via `{ daysAgo }` |
 | POST | `/api/repos/:id/inactivity` | Set per-repo review age override via `{ days }` |
+| POST | `/api/repos/:id/snooze` | One-off snooze via `{ days }`. Resurfaces in N days without changing review cadence. Cleared on check, tap, or clear. |
 | POST | `/api/repos/:id/priority` | Set triage priority via `{ priority: 1\|2\|3\|null }` (independent of scheduling) |
 | POST | `/api/repos/:id/clear` | Clear the scheduling state (anchor + checked_at); keeps priority |
 | POST | `/api/repos/:id/touch` | Reset check timestamp to now |

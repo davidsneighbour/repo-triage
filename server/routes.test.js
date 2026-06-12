@@ -521,3 +521,44 @@ describe('backup & restore (runs last — mutates shared triage state)', () => {
     expect(repo.priority).toBeNull();
   });
 });
+
+describe('POST /api/repos/:id/snooze', () => {
+  it('rejects days <= 0 with 400', async () => {
+    const res = await request(app).post(`/api/repos/${REPO.id}/snooze`).send({ days: 0 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/positive/);
+  });
+
+  it('rejects non-finite days with 400', async () => {
+    const res = await request(app).post(`/api/repos/${REPO.id}/snooze`).send({ days: 'soon' });
+    expect(res.status).toBe(400);
+  });
+
+  it('places the repo in a future column and records a check timestamp', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/clear`);
+    const res = await request(app).post(`/api/repos/${REPO.id}/snooze`).send({ days: 3 });
+    expect(res.status).toBe(200);
+    const board = await request(app).get('/api/repos');
+    const repo = board.body.repos.find((r) => r.id === REPO.id);
+    expect(repo.column).toBe('day-3');
+    expect(repo.checkedAgeDays).toBe(0);
+    expect(repo.snooze_until).not.toBeNull();
+  });
+
+  it('clears the snooze when the repo is subsequently checked', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/snooze`).send({ days: 5 });
+    await request(app).post(`/api/repos/${REPO.id}/check`).send({ daysAgo: 0 });
+    const board = await request(app).get('/api/repos');
+    const repo = board.body.repos.find((r) => r.id === REPO.id);
+    expect(repo.snooze_until).toBeNull();
+    expect(repo.column).toBe('day-6');
+  });
+
+  it('clears the snooze on touch', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/snooze`).send({ days: 5 });
+    await request(app).post(`/api/repos/${REPO.id}/touch`);
+    const board = await request(app).get('/api/repos');
+    const repo = board.body.repos.find((r) => r.id === REPO.id);
+    expect(repo.snooze_until).toBeNull();
+  });
+});

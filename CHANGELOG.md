@@ -1,5 +1,56 @@
 # Changelog
 
+## [2.0.0](https://github.com/davidsneighbour/project-dashboard/compare/v1.0.0...v2.0.0) (2026-06-14)
+
+### ⚠ BREAKING CHANGES
+
+* remove deprecated GITHUB_USERNAME env var alias
+
+### Features
+
+* **cli:** fuzzy/multi resolve, open command, --all-matching bulk ops (closes [#13](https://github.com/davidsneighbour/project-dashboard/issues/13)) ([7249cd3](https://github.com/davidsneighbour/project-dashboard/commit/7249cd3b94df8a9a3d7129e258138171fda1bf33))
+* **cli:** watch mode with OS notifications (issue [#31](https://github.com/davidsneighbour/project-dashboard/issues/31)) ([c3c95b2](https://github.com/davidsneighbour/project-dashboard/commit/c3c95b2315cf2b8f371081a5fcc8244d1147f001))
+* cross-session undo history (issue [#29](https://github.com/davidsneighbour/project-dashboard/issues/29)) ([718acbf](https://github.com/davidsneighbour/project-dashboard/commit/718acbf0b745ccd4b7902072fba8cbac8ccf4a64))
+* **docker:** publish image to GHCR on release tags ([db121ce](https://github.com/davidsneighbour/project-dashboard/commit/db121cecedf75c99ade79500c681b9ae98d6713f))
+* **e2e:** mobile viewport smoke tests for responsive layout (issue [#19](https://github.com/davidsneighbour/project-dashboard/issues/19)) ([5b19ed5](https://github.com/davidsneighbour/project-dashboard/commit/5b19ed56d9f2b142631150c10b25231796de0087))
+* **gh-actions:** per-card gh quick actions — open, list PRs, create issue ([6b7e250](https://github.com/davidsneighbour/project-dashboard/commit/6b7e2500dda25d15f842b7ac91aeacef1f7bb8a3))
+* **github:** add PAGINATE_VIA_GH mode via gh api --paginate ([9387054](https://github.com/davidsneighbour/project-dashboard/commit/93870549e018626cacc937ee8a7d7bd64c5cbfb5))
+* implement one-off snooze (issue [#17](https://github.com/davidsneighbour/project-dashboard/issues/17), closes [#18](https://github.com/davidsneighbour/project-dashboard/issues/18)) ([5889269](https://github.com/davidsneighbour/project-dashboard/commit/58892698df5b96f1e289a8c7b44528474117c19f))
+* per-repo activity log / review timeline (issue [#28](https://github.com/davidsneighbour/project-dashboard/issues/28)) ([4918dfb](https://github.com/davidsneighbour/project-dashboard/commit/4918dfb09561c4a396ecc814f4904ded2697f140))
+* **perf:** 30-second client poll + payload cache with dirty-flag invalidation (issues [#26](https://github.com/davidsneighbour/project-dashboard/issues/26), [#24](https://github.com/davidsneighbour/project-dashboard/issues/24)) ([c6fa3c5](https://github.com/davidsneighbour/project-dashboard/commit/c6fa3c5b7a68af1765684b02ace315c9d31801fe))
+* **perf:** make paginateViaGh async with spawn to unblock event loop (issue [#23](https://github.com/davidsneighbour/project-dashboard/issues/23)) ([fd3e8c8](https://github.com/davidsneighbour/project-dashboard/commit/fd3e8c80740bedc3dd4a5c5aa35e4447b1f45e74))
+* **perf:** run ENRICH_METADATA enrichment async after initial payload (issue [#25](https://github.com/davidsneighbour/project-dashboard/issues/25)) ([2ad548c](https://github.com/davidsneighbour/project-dashboard/commit/2ad548c9a116f49a835bd16ad4933b59fcfd6ead))
+* **prefs:** persist view/display prefs server-side via GET/PUT /api/prefs ([7727f0f](https://github.com/davidsneighbour/project-dashboard/commit/7727f0f9c4b17f94ca4f06ed863f92c7a566c6b3))
+* remove deprecated GITHUB_USERNAME env var alias ([77f7bfc](https://github.com/davidsneighbour/project-dashboard/commit/77f7bfca5ccd2df0c1da6328851da9fe886e6771)), closes [#16](https://github.com/davidsneighbour/project-dashboard/issues/16)
+* scheduled report export (issue [#32](https://github.com/davidsneighbour/project-dashboard/issues/32)) ([2f28181](https://github.com/davidsneighbour/project-dashboard/commit/2f2818102a4470f7b38c4cd1da39b0b820175cef))
+* **settings:** in-app settings panel for review cycle, sync interval, owners ([b330b02](https://github.com/davidsneighbour/project-dashboard/commit/b330b024f25ce2fba5599a80ccab5d9478bb81b5))
+* tag-based review rules (tag → inactivity_days override) (issue [#30](https://github.com/davidsneighbour/project-dashboard/issues/30)) ([1d18dcc](https://github.com/davidsneighbour/project-dashboard/commit/1d18dcc92a2e7a080bf56ecc3a006df25feb3c08))
+* webhook receiver for real-time GitHub sync (issue [#27](https://github.com/davidsneighbour/project-dashboard/issues/27)) ([410aed5](https://github.com/davidsneighbour/project-dashboard/commit/410aed54da5ca69d8fd259f5b3dc321c83097b00))
+
+### Bug fixes
+
+* **CardMenu:** cap desktop menu height to prevent overflow past viewport ([2641103](https://github.com/davidsneighbour/project-dashboard/commit/2641103c6684caf6a4981afa66af705a0293c5b6))
+* **ci:** resolve E2E viewport overflow, markdown lint, and bump Node to 26 ([65d8fdc](https://github.com/davidsneighbour/project-dashboard/commit/65d8fdcb38623c7d83422a6580134c141e85c127))
+* **docker:** fix docker compose up — USER root, drop apk build tools, fix CMD ([3acda5f](https://github.com/davidsneighbour/project-dashboard/commit/3acda5f8062be8977d25616794983346bbed329d))
+* **e2e:** align DEFAULT_INACTIVITY mock from 3 → 7 to match server default (issue [#33](https://github.com/davidsneighbour/project-dashboard/issues/33)) ([cf800a8](https://github.com/davidsneighbour/project-dashboard/commit/cf800a85c66a22a8b2eec3150eb784d626ef16c0))
+
+### Refactoring
+
+* **server:** split index.js into focused modules (issue [#22](https://github.com/davidsneighbour/project-dashboard/issues/22)) ([6211ff4](https://github.com/davidsneighbour/project-dashboard/commit/6211ff4147e2e6440b3466ab91407a0e4e0aa475))
+
+### Documentation
+
+* add ROADMAP.md with post-audit issues and suggested work order ([f9e93de](https://github.com/davidsneighbour/project-dashboard/commit/f9e93de9211f01081da71d6edac4890db02ca67a)), closes [#33](https://github.com/davidsneighbour/project-dashboard/issues/33)
+
+### Tests
+
+* **coverage:** fix threshold failures across client and server (issue [#21](https://github.com/davidsneighbour/project-dashboard/issues/21)) ([a9e9365](https://github.com/davidsneighbour/project-dashboard/commit/a9e93657b0e1ddd5dd8ba165e381b15f7a0a0fce))
+
+### Build system
+
+* **docker:** bump base image to node:26-bookworm-slim ([4b02c51](https://github.com/davidsneighbour/project-dashboard/commit/4b02c5139b3984f0f94f28c241692afb30740485))
+* **docker:** switch to cgr.dev/chainguard/node to eliminate CVEs ([79532f2](https://github.com/davidsneighbour/project-dashboard/commit/79532f2a738d108b7a975db1130f96770eab7f80))
+
 ## [1.0.0](https://github.com/davidsneighbour/project-dashboard/compare/v0.1.0...v1.0.0) (2026-06-12)
 
 ## 0.1.0 (2026-06-12)

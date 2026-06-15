@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.0.1](https://github.com/davidsneighbour/project-dashboard/compare/v3.0.0...v3.0.1) (2026-06-15)
+
+### Bug fixes
+
+* **docker:** add linux/arm64 to multi-platform build (Raspberry Pi support) ([d7acd9a](https://github.com/davidsneighbour/project-dashboard/commit/d7acd9ad16569b505cf5e086be915bd6316ca91d))
+
 ## [3.0.0](https://github.com/davidsneighbour/project-dashboard/compare/v1.0.0...v3.0.0) (2026-06-14)
 
 ### ⚠ BREAKING CHANGES

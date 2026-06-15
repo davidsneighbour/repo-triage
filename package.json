@@ -1,6 +1,6 @@
 {
   "name": "@davidsneighbour/project-dashboard",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A local-only dashboard that lists **all** your GitHub repositories as a kanban board and lets you triage them by priority.",
   "homepage": "https://github.com/davidsneighbour/project-dashboard#readme",
   "bugs": {

@@ -310,6 +310,17 @@ describe('groupRepos', () => {
         expect(grouped['day-0'].map((r) => r.id)).toContain(1);
         expect(grouped['day-99']).toBeUndefined();
     });
+
+    it('excludes unchecked repos from all day buckets', () => {
+        const columns = [{ key: 'day-0' }, { key: 'day-1' }];
+        const repos = [
+            { id: 1, name: 'a', column: 'unchecked', position: 0 },
+            { id: 2, name: 'b', column: 'day-0', position: 1 },
+        ];
+        const grouped = groupRepos(repos, columns);
+        expect(grouped['day-0'].map((r) => r.id)).toEqual([2]);
+        expect(Object.values(grouped).flat().map((r) => r.id)).not.toContain(1);
+    });
 });
 
 describe('groupReposBy', () => {

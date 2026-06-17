@@ -192,7 +192,7 @@ describe('POST /api/repos/:id/clear', () => {
     expect(res.status).toBe(200);
     const board = await request(app).get('/api/repos');
     const repo = board.body.repos.find((r) => r.id === REPO.id);
-    expect(repo.column).toBe('day-0');
+    expect(repo.column).toBe('unchecked');
     expect(repo.checkedAgeDays).toBeNull();
     expect(repo.priority).toBe(1);
   });

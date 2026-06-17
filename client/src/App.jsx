@@ -610,16 +610,33 @@ export default function App() {
   const todayColumn = dayColumns[0];
   const futureColumns = dayColumns.slice(1);
 
+  const uncheckedColumn = useMemo(() => ({
+    key: 'unchecked',
+    title: 'Unchecked',
+    subtitle: 'never reviewed',
+    daysAgoTarget: 0,
+    accent: 'neutral',
+  }), []);
+
+  const uncheckedRepos = useMemo(() => {
+    if (groupBy !== 'day') return [];
+    return filtered.filter((r) => r.column === 'unchecked');
+  }, [filtered, groupBy]);
+
   // Below the mobile breakpoint the board collapses to a single column chosen
   // from the DayPicker. Build one unified column list covering both the day
   // schedule and the owner/tag/language groupings so MobileBoard is agnostic.
   const isMobile = useIsMobile();
   const mobileColumns = useMemo(() => {
     if (groupBy === 'day') {
-      return dayColumns.map((col) => ({ ...col, repos: groups[col.key] || [], schedulable: true }));
+      const dayCols = dayColumns.map((col) => ({ ...col, repos: groups[col.key] || [], schedulable: true }));
+      if (uncheckedRepos.length > 0) {
+        return [{ ...uncheckedColumn, repos: uncheckedRepos, schedulable: false }, ...dayCols];
+      }
+      return dayCols;
     }
     return (groupedColumns || []).map((col) => ({ ...col, schedulable: false }));
-  }, [groupBy, dayColumns, groups, groupedColumns]);
+  }, [groupBy, dayColumns, groups, groupedColumns, uncheckedRepos, uncheckedColumn]);
 
   const cardProps = {
     menuOpenId: openMenuId,
@@ -924,11 +941,14 @@ export default function App() {
           <div role="group" aria-label="Repository board" aria-busy={data.syncing || undefined} className="flex min-h-0 flex-1 gap-4 overflow-hidden">
             {groupBy === 'day' ? (
               <>
-                {todayColumn && (
-                  <div className="sticky left-0 z-10 flex bg-neutral-950/95 pr-2 backdrop-blur-xs">
+                <div className="sticky left-0 z-10 flex gap-4 bg-neutral-950/95 pr-2 backdrop-blur-xs">
+                  {uncheckedRepos.length > 0 && (
+                    <Column col={uncheckedColumn} repos={uncheckedRepos} onDropColumn={onDropColumn} schedulable={false} {...cardProps} />
+                  )}
+                  {todayColumn && (
                     <Column col={todayColumn} repos={groups[todayColumn.key] || []} onDropColumn={onDropColumn} {...cardProps} />
-                  </div>
-                )}
+                  )}
+                </div>
                 <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden pb-2">
                   <div className="flex h-full min-w-max gap-4 pr-4">
                     {futureColumns.map((col) => (

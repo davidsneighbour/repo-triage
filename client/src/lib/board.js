@@ -195,6 +195,7 @@ export function groupRepos(repos, dayColumns, sortKey = 'manual') {
     const groups = Object.fromEntries(dayColumns.map((col) => [col.key, []]));
 
     for (const repo of repos) {
+        if (repo.column === 'unchecked') continue;
         const key = groups[repo.column] ? repo.column : 'day-0';
         groups[key].push(repo);
     }

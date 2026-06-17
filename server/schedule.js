@@ -73,7 +73,7 @@ export function effectiveState(state, defaultInactivityDays = 7, nowMs = Date.no
 
     if (!state.priority_set_at) {
         return {
-            column: 'day-0',
+            column: 'unchecked',
             checkedAgeDays,
             boardOffset: 0,
             dueInDays: 0,

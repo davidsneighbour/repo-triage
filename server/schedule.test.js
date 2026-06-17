@@ -4,9 +4,9 @@ import { boardDayIndex, effectiveState } from './schedule.js';
 describe('effectiveState', () => {
     const nowMs = Date.UTC(2026, 0, 10, 12, 0, 0);
 
-    it('returns day-0 for never checked repos', () => {
+    it('returns unchecked for never checked repos', () => {
         const state = effectiveState({ priority_set_at: null, inactivity_days: null }, 7, nowMs);
-        expect(state.column).toBe('day-0');
+        expect(state.column).toBe('unchecked');
         expect(state.checkedAgeDays).toBeNull();
         expect(state.needsCheckToday).toBe(true);
     });
@@ -89,10 +89,10 @@ describe('effectiveState', () => {
             expect(state.dueInDays).toBe(20);
         });
 
-        it('falls back to normal scheduling when the snooze has elapsed', () => {
+        it('falls back to unchecked when the snooze has elapsed and there is no schedule anchor', () => {
             const snoozeUntil = new Date(nowMs - 1 * 86400000).toISOString();
             const state = effectiveState({ priority_set_at: null, snooze_until: snoozeUntil, inactivity_days: null }, 7, nowMs);
-            expect(state.column).toBe('day-0');
+            expect(state.column).toBe('unchecked');
             expect(state.needsCheckToday).toBe(true);
         });
 

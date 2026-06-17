@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.1.0](https://github.com/davidsneighbour/project-dashboard/compare/v3.0.3...v3.1.0) (2026-06-17)
+
+### Features
+
+* **board:** add Unchecked column for repos with no check history ([ec7d6b4](https://github.com/davidsneighbour/project-dashboard/commit/ec7d6b4c7a8d9216536e3141b5eca693cea36778))
+
+### Miscellaneous
+
+* cleanup workspace settings ([1ac72d8](https://github.com/davidsneighbour/project-dashboard/commit/1ac72d81df017ca29bcaa5c52bd2d23463252f6d))
+
 ## [3.0.3](https://github.com/davidsneighbour/project-dashboard/compare/v3.0.2...v3.0.3) (2026-06-15)
 
 ### Bug fixes

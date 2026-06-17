@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.3](https://github.com/davidsneighbour/project-dashboard/compare/v3.1.2...v3.1.3) (2026-06-17)
+
+### Miscellaneous
+
+* add Renovate config to auto-update GH_VERSION in Dockerfile ([13301ec](https://github.com/davidsneighbour/project-dashboard/commit/13301ec2945d6d7bbb8086fe2a1ae9cce95f27f1))
+* move Renovate config to .github/renovate.json5, extend dnbhq preset ([ca00775](https://github.com/davidsneighbour/project-dashboard/commit/ca00775343ce50545dc2ba4aad84790874375a67))
+
 ## [3.1.1](https://github.com/davidsneighbour/project-dashboard/compare/v3.1.0...v3.1.1) (2026-06-17)
 
 ### Bug fixes

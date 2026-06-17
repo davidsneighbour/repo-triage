@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.1.1](https://github.com/davidsneighbour/project-dashboard/compare/v3.1.0...v3.1.1) (2026-06-17)
+
+### Bug fixes
+
+* **docker:** install gh CLI via COPY from Chainguard image instead of apk ([a35cfa6](https://github.com/davidsneighbour/project-dashboard/commit/a35cfa625afd7518d73e7e09169850ce07923af7))
+
 ## [3.1.0](https://github.com/davidsneighbour/project-dashboard/compare/v3.0.3...v3.1.0) (2026-06-17)
 
 ### Features

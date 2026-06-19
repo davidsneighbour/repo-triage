@@ -15,5 +15,25 @@
     "*.tsx": "${capture}.ts",
     "package.json": "package-lock.json, .markdownlint-cli2.jsonc, .markdownlintignore, .release-it.json, jsdoc.config.json",
     "README.md": "CHANGELOG.md, CONTRIBUTING.md, LICENSE.md, DESIGN.md, AGENTS.md, ROADMAP.md, TODO.md"
-  }
+  },
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#ff0b54",
+    "activityBar.background": "#ff0b54",
+    "activityBar.foreground": "#e7e7e7",
+    "activityBar.inactiveForeground": "#e7e7e799",
+    "activityBarBadge.background": "#43df00",
+    "activityBarBadge.foreground": "#15202b",
+    "commandCenter.border": "#e7e7e799",
+    "sash.hoverBorder": "#ff0b54",
+    "statusBar.background": "#d70040",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#ff0b54",
+    "statusBarItem.remoteBackground": "#d70040",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "titleBar.activeBackground": "#d70040",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#d7004099",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#D70040"
 }

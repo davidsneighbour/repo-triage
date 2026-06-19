@@ -46,7 +46,7 @@
     "@dnbhq/markdownlint-config": "0.2.7"
   },
   "devDependencies": {
-    "@dnbhq/release-config": "1.0.1",
+    "@dnbhq/release-config": "1.1.0",
     "@release-it/conventional-changelog": "11.0.1",
     "clean-jsdoc-theme": "4.3.2",
     "concurrently": "10.0.3",

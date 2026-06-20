@@ -85,6 +85,18 @@ describe('RepoCard enrichment fields', () => {
     expect(screen.queryByTitle(/^CI:/)).not.toBeInTheDocument();
   });
 
+  it('CI badge has accessible aria-label for screen readers', () => {
+    renderCard({ ci_status: 'SUCCESS' });
+    expect(screen.getByLabelText('CI status: success')).toBeInTheDocument();
+  });
+
+  it('CI badge glyph and text are aria-hidden', () => {
+    renderCard({ ci_status: 'FAILURE' });
+    const badge = screen.getByLabelText('CI status: failure');
+    const hiddenSpans = badge.querySelectorAll('span[aria-hidden="true"]');
+    expect(hiddenSpans).toHaveLength(2);
+  });
+
   it('hides enrichment fields when toggled off via fields prop', () => {
     renderCard(
       { open_prs: 5, ci_status: 'SUCCESS', latest_release: { tag: 'v1.0', published_at: '2024-01-01' } },

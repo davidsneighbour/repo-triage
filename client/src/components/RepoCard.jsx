@@ -247,9 +247,11 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
                 repo.ci_status === 'FAILURE' || repo.ci_status === 'ERROR' ? 'bg-rose-500/15 text-rose-300' :
                 'bg-amber-500/15 text-amber-300'
               )}
+              aria-label={`CI status: ${repo.ci_status.toLowerCase()}`}
               title={`CI: ${repo.ci_status}`}
             >
-              {repo.ci_status === 'SUCCESS' ? '✓' : repo.ci_status === 'FAILURE' || repo.ci_status === 'ERROR' ? '✗' : '⏳'} CI
+              <span aria-hidden="true">{repo.ci_status === 'SUCCESS' ? '✓' : repo.ci_status === 'FAILURE' || repo.ci_status === 'ERROR' ? '✗' : '⏳'}</span>
+              <span aria-hidden="true"> CI</span>
             </span>
           )}
         </span>

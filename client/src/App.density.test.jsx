@@ -20,7 +20,8 @@ const payload = {
     {
       id: 1, name: 'alpha', full_name: 'me/alpha', html_url: 'https://x/alpha', description: 'a description',
       private: false, archived: false, fork: false, language: 'JS', pushed_at: '2026-06-01T00:00:00.000Z',
-      checkedAgeDays: 0, dueInDays: 7, needsCheckToday: false, column: 'day-0', position: 0,
+      checkedAgeDays: 3, dueInDays: 4, needsCheckToday: false, column: 'day-0', position: 0,
+      tags: ['mytag'],
       latest_notice: { body: 'a pinned note', created_at: '2026-06-02T00:00:00.000Z' },
     },
   ],
@@ -56,5 +57,26 @@ describe('card density toggle', () => {
 
     expect(screen.queryByText('a pinned note')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'compact' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('hides the add-tag button, pushed date, review info, and checked text in compact mode', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+
+    // Comfortable: all secondary elements visible.
+    expect(screen.getByRole('button', { name: 'Add tag to alpha' })).toBeInTheDocument();
+    expect(screen.getByText(/pushed \d/)).toBeInTheDocument();
+    expect(screen.getByText(/review in \d+d/)).toBeInTheDocument();
+    expect(screen.getByText(/checked \d+d ago/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'compact' }));
+
+    // Compact: secondary elements hidden; tag chips and name remain.
+    expect(screen.queryByRole('button', { name: 'Add tag to alpha' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/pushed \d/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/review in \d+d/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/checked \d+d ago/)).not.toBeInTheDocument();
+    // Tag chips still visible (read-only).
+    expect(screen.getByText('#mytag')).toBeInTheDocument();
   });
 });

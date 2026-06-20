@@ -206,19 +206,21 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
             #{tag}
           </span>
         ))}
-        <button
-          onClick={() => onToggleMenu(repo.id, 'tag')}
-          className="inline-flex items-center gap-0.5 rounded-sm border border-dashed border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-500 hover:border-neutral-600 hover:text-neutral-300"
-          aria-label={`Add tag to ${repo.name}`}
-        >
-          <TagIcon className="h-2.5 w-2.5" aria-hidden="true" />
-          tag
-        </button>
+        {!compact && (
+          <button
+            onClick={() => onToggleMenu(repo.id, 'tag')}
+            className="inline-flex items-center gap-0.5 rounded-sm border border-dashed border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-500 hover:border-neutral-600 hover:text-neutral-300"
+            aria-label={`Add tag to ${repo.name}`}
+          >
+            <TagIcon className="h-2.5 w-2.5" aria-hidden="true" />
+            tag
+          </button>
+        )}
       </div>
 
       <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-neutral-500">
         <span className="flex min-w-0 items-center gap-2">
-          {show('pushed') && <span className="truncate">pushed {timeAgo(repo.pushed_at)}</span>}
+          {!compact && show('pushed') && <span className="truncate">pushed {timeAgo(repo.pushed_at)}</span>}
           {show('stars') && repo.stargazers_count > 0 && (
             <span className="flex shrink-0 items-center gap-0.5 tabular-nums" title={`${repo.stargazers_count} stargazers`}>
               <StarIcon className="h-3 w-3" aria-hidden="true" />
@@ -270,30 +272,34 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
             </span>
           )}
         </span>
-        <span className="shrink-0">
-          {repo.checkedAgeDays == null
-            ? 'not checked yet'
-            : repo.checkedAgeDays === 0
-            ? 'checked today'
-            : `checked ${repo.checkedAgeDays}d ago`}
-        </span>
-      </div>
-
-      <div className="mt-1 flex items-center justify-between text-[11px] text-neutral-500">
-        {repo.needsCheckToday ? (
-          <span className="text-rose-300">review today</span>
-        ) : (
-          <span>review in {repo.dueInDays}d</span>
-        )}
-        {schedulable && !compact && (
-          <span
-            className="opacity-0 transition-opacity group-focus-within:opacity-100 tabular-nums text-neutral-700"
-            aria-hidden="true"
-          >
-            ← [ / ] →
+        {!compact && (
+          <span className="shrink-0">
+            {repo.checkedAgeDays == null
+              ? 'not checked yet'
+              : repo.checkedAgeDays === 0
+              ? 'checked today'
+              : `checked ${repo.checkedAgeDays}d ago`}
           </span>
         )}
       </div>
+
+      {!compact && (
+        <div className="mt-1 flex items-center justify-between text-[11px] text-neutral-500">
+          {repo.needsCheckToday ? (
+            <span className="text-rose-300">review today</span>
+          ) : (
+            <span>review in {repo.dueInDays}d</span>
+          )}
+          {schedulable && (
+            <span
+              className="opacity-0 transition-opacity group-focus-within:opacity-100 tabular-nums text-neutral-700"
+              aria-hidden="true"
+            >
+              ← [ / ] →
+            </span>
+          )}
+        </div>
+      )}
 
       {repo.latest_notice && !compact && show('notice') && (
         <div className="mt-2 flex items-start justify-between gap-2 rounded-md bg-surface-subtle px-2 py-1.5">

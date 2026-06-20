@@ -1,5 +1,31 @@
 # Changelog
 
+## [3.2.1](https://github.com/davidsneighbour/project-dashboard/compare/v3.2.0...v3.2.1) (2026-06-20)
+
+### Bug fixes
+
+* **#35:** use surface-subtle token for card-notice background ([42978f2](https://github.com/davidsneighbour/project-dashboard/commit/42978f2661ebcbd338b4b97c5aa450406ff5f3a2)), closes [#35](https://github.com/davidsneighbour/project-dashboard/issues/35) [#0b110c](https://github.com/davidsneighbour/project-dashboard/issues/0b110c)
+* **#62:** raise client branch coverage above 85% threshold ([a40d744](https://github.com/davidsneighbour/project-dashboard/commit/a40d744c85f36f15d88e09323c7d8d18d6f77cd7)), closes [#62](https://github.com/davidsneighbour/project-dashboard/issues/62)
+* **#63:** raise server branch coverage above 85% threshold ([c14f6bb](https://github.com/davidsneighbour/project-dashboard/commit/c14f6bb389503c3e3cb7b6f46d46d5a6634a90fe)), closes [#63](https://github.com/davidsneighbour/project-dashboard/issues/63)
+
+### Performance improvements
+
+* **#51:** cap rendered cards/rows at 100/200 with a show-all toggle ([7598408](https://github.com/davidsneighbour/project-dashboard/commit/7598408be756bee411c93bc55f20f1c29a76b095)), closes [#51](https://github.com/davidsneighbour/project-dashboard/issues/51)
+* **#52:** stabilise fields prop with useMemo to prevent spurious RepoCard memo busts ([f6a659c](https://github.com/davidsneighbour/project-dashboard/commit/f6a659ced6fd67f92a4c57e07c3d6ca8d876b863)), closes [#52](https://github.com/davidsneighbour/project-dashboard/issues/52)
+* **#53:** throttle CardMenu resize listener with requestAnimationFrame ([cfd999b](https://github.com/davidsneighbour/project-dashboard/commit/cfd999b2460d725834f9708686df60b175370b13)), closes [#53](https://github.com/davidsneighbour/project-dashboard/issues/53)
+
+### Documentation
+
+* **#36:** document column sort dropdown and MoveSheet snooze semantics ([1bbbbe0](https://github.com/davidsneighbour/project-dashboard/commit/1bbbbe089d50ff7f4c28d69509e3ea18dbff3320)), closes [#36](https://github.com/davidsneighbour/project-dashboard/issues/36)
+* **#37:** settle card ··· button as always-visible ([125e3d3](https://github.com/davidsneighbour/project-dashboard/commit/125e3d377d616483ccc199759303b65891288ceb)), closes [#37](https://github.com/davidsneighbour/project-dashboard/issues/37)
+
+### Miscellaneous
+
+* **deps:** update client dependencies ([7772255](https://github.com/davidsneighbour/project-dashboard/commit/77722558e53e49612b189c76c2f02953a7583be0))
+* **deps:** update dependencies ([d0af841](https://github.com/davidsneighbour/project-dashboard/commit/d0af841ac6f552df5288f9ab08e5c5b5bd00b87c))
+* **project:** update project plan ([46a6195](https://github.com/davidsneighbour/project-dashboard/commit/46a6195ccaac48cbb5627defb56e6f2e0cdc8c97)), closes [#62](https://github.com/davidsneighbour/project-dashboard/issues/62) [#63](https://github.com/davidsneighbour/project-dashboard/issues/63)
+* **project:** update project plan ([9660376](https://github.com/davidsneighbour/project-dashboard/commit/9660376201344c30616440e3c4ebb793c935dcc8)), closes [#59](https://github.com/davidsneighbour/project-dashboard/issues/59)
+
 ## [3.2.0](https://github.com/davidsneighbour/project-dashboard/compare/v3.1.3...v3.2.0) (2026-06-20)
 
 ### Features

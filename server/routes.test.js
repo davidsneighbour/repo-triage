@@ -240,6 +240,87 @@ describe('POST /api/repos/:id/ignore', () => {
   });
 });
 
+describe('POST /api/repos/bulk', () => {
+  afterEach(async () => {
+    // Reset state to avoid polluting subsequent tests.
+    await request(app).post(`/api/repos/${REPO.id}/ignore`).send({ ignored: false });
+    await request(app).post(`/api/repos/${REPO.id}/clear`);
+  });
+
+  it('returns 400 when ids is not an array', async () => {
+    const res = await request(app).post('/api/repos/bulk').send({ action: 'ignore', ids: null });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/ids/);
+  });
+
+  it('returns 400 for an unknown action', async () => {
+    const res = await request(app).post('/api/repos/bulk').send({ action: 'nuke', ids: [REPO.id] });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/action/);
+  });
+
+  it('bulk-ignores repos in a single transaction', async () => {
+    const res = await request(app).post('/api/repos/bulk').send({ action: 'ignore', ids: [REPO.id] });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, count: 1 });
+    const board = await request(app).get('/api/repos');
+    expect(board.body.repos.find((r) => r.id === REPO.id).ignored).toBe(true);
+  });
+
+  it('bulk-unignores repos', async () => {
+    await request(app).post('/api/repos/bulk').send({ action: 'ignore', ids: [REPO.id] });
+    await request(app).post('/api/repos/bulk').send({ action: 'unignore', ids: [REPO.id] });
+    const board = await request(app).get('/api/repos');
+    expect(board.body.repos.find((r) => r.id === REPO.id).ignored).toBe(false);
+  });
+
+  it('bulk-checks repos with daysAgo param', async () => {
+    const res = await request(app).post('/api/repos/bulk').send({ action: 'check', ids: [REPO.id], daysAgo: 0 });
+    expect(res.status).toBe(200);
+    const board = await request(app).get('/api/repos');
+    expect(board.body.repos.find((r) => r.id === REPO.id).checkedAgeDays).toBe(0);
+  });
+
+  it('bulk-clears repos', async () => {
+    await request(app).post('/api/repos/bulk').send({ action: 'check', ids: [REPO.id], daysAgo: 0 });
+    const res = await request(app).post('/api/repos/bulk').send({ action: 'clear', ids: [REPO.id] });
+    expect(res.status).toBe(200);
+    const board = await request(app).get('/api/repos');
+    expect(board.body.repos.find((r) => r.id === REPO.id).checkedAgeDays).toBeNull();
+  });
+
+  it('bulk-sets priority', async () => {
+    const res = await request(app).post('/api/repos/bulk').send({ action: 'priority', ids: [REPO.id], priority: 2 });
+    expect(res.status).toBe(200);
+    const board = await request(app).get('/api/repos');
+    expect(board.body.repos.find((r) => r.id === REPO.id).priority).toBe(2);
+    // Clean up priority.
+    await request(app).post('/api/repos/bulk').send({ action: 'priority', ids: [REPO.id], priority: null });
+  });
+
+  it('bulk-tags and bulk-untags repos', async () => {
+    await request(app).post('/api/repos/bulk').send({ action: 'tag', ids: [REPO.id], tag: 'bulk-test' });
+    let board = await request(app).get('/api/repos');
+    expect(board.body.repos.find((r) => r.id === REPO.id).tags).toContain('bulk-test');
+
+    await request(app).post('/api/repos/bulk').send({ action: 'untag', ids: [REPO.id], tag: 'bulk-test' });
+    board = await request(app).get('/api/repos');
+    expect(board.body.repos.find((r) => r.id === REPO.id).tags).not.toContain('bulk-test');
+  });
+
+  it('returns 400 for invalid priority value', async () => {
+    const res = await request(app).post('/api/repos/bulk').send({ action: 'priority', ids: [REPO.id], priority: 99 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/priority/);
+  });
+
+  it('returns 400 when tag is empty for tag action', async () => {
+    const res = await request(app).post('/api/repos/bulk').send({ action: 'tag', ids: [REPO.id], tag: '' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/tag/);
+  });
+});
+
 describe('notices', () => {
   it('rejects an empty notice body with 400', async () => {
     const res = await request(app).post(`/api/repos/${REPO.id}/notices`).send({ body: '   ' });

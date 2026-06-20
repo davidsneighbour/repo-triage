@@ -20,6 +20,7 @@ vi.mock('./api.js', () => ({
     restoreState: vi.fn(),
     allNotices: vi.fn(),
     deleteNotice: vi.fn(),
+    bulk: vi.fn(),
   },
 }));
 
@@ -46,6 +47,7 @@ describe('toast + undo for ignore', () => {
     window.localStorage.clear();
     api.list.mockResolvedValue(payload);
     api.setIgnored.mockResolvedValue({ ok: true });
+    api.bulk.mockResolvedValue({ ok: true, count: 2 });
   });
 
   it('shows an undo toast after ignoring a repo from the card menu', async () => {
@@ -74,8 +76,7 @@ describe('toast + undo for ignore', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
 
     await waitFor(() => {
-      expect(api.setIgnored).toHaveBeenCalledWith(1, false);
-      expect(api.setIgnored).toHaveBeenCalledWith(2, false);
+      expect(api.bulk).toHaveBeenCalledWith('unignore', expect.arrayContaining([1, 2]));
     });
   });
 

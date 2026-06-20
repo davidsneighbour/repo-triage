@@ -513,24 +513,24 @@ export default function App() {
 
   // Apply an action to every selected repo, then refresh once. `ids` is captured
   // up front so the set can be cleared immediately for snappy feedback.
-  const bulkApply = async (fn) => {
+  const bulkRequest = async (action, params = {}) => {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
     clearSelection();
-    await Promise.all(ids.map((id) => fn(id)));
+    await api.bulk(action, ids, params);
     await load();
   };
-  const bulkUnignore = (ids) => Promise.all(ids.map((id) => api.setIgnored(id, false))).then(load);
+  const bulkUnignore = (ids) => api.bulk('unignore', ids).then(load);
   const bulkActions = {
-    checkedNow: () => bulkApply((id) => api.setChecked(id, 0)),
-    moveToday: () => bulkApply((id) => api.setChecked(id, data.defaultInactivityDays)),
+    checkedNow: () => bulkRequest('check', { daysAgo: 0 }),
+    moveToday: () => bulkRequest('check', { daysAgo: data.defaultInactivityDays }),
     // Move the selection to any day column (by its check-age target).
-    moveTo: (daysAgoTarget) => bulkApply((id) => api.setChecked(id, daysAgoTarget)),
-    clear: () => bulkApply((id) => api.clearSchedule(id)),
+    moveTo: (daysAgoTarget) => bulkRequest('check', { daysAgo: daysAgoTarget }),
+    clear: () => bulkRequest('clear'),
     ignore: () => {
       const ids = [...selectedIds];
       const repoMap = Object.fromEntries(data.repos.map((r) => [r.id, r.full_name]));
-      const result = bulkApply((id) => api.setIgnored(id, true));
+      const result = bulkRequest('ignore');
       if (ids.length) {
         const ops = ids.map((id) => ({ type: 'setIgnored', repoId: id, fullName: repoMap[id] ?? null, ignored: false }));
         showToast(
@@ -541,10 +541,10 @@ export default function App() {
       }
       return result;
     },
-    unignore: () => bulkApply((id) => api.setIgnored(id, false)),
-    tag: (tag) => bulkApply((id) => api.addTag(id, tag)),
-    untag: (tag) => bulkApply((id) => api.removeTag(id, tag)),
-    priority: (level) => bulkApply((id) => api.setPriority(id, level)),
+    unignore: () => bulkRequest('unignore'),
+    tag: (tag) => bulkRequest('tag', { tag }),
+    untag: (tag) => bulkRequest('untag', { tag }),
+    priority: (level) => bulkRequest('priority', { priority: level }),
   };
 
   const onDragStartCard = useCallback((e, id) => {

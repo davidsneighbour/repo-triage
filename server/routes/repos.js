@@ -157,6 +157,82 @@ router.get('/repos/:id/activity', (req, res) => {
   });
 });
 
+// ---- Bulk mutations --------------------------------------------------------
+const BULK_ACTIONS = ['ignore', 'unignore', 'check', 'touch', 'clear', 'priority', 'tag', 'untag'];
+
+router.post('/repos/bulk', (req, res) => {
+  const { action, ids, ...params } = req.body || {};
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'ids must be a non-empty array' });
+  }
+  if (!BULK_ACTIONS.includes(action)) {
+    return res.status(400).json({ error: `action must be one of: ${BULK_ACTIONS.join(', ')}` });
+  }
+  const now = new Date();
+  const nowIso = now.toISOString();
+  try {
+    db.transaction(() => {
+      for (const rawId of ids) {
+        const id = Number(rawId);
+        const repo = findRepo(id);
+        switch (action) {
+          case 'ignore':
+          case 'unignore': {
+            const ignored = action === 'ignore';
+            setIgnoredStmt.run({ id, full_name: repo?.full_name ?? null, ignored: ignored ? 1 : 0, now: nowIso });
+            logActivity(id, repo?.full_name ?? '', 'ignore', { ignored });
+            break;
+          }
+          case 'check': {
+            const daysAgo = Number(params.daysAgo ?? 0);
+            const anchorAt = new Date(now.getTime() - daysAgo * 86400000).toISOString();
+            const effectiveInactivity = getInactivityStmt.get(id)?.inactivity_days ?? getEffectiveInactivityDays();
+            const isReview = daysAgo < effectiveInactivity;
+            setCheckedStmt.run({ id, full_name: repo?.full_name ?? null, set_at: anchorAt, checked_at: isReview ? nowIso : null, now: nowIso });
+            logActivity(id, repo?.full_name ?? '', 'check', { daysAgo });
+            break;
+          }
+          case 'touch': {
+            touchStmt.run(nowIso, nowIso, nowIso, id);
+            logActivity(id, repo?.full_name ?? '', 'touch');
+            break;
+          }
+          case 'clear': {
+            clearScheduleStmt.run({ id, full_name: repo?.full_name ?? null, now: nowIso });
+            logActivity(id, repo?.full_name ?? '', 'clear');
+            break;
+          }
+          case 'priority': {
+            const priority = params.priority !== undefined ? params.priority : null;
+            if (priority !== null && ![1, 2, 3].includes(priority)) throw new Error('invalid priority value');
+            setPriorityStmt.run({ id, full_name: repo?.full_name ?? null, priority, now: nowIso });
+            logActivity(id, repo?.full_name ?? '', 'priority', { priority });
+            break;
+          }
+          case 'tag': {
+            const tag = normalizeTag(params.tag);
+            if (!tag) throw new Error('tag must be non-empty');
+            addTagStmt.run({ id, full_name: repo?.full_name ?? null, tag, now: nowIso });
+            logActivity(id, repo?.full_name ?? '', 'tag_add', { tag });
+            break;
+          }
+          case 'untag': {
+            const tag = normalizeTag(params.tag);
+            if (!tag) throw new Error('tag must be non-empty');
+            removeTagStmt.run(id, tag);
+            logActivity(id, repo?.full_name ?? '', 'tag_remove', { tag });
+            break;
+          }
+        }
+      }
+    })();
+  } catch (e) {
+    return res.status(400).json({ error: String(e.message || e) });
+  }
+  invalidatePayloadCache();
+  res.json({ ok: true, count: ids.length });
+});
+
 // ---- Repo mutations --------------------------------------------------------
 router.post('/repos/:id/priority', (req, res) => {
   const id = Number(req.params.id);

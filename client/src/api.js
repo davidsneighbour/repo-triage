@@ -35,6 +35,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderedIds }),
     }).then(json),
+  bulk: (action, ids, params = {}) =>
+    fetch('/api/repos/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ids, ...params }),
+    }).then(json),
   setIgnored: (id, ignored) =>
     fetch(`/api/repos/${id}/ignore`, {
       method: 'POST',

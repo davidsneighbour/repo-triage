@@ -17,6 +17,7 @@ vi.mock('./api.js', () => ({
     addNotice: vi.fn(),
     addTag: vi.fn(),
     removeTag: vi.fn(),
+    bulk: vi.fn(),
   },
 }));
 
@@ -40,9 +41,7 @@ describe('multi-select bulk actions', () => {
     vi.clearAllMocks();
     window.localStorage.clear();
     api.list.mockResolvedValue(payload);
-    api.setIgnored.mockResolvedValue({ ok: true });
-    api.setChecked.mockResolvedValue({ ok: true });
-    api.addTag.mockResolvedValue({ ok: true });
+    api.bulk.mockResolvedValue({ ok: true, count: 2 });
   });
 
   const selectBoth = async () => {
@@ -61,46 +60,35 @@ describe('multi-select bulk actions', () => {
     await selectBoth();
     fireEvent.click(screen.getByRole('button', { name: 'Ignore' }));
 
-    await waitFor(() => expect(api.setIgnored).toHaveBeenCalledTimes(2));
-    expect(api.setIgnored).toHaveBeenCalledWith(1, true);
-    expect(api.setIgnored).toHaveBeenCalledWith(2, true);
+    await waitFor(() => expect(api.bulk).toHaveBeenCalledWith('ignore', expect.arrayContaining([1, 2]), {}));
     // Selection clears → bulk bar disappears.
     await waitFor(() => expect(screen.queryByText('2 selected')).not.toBeInTheDocument());
   });
 
-  it('bulk "Checked now" calls setChecked(id, 0) for each', async () => {
+  it('bulk "Checked now" calls bulk check with daysAgo 0', async () => {
     await selectBoth();
     fireEvent.click(screen.getByRole('button', { name: 'Checked now' }));
-    await waitFor(() => expect(api.setChecked).toHaveBeenCalledTimes(2));
-    expect(api.setChecked).toHaveBeenCalledWith(1, 0);
-    expect(api.setChecked).toHaveBeenCalledWith(2, 0);
+    await waitFor(() => expect(api.bulk).toHaveBeenCalledWith('check', expect.arrayContaining([1, 2]), { daysAgo: 0 }));
   });
 
   it('moves the selection to any chosen day column via the dropdown', async () => {
     await selectBoth();
-    // "Today" (day-0) targets the full review age; "Tomorrow" (day-1) one less.
     fireEvent.change(screen.getByRole('combobox', { name: 'Move selected to column' }), { target: { value: '6' } });
-    await waitFor(() => expect(api.setChecked).toHaveBeenCalledTimes(2));
-    expect(api.setChecked).toHaveBeenCalledWith(1, 6);
-    expect(api.setChecked).toHaveBeenCalledWith(2, 6);
+    await waitFor(() => expect(api.bulk).toHaveBeenCalledWith('check', expect.arrayContaining([1, 2]), { daysAgo: 6 }));
   });
 
   it('bulk-tags every selected repo', async () => {
     await selectBoth();
     fireEvent.change(screen.getByLabelText('Bulk tag'), { target: { value: 'sweep' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add tag' }));
-    await waitFor(() => expect(api.addTag).toHaveBeenCalledTimes(2));
-    expect(api.addTag).toHaveBeenCalledWith(1, 'sweep');
-    expect(api.addTag).toHaveBeenCalledWith(2, 'sweep');
+    await waitFor(() => expect(api.bulk).toHaveBeenCalledWith('tag', expect.arrayContaining([1, 2]), { tag: 'sweep' }));
   });
 
   it('bulk-untags every selected repo', async () => {
     await selectBoth();
     fireEvent.change(screen.getByLabelText('Bulk tag'), { target: { value: 'old-tag' } });
     fireEvent.click(screen.getByRole('button', { name: 'Remove tag' }));
-    await waitFor(() => expect(api.removeTag).toHaveBeenCalledTimes(2));
-    expect(api.removeTag).toHaveBeenCalledWith(1, 'old-tag');
-    expect(api.removeTag).toHaveBeenCalledWith(2, 'old-tag');
+    await waitFor(() => expect(api.bulk).toHaveBeenCalledWith('untag', expect.arrayContaining([1, 2]), { tag: 'old-tag' }));
   });
 
   it('Remove tag button is disabled when tag input is empty', async () => {
@@ -123,7 +111,7 @@ describe('multi-select bulk actions', () => {
     await selectBoth();
     fireEvent.click(screen.getByRole('button', { name: 'Deselect' }));
     expect(screen.queryByText('2 selected')).not.toBeInTheDocument();
-    expect(api.setIgnored).not.toHaveBeenCalled();
+    expect(api.bulk).not.toHaveBeenCalled();
   });
 
   it('submits a bulk tag on Enter and ignores an empty tag', async () => {
@@ -132,11 +120,11 @@ describe('multi-select bulk actions', () => {
 
     // Empty Enter is a no-op.
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(api.addTag).not.toHaveBeenCalled();
+    expect(api.bulk).not.toHaveBeenCalled();
 
     fireEvent.change(input, { target: { value: 'ci' } });
     fireEvent.keyDown(input, { key: 'Enter' });
-    await waitFor(() => expect(api.addTag).toHaveBeenCalledWith(1, 'ci'));
+    await waitFor(() => expect(api.bulk).toHaveBeenCalledWith('tag', expect.arrayContaining([1, 2]), { tag: 'ci' }));
   });
 
   it('prunes selected ids that disappear after a refresh', async () => {

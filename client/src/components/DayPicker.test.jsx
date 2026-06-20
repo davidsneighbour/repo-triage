@@ -46,6 +46,31 @@ describe('DayPicker', () => {
     expect(screen.queryByRole('dialog', { name: 'Choose day' })).not.toBeInTheDocument();
   });
 
+  it('clicking the backdrop overlay closes the picker', () => {
+    render(<DayPicker columns={columns} activeKey="day-0" onSelect={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Choose day/ }));
+    expect(screen.getByRole('dialog', { name: 'Choose day' })).toBeInTheDocument();
+    // Click the fixed backdrop overlay rendered behind the popup.
+    const backdrop = document.querySelector('[class*="fixed"][class*="inset-0"][class*="z-10"]');
+    fireEvent.click(backdrop);
+    expect(screen.queryByRole('dialog', { name: 'Choose day' })).not.toBeInTheDocument();
+  });
+
+  it('omits the subtitle row when a column has no subtitle', () => {
+    // Unknown accent covers the ACCENT[col.accent] || ACCENT.neutral fallback branch.
+    const noSubtitle = [{ key: 'x', title: 'X', accent: 'unknown-accent', count: 0 }];
+    render(<DayPicker columns={noSubtitle} activeKey="x" onSelect={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Choose day, currently X/ }));
+    expect(screen.getByRole('dialog', { name: 'Choose day' })).toBeInTheDocument();
+  });
+
+  it('shows "no columns" and hides subtitle when active is undefined (empty column list)', () => {
+    // Empty columns covers: || columns[0] fallback, aria-label false branch, ?? "no columns" branch.
+    render(<DayPicker columns={[]} activeKey="any" onSelect={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Choose day' })).toBeInTheDocument();
+    expect(screen.getByText('no columns')).toBeInTheDocument();
+  });
+
   it('works for owner/tag/language buckets (any title, neutral accent)', () => {
     const buckets = [
       { key: 'owner:me', title: 'me', subtitle: '3 repos', accent: 'neutral', count: 3 },

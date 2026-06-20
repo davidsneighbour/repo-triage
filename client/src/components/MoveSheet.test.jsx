@@ -48,6 +48,18 @@ describe('MoveSheet', () => {
     expect(onApply).toHaveBeenCalledWith(7, 3);
   });
 
+  it('defaults to 7 when defaultInactivity is 0 (covers the || 7 fallback branch)', () => {
+    render(<MoveSheet repo={repo} defaultInactivity={0} onApply={() => {}} onClose={() => {}} />);
+    expect(screen.getByLabelText('Mark done for (days)')).toHaveValue(7);
+  });
+
+  it('ignores non-Enter keydown in the day input (covers the false branch of key === Enter)', () => {
+    const onApply = vi.fn();
+    render(<MoveSheet repo={repo} defaultInactivity={7} onApply={onApply} onClose={() => {}} />);
+    fireEvent.keyDown(screen.getByLabelText('Mark done for (days)'), { key: 'Tab' });
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
   it('cancel closes without mutating', () => {
     const onApply = vi.fn();
     const onClose = vi.fn();

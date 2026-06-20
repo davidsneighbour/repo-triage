@@ -51,4 +51,22 @@ describe('BulkBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Deselect' }));
     expect(onClear).toHaveBeenCalled();
   });
+
+  it('priority select ignores the blank default option (guard branch)', () => {
+    render(<BulkBar count={1} actions={actions} columns={[]} onClear={noop} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Set priority for selected repos' }), { target: { value: '' } });
+    expect(actions.priority).not.toHaveBeenCalled();
+  });
+
+  it('priority select calls actions.priority(null) when "null" is selected', () => {
+    render(<BulkBar count={1} actions={actions} columns={[]} onClear={noop} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Set priority for selected repos' }), { target: { value: 'null' } });
+    expect(actions.priority).toHaveBeenCalledWith(null);
+  });
+
+  it('priority select calls actions.priority(number) when a numeric level is selected', () => {
+    render(<BulkBar count={1} actions={actions} columns={[]} onClear={noop} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Set priority for selected repos' }), { target: { value: '2' } });
+    expect(actions.priority).toHaveBeenCalledWith(2);
+  });
 });

@@ -280,6 +280,8 @@ export default function App() {
   }, [toast]);
 
   const lastLoadAt = useRef(0);
+  const prevDay0Ids = useRef(null);
+  const [syncDiffSuffix, setSyncDiffSuffix] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -307,6 +309,24 @@ export default function App() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // After each board update, compute a brief sync diff so AT users know which
+  // repos moved to Today. Skipped on the initial load (prevDay0Ids starts null).
+  // Cleared when syncing starts so stale diffs don't repeat on filter changes.
+  useEffect(() => {
+    if (data.syncing || loading) { setSyncDiffSuffix(''); return; }
+    if (!data.repos.length) return;
+    const currentDay0 = new Set(data.repos.filter((r) => r.boardOffset === 0).map((r) => r.id));
+    if (prevDay0Ids.current !== null) {
+      const movedIn = [...currentDay0].filter((id) => !prevDay0Ids.current.has(id)).length;
+      const newRepos = data.repos.filter((r) => !prevDay0Ids.current.has(r.id) && !currentDay0.has(r.id)).length;
+      const parts = [];
+      if (movedIn > 0) parts.push(`${movedIn} repo${movedIn !== 1 ? 's' : ''} moved to Today`);
+      if (newRepos > 0) parts.push(`${newRepos} new repo${newRepos !== 1 ? 's' : ''} added`);
+      setSyncDiffSuffix(parts.length ? ` — ${parts.join(', ')}` : '');
+    }
+    prevDay0Ids.current = currentDay0;
+  }, [data.repos, data.syncing, loading]);
 
   // Steady-state 30-second poll. Skipped if a load (including mutation-triggered
   // reloads) happened within the last 10 seconds to avoid double-fetching after
@@ -612,7 +632,7 @@ export default function App() {
     ? `Sync failed: ${data.lastError}`
     : showingCachedData
     ? 'Showing cached board while refreshing'
-    : `Board ready, ${filtered.length} repositories shown`;
+    : `Board ready, ${filtered.length} repositories shown${syncDiffSuffix}`;
 
   const todayColumn = dayColumns[0];
   const futureColumns = dayColumns.slice(1);

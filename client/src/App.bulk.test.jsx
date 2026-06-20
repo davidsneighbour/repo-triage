@@ -138,4 +138,34 @@ describe('multi-select bulk actions', () => {
 
     await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
   });
+
+  it('clicking the card body (not a button or link) toggles multi-select', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+
+    // First select a card via the checkbox so multi-select mode is active, then
+    // click the card body of beta to add it via the whole-card target.
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select alpha' }));
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+
+    // Click the card group element (role=group) for beta — not a button or link.
+    const betaCard = screen.getByRole('group', { name: /beta.*review/i });
+    fireEvent.click(betaCard);
+
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+  });
+
+  it('clicking a link inside the card does not toggle multi-select', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+
+    // Select alpha first so multi-select is active.
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select alpha' }));
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+
+    // Click the repo link inside the beta card — should NOT toggle beta.
+    fireEvent.click(screen.getByRole('link', { name: 'beta' }));
+    expect(screen.queryByText('2 selected')).not.toBeInTheDocument();
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+  });
 });

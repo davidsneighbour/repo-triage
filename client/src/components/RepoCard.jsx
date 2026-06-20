@@ -122,6 +122,9 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
       onClickCapture={longPressEnabled ? onClickCapture : undefined}
       onContextMenu={longPressEnabled ? onContextMenu : undefined}
       onDragStart={schedulable ? (e) => { setDragging(true); onDragStartCard(e, repo.id); } : undefined}
+      onClick={onToggleSelect ? (e) => {
+        if (!e.target.closest('a, button, input, textarea, select')) onToggleSelect(repo.id);
+      } : undefined}
       onDragEnd={schedulable ? () => setDragging(false) : undefined}
       onDragOver={schedulable ? (e) => e.preventDefault() : undefined}
       onDrop={schedulable ? (e) => {

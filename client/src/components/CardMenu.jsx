@@ -11,6 +11,7 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
   const [tag, setTag] = useState('');
   // GitHub quick-action state
   const [prsState, setPrsState] = useState(null); // null | 'loading' | {prs} | {error}
+  const [copiedUrl, setCopiedUrl] = useState(null); // null | 'https' | 'ssh'
   const [issueStep, setIssueStep] = useState(null); // null | 'form' | 'confirm' | 'done'
   const [issueTitle, setIssueTitle] = useState('');
   const [issueBody, setIssueBody] = useState('');
@@ -288,6 +289,28 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
             >
               View on GitHub ↗
             </a>
+            <div className="flex gap-1">
+              {(['https', 'ssh']).map((kind) => {
+                const url = kind === 'https'
+                  ? `https://github.com/${repo.full_name}.git`
+                  : `git@github.com:${repo.full_name}.git`;
+                const copied = copiedUrl === kind;
+                return (
+                  <button
+                    key={kind}
+                    onClick={() => {
+                      navigator.clipboard?.writeText(url).then(() => {
+                        setCopiedUrl(kind);
+                        setTimeout(() => setCopiedUrl(null), 1500);
+                      });
+                    }}
+                    className="flex-1 rounded-md bg-neutral-800 py-1 text-[11px] text-neutral-300 hover:bg-neutral-700"
+                  >
+                    {copied ? 'Copied!' : `Copy ${kind.toUpperCase()}`}
+                  </button>
+                );
+              })}
+            </div>
 
             {onGhPrs && (
               <>

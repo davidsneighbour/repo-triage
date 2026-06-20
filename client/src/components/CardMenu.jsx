@@ -53,8 +53,10 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
       setPos({ top, left, maxHeight });
     };
     update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    let raf;
+    const onResize = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(update); };
+    window.addEventListener('resize', onResize);
+    return () => { window.removeEventListener('resize', onResize); cancelAnimationFrame(raf); };
   }, [anchorRef, isMobile]);
 
   return createPortal(

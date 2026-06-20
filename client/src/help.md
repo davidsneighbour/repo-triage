@@ -169,6 +169,7 @@ same reports are available from the CLI (`repo-triage report <kind>`).
 ## Keyboard shortcuts
 
 * `F1` — open this help
+* `,` — open settings
 * `Esc` — close the open dialog
 * `Enter` — open the card menu (when focus is on a card, not a child element)
 * `[` — move the focused card one column toward Today

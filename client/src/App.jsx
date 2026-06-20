@@ -377,9 +377,14 @@ export default function App() {
 
   useEffect(() => {
     const onKeyDown = (event) => {
+      const inInput = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable;
       if (event.key === 'F1') {
         event.preventDefault();
         setHelpOpen(true);
+      }
+      if (event.key === ',' && !inInput && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault();
+        setSettingsOpen((o) => !o);
       }
       if (event.key === 'Escape') {
         setHelpOpen(false);

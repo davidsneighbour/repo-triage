@@ -148,7 +148,7 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
         <button
           ref={menuButtonRef}
           onClick={() => onToggleMenu(repo.id)}
-          className="shrink-0 rounded-md px-1.5 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-100"
+          className="flex shrink-0 items-center justify-center rounded-md px-1.5 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-100 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
           aria-label="Open repository settings"
         >
           <SettingsIcon className="h-3.5 w-3.5" aria-hidden="true" />

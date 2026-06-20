@@ -256,7 +256,7 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
                     active ? 'bg-neutral-700 text-neutral-100' : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200'
                   )}
                 >
-                  {meta.emoji} {meta.label}
+                  <span aria-hidden="true">{meta.emoji}</span>{' '}{meta.label}
                 </button>
               );
             })}

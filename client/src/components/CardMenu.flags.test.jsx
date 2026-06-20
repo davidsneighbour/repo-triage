@@ -68,4 +68,12 @@ describe('CardMenu flag toggles', () => {
     expect(handlers.onRemoveFlag).toHaveBeenCalledWith(1, 'muted');
     expect(handlers.onAddFlag).not.toHaveBeenCalled();
   });
+
+  it('wraps flag emoji in aria-hidden span so AT reads only the label', () => {
+    render(<CardMenu repo={makeRepo()} anchorRef={anchor} {...handlers} />);
+    const btn = screen.getByRole('button', { name: /pinned/i });
+    const hiddenSpan = btn.querySelector('span[aria-hidden="true"]');
+    expect(hiddenSpan).toBeInTheDocument();
+    expect(hiddenSpan).toHaveTextContent('📌');
+  });
 });

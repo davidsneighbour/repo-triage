@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.2.0](https://github.com/davidsneighbour/project-dashboard/compare/v3.1.3...v3.2.0) (2026-06-20)
+
+### Features
+
+* **#56:** versioned SQLite migration system ([e319c88](https://github.com/davidsneighbour/project-dashboard/commit/e319c8819be0fccc7d7637ae41f980d933d51ae7)), closes [#56](https://github.com/davidsneighbour/project-dashboard/issues/56) [#56](https://github.com/davidsneighbour/project-dashboard/issues/56)
+
+### Tests
+
+* **#34:** add targeted tests to meet all coverage thresholds ([7c00ba6](https://github.com/davidsneighbour/project-dashboard/commit/7c00ba66146e78fad45690891180a2ff24ddea66)), closes [#34](https://github.com/davidsneighbour/project-dashboard/issues/34)
+
+### Build system
+
+* **deps:** bump vitest, lucide-react, tailwindcss, better-sqlite3, playwright ([003adcc](https://github.com/davidsneighbour/project-dashboard/commit/003adcc0d25161f3aa2ae9773c10f0cb784ed38e))
+* **vscode:** update workspace configuration ([ab68ef2](https://github.com/davidsneighbour/project-dashboard/commit/ab68ef2a8eab25cc71a07e4638106622dc08b9c5))
+
+### Miscellaneous
+
+* **project:** update project plan ([7274863](https://github.com/davidsneighbour/project-dashboard/commit/7274863da15045bd2088b7a8df86ea1963ed0df0)), closes [#57](https://github.com/davidsneighbour/project-dashboard/issues/57) [#58](https://github.com/davidsneighbour/project-dashboard/issues/58) [#59](https://github.com/davidsneighbour/project-dashboard/issues/59) [#57](https://github.com/davidsneighbour/project-dashboard/issues/57)
+* **project:** update project plan ([745a5ed](https://github.com/davidsneighbour/project-dashboard/commit/745a5edebee1f667af86c4fbad32a2baea3779a7)), closes [#38](https://github.com/davidsneighbour/project-dashboard/issues/38) [#39](https://github.com/davidsneighbour/project-dashboard/issues/39) [#41](https://github.com/davidsneighbour/project-dashboard/issues/41) [39/#41](https://github.com/39/project-dashboard/issues/41)
+
 ## [3.1.3](https://github.com/davidsneighbour/project-dashboard/compare/v3.1.2...v3.1.3) (2026-06-17)
 
 ### Miscellaneous

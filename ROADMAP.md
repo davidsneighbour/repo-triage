@@ -7,37 +7,25 @@ GitHub Issues is the source of truth. This file is a generated snapshot — rege
 
 ## Project state
 
-All 59 previously tracked issues are closed. The project is in a **post-feature maintenance** phase.
-The test suite passes (all 409 tests across client, server, and CLI), but **branch coverage has regressed
-below the 85% threshold** in both client and server workspaces after the recent batch of UX commits
-(#55–#59). There are currently **2 open issues**, both coverage fixes.
+All 63 tracked issues are closed. The project is in a **clean, green state**.
+All 610 tests pass across client, server, and CLI workspaces, and all branch coverage
+thresholds are met. No open issues.
 
 ### Health indicators
 
 | Check | Status |
 | --- | --- |
-| Tests (all workspaces) | ✅ All tests pass (client + server + CLI) |
-| Client coverage — Stmts | ✅ 90.36% (need 90%) |
-| Client coverage — Branch | ❌ 83.89% (need 85%) |
-| Client coverage — Funcs | ✅ 85.09% (need 85%) |
-| Client coverage — Lines | ✅ 92.81% (need 90%) |
-| Server coverage — Branch | ❌ 83.61% (need 85%) |
-| `npm run test:coverage` | ❌ exits non-zero (branch threshold failures) |
+| Tests (all workspaces) | ✅ 610 passed (308 client + 244 server + 58 CLI) |
+| Client coverage — Stmts | ✅ ≥ 90% |
+| Client coverage — Branch | ✅ 85.3% (need 85%) |
+| Client coverage — Funcs | ✅ ≥ 85% |
+| Client coverage — Lines | ✅ ≥ 90% |
+| Server coverage — Branch | ✅ 85.04% (need 85%) |
+| CLI coverage — Branch | ✅ 85.41% (need 85%) |
+| `npm run test:coverage` | ✅ exits zero |
 
 ---
 
-## Bugs & fixes
+## No open issues
 
-| # | Issue | Notes |
-| --- | --- | --- |
-| #62 | [fix: client branch coverage below 85% threshold (currently 83.89%)](https://github.com/davidsneighbour/project-dashboard/issues/62) | Regression introduced by UX commits #55–#59. Worst offenders: `App.jsx` (74.92%), `StatusDialog.jsx` (67.85%), `BulkBar.jsx` (68.42%). |
-| #63 | [fix: server branch coverage below 85% threshold (currently 83.61%)](https://github.com/davidsneighbour/project-dashboard/issues/63) | Regression from recent server additions (bulk endpoint, webhook, undo, tagrules). Worst offenders: `sync.js` (50%), `reportSchedule.js` (78.94%), `routes/repos.js` (75.51%). |
-
----
-
-## Suggested order
-
-1. **#62** — client branch coverage: add targeted tests for `StatusDialog.jsx`, `BulkBar.jsx`, and `App.jsx` branches added in #55–#59
-2. **#63** — server branch coverage: add targeted tests for `sync.js`, `reportSchedule.js`, and route error-path branches
-
-Both can be worked in parallel. Fix client first if only one can be done — the CI exit-code failure in the root `npm run test:coverage` is driven by client.
+The backlog is empty. New work should start by opening a GitHub issue.

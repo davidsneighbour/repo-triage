@@ -812,19 +812,25 @@ export default function App() {
         </div>
         <div className="flex items-center gap-3">
           {data.rateLimit?.remaining != null && (
-            <span
-              title={`GitHub API: ${data.rateLimit.used ?? '?'}/${data.rateLimit.limit ?? '?'} used · resets ${data.rateLimit.reset ? new Date(data.rateLimit.reset * 1000).toLocaleTimeString() : '?'}`}
-              className={cx(
-                'text-[11px] tabular-nums',
-                data.rateLimit.remaining === 0
-                  ? 'text-rose-400'
-                  : data.rateLimit.remaining < 100
-                  ? 'text-amber-400'
-                  : 'text-neutral-600'
-              )}
-            >
-              API {data.rateLimit.remaining}/{data.rateLimit.limit ?? '?'}
-            </span>
+            <>
+              <span
+                aria-describedby="rate-limit-detail"
+                title={`GitHub API: ${data.rateLimit.used ?? '?'}/${data.rateLimit.limit ?? '?'} used · resets ${data.rateLimit.reset ? new Date(data.rateLimit.reset * 1000).toLocaleTimeString() : '?'}`}
+                className={cx(
+                  'text-[11px] tabular-nums',
+                  data.rateLimit.remaining === 0
+                    ? 'text-rose-400'
+                    : data.rateLimit.remaining < 100
+                    ? 'text-amber-400'
+                    : 'text-neutral-600'
+                )}
+              >
+                API {data.rateLimit.remaining}/{data.rateLimit.limit ?? '?'}
+              </span>
+              <span id="rate-limit-detail" className="sr-only">
+                GitHub API: {data.rateLimit.used ?? '?'}/{data.rateLimit.limit ?? '?'} used, resets {data.rateLimit.reset ? new Date(data.rateLimit.reset * 1000).toLocaleTimeString() : 'at unknown time'}
+              </span>
+            </>
           )}
           {data.lastFetch && <span className="text-[11px] text-neutral-600">synced {timeAgo(data.lastFetch)}</span>}
           <button

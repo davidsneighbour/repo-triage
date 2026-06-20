@@ -279,11 +279,19 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
         </span>
       </div>
 
-      <div className="mt-1 text-[11px] text-neutral-500">
+      <div className="mt-1 flex items-center justify-between text-[11px] text-neutral-500">
         {repo.needsCheckToday ? (
           <span className="text-rose-300">review today</span>
         ) : (
           <span>review in {repo.dueInDays}d</span>
+        )}
+        {schedulable && !compact && (
+          <span
+            className="opacity-0 transition-opacity group-focus-within:opacity-100 tabular-nums text-neutral-700"
+            aria-hidden="true"
+          >
+            ← [ / ] →
+          </span>
         )}
       </div>
 

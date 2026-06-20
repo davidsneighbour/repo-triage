@@ -281,6 +281,7 @@ export default function App() {
 
   const lastLoadAt = useRef(0);
   const prevDay0Ids = useRef(null);
+  const colFilterCache = useRef({});
   const [syncDiffSuffix, setSyncDiffSuffix] = useState('');
 
   const load = useCallback(async () => {
@@ -695,6 +696,7 @@ export default function App() {
     onGhPrs,
     onGhCreateIssue,
     onAnnounceMove: announceMove,
+    colFilterCache,
   };
 
   // The inclusive own/forks/archived filter pills. Rendered inline in the

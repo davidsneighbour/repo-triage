@@ -20,14 +20,11 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
   const acc = ACCENT[col.accent];
   const ColSearchIcon = ICON.search;
   const SortIcon = ICON.sort;
+  // Destructure before useState so colFilterCache is in scope for the lazy init.
+  const { selectedIds, onSelectMany, onToggleSelect, onAnnounceMove, colFilterCache, ...cardRest } = cardProps;
   const [over, setOver] = useState(false);
-  const [cq, setCq] = useState('');
+  const [cq, setCq] = useState(() => colFilterCache?.current?.[col.key] ?? '');
   const [sort, setSort] = useState('');
-
-  // selectedIds / onSelectMany drive the column-level "select all" control; the
-  // per-card selected state is passed to RepoCard as a plain boolean so the
-  // memoised card only re-renders when its own selection changes.
-  const { selectedIds, onSelectMany, onToggleSelect, onAnnounceMove, ...cardRest } = cardProps;
   const [sortKey, sortDir] = sort ? sort.split(':') : [null, 'asc'];
   const ordered = useMemo(() => sortColumnRepos(repos, sortKey, sortDir), [repos, sortKey, sortDir]);
   const visible = useMemo(() => ordered.filter((r) => repoMatchesQuery(r, cq)), [ordered, cq]);
@@ -76,7 +73,7 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
           <ColSearchIcon className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-neutral-600" aria-hidden="true" />
           <input
             value={cq}
-            onChange={(e) => setCq(e.target.value)}
+            onChange={(e) => { setCq(e.target.value); if (colFilterCache) colFilterCache.current[col.key] = e.target.value; }}
             placeholder="filter column..."
             aria-label={`Filter ${col.title} column`}
             className="w-full rounded-md border border-neutral-800 bg-neutral-950 pl-7 pr-7 py-1 text-[11px] text-neutral-100 outline-hidden focus:border-neutral-600"
@@ -84,7 +81,7 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
           {cq && (
             <button
               type="button"
-              onClick={() => setCq('')}
+              onClick={() => { setCq(''); if (colFilterCache) colFilterCache.current[col.key] = ''; }}
               aria-label={`Clear ${col.title} filter`}
               className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-neutral-600 hover:text-neutral-200"
             >

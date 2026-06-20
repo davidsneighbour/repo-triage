@@ -76,7 +76,8 @@ describe('dialog accessibility', () => {
     render(<App />);
     await screen.findByRole('link', { name: 'alpha' });
 
-    expect(screen.getByRole('status')).toHaveTextContent(/Board ready/);
+    const statusRegions = screen.getAllByRole('status');
+    expect(statusRegions.some((el) => /Board ready/.test(el.textContent))).toBe(true);
     expect(screen.getByRole('group', { name: 'Repository board' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: /Today column/ })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: /alpha — review/ })).toBeInTheDocument();

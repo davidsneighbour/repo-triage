@@ -27,7 +27,7 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
   // selectedIds / onSelectMany drive the column-level "select all" control; the
   // per-card selected state is passed to RepoCard as a plain boolean so the
   // memoised card only re-renders when its own selection changes.
-  const { selectedIds, onSelectMany, onToggleSelect, ...cardRest } = cardProps;
+  const { selectedIds, onSelectMany, onToggleSelect, onAnnounceMove, ...cardRest } = cardProps;
   const [sortKey, sortDir] = sort ? sort.split(':') : [null, 'asc'];
   const ordered = useMemo(() => sortColumnRepos(repos, sortKey, sortDir), [repos, sortKey, sortDir]);
   const visible = useMemo(() => ordered.filter((r) => repoMatchesQuery(r, cq)), [ordered, cq]);
@@ -123,8 +123,12 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
           e.preventDefault();
           setOver(false);
           const id = Number(e.dataTransfer.getData('text/plain'));
-          if (id) onDropColumn(id, col.daysAgoTarget);
+          if (id) {
+            onDropColumn(id, col.daysAgoTarget);
+            onAnnounceMove?.(id, col.daysAgoTarget);
+          }
         }}
+        aria-dropeffect={schedulable ? 'move' : undefined}
         className={cx(
           'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-lg border border-dashed p-2 transition-colors',
           over ? 'border-neutral-500 bg-neutral-900/60' : 'border-neutral-800/60'
@@ -139,6 +143,7 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
             mobile={mobile}
             selected={selectedIds ? selectedIds.has(r.id) : false}
             onToggleSelect={onToggleSelect}
+            onAnnounceMove={onAnnounceMove}
             {...cardRest}
           />
         ))}

@@ -564,6 +564,13 @@ export default function App() {
     return buildDayColumns(data.defaultInactivityDays, calendarLabel);
   }, [data.defaultInactivityDays]);
 
+  const [moveAnnouncement, setMoveAnnouncement] = useState('');
+  const announceMove = useCallback((id, daysAgoTarget) => {
+    const repo = data.repos.find((r) => r.id === id);
+    const col = dayColumns.find((c) => c.daysAgoTarget === daysAgoTarget) ?? dayColumns[0];
+    if (repo && col) setMoveAnnouncement(`${repo.name} moved to ${col.title}`);
+  }, [data.repos, dayColumns]);
+
   const groups = useMemo(() => {
     return groupRepos(filtered, dayColumns, sortKey);
   }, [filtered, dayColumns, sortKey]);
@@ -666,6 +673,7 @@ export default function App() {
     defaultInactivity: data.defaultInactivityDays,
     onGhPrs,
     onGhCreateIssue,
+    onAnnounceMove: announceMove,
   };
 
   // The inclusive own/forks/archived filter pills. Rendered inline in the
@@ -802,6 +810,9 @@ export default function App() {
     <div className="flex h-full flex-col">
       <div className="sr-only" role="status" aria-live="polite">
         {liveMessage}
+      </div>
+      <div className="sr-only" role="status" aria-live="assertive" aria-atomic="true">
+        {moveAnnouncement}
       </div>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-900 px-5 py-3">
         <div className="flex items-baseline gap-3">

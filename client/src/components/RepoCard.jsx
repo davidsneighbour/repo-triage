@@ -9,7 +9,7 @@ import { MoveSheet } from './MoveSheet.jsx';
 const LONG_PRESS_MS = 450;
 const MOVE_THRESHOLD_PX = 10;
 
-function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density = 'comfortable', schedulable = true, mobile = false, fields = {}, selected = false, onToggleSelect, onToggleMenu, onDragStartCard, onDropOnCard, ...handlers }) {
+function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density = 'comfortable', schedulable = true, mobile = false, fields = {}, selected = false, onToggleSelect, onToggleMenu, onDragStartCard, onDropOnCard, onAnnounceMove, ...handlers }) {
   // Field visibility: a field shows unless explicitly toggled off.
   const show = (k) => fields[k] !== false;
   const SettingsIcon = ICON.settings;
@@ -28,6 +28,7 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
   // card body (≥ LONG_PRESS_MS without moving past the threshold) opens the
   // MoveSheet; a plain tap still follows the repo link.
   const [moveOpen, setMoveOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const pressTimer = useRef(null);
   const pressStart = useRef(null);
   const longPressed = useRef(false);
@@ -92,12 +93,17 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
     const span = Math.max(1, handlers.defaultInactivity || 7);
     const cur = repo.boardOffset ?? 0;
     const next = e.key === ']' ? Math.min(span - 1, cur + 1) : Math.max(0, cur - 1);
-    if (next !== cur) handlers.onSetChecked(repo.id, span - next);
+    if (next !== cur) {
+      const daysAgoTarget = span - next;
+      handlers.onSetChecked(repo.id, daysAgoTarget);
+      onAnnounceMove?.(repo.id, daysAgoTarget);
+    }
   };
 
   return (
     <div
       draggable={schedulable}
+      aria-grabbed={schedulable ? dragging : undefined}
       role="group"
       aria-label={cardLabel}
       aria-keyshortcuts={schedulable ? '[ ]' : undefined}
@@ -109,11 +115,14 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
       onPointerLeave={longPressEnabled ? clearPress : undefined}
       onClickCapture={longPressEnabled ? onClickCapture : undefined}
       onContextMenu={longPressEnabled ? onContextMenu : undefined}
-      onDragStart={schedulable ? (e) => onDragStartCard(e, repo.id) : undefined}
+      onDragStart={schedulable ? (e) => { setDragging(true); onDragStartCard(e, repo.id); } : undefined}
+      onDragEnd={schedulable ? () => setDragging(false) : undefined}
       onDragOver={schedulable ? (e) => e.preventDefault() : undefined}
       onDrop={schedulable ? (e) => {
         e.stopPropagation();
         e.preventDefault();
+        const draggedId = Number(e.dataTransfer.getData('text/plain'));
+        if (draggedId && draggedId !== repo.id) onAnnounceMove?.(draggedId, column.daysAgoTarget);
         onDropOnCard(e, repo.id, column.daysAgoTarget);
       } : undefined}
       style={ownerTint ? { borderLeftColor: ownerTint, borderLeftWidth: 3 } : undefined}

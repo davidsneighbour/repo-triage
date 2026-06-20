@@ -273,7 +273,7 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
       </div>
 
       {repo.latest_notice && !compact && show('notice') && (
-        <div className="mt-2 flex items-start justify-between gap-2 rounded-md bg-neutral-950 px-2 py-1.5">
+        <div className="mt-2 flex items-start justify-between gap-2 rounded-md bg-surface-subtle px-2 py-1.5">
           <p className="line-clamp-2 text-[11px] text-neutral-300">{repo.latest_notice.body}</p>
           <span className="shrink-0 text-[10px] tabular-nums text-neutral-600">{timeAgo(repo.latest_notice.created_at)}</span>
         </div>

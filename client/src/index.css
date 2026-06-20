@@ -25,6 +25,9 @@
   --color-neutral-800: #1f2a21;
   --color-neutral-900: #141a15;
   --color-neutral-950: #080c08;
+
+  /* Semantic surface tokens (see DESIGN.md) */
+  --color-surface-subtle: #0b110c;
 }
 
 :root {

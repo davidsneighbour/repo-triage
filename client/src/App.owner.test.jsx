@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App, { ownerColor } from './App.jsx';
 import { api } from './api.js';
@@ -81,7 +81,7 @@ describe('owner indicator', () => {
     expect(screen.queryByTitle('owner: davidsneighbour')).not.toBeInTheDocument();
   });
 
-  it('renders a source-warning banner from the API', async () => {
+  it('surfaces source-warnings in the status dialog', async () => {
     api.list.mockResolvedValue({
       ...basePayload,
       owners: ['gohugo-ananke'],
@@ -90,7 +90,14 @@ describe('owner indicator', () => {
     });
 
     render(<App />);
+    await screen.findByRole('link', { name: 'r' });
 
+    // Status button highlights when warnings are present.
+    const statusBtn = screen.getByRole('button', { name: 'Open dashboard status' });
+    expect(statusBtn).toBeInTheDocument();
+
+    // Warning is accessible via the status dialog.
+    fireEvent.click(statusBtn);
     expect(await screen.findByText(/not a member of organization "gohugo-ananke"/)).toBeInTheDocument();
   });
 });

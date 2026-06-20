@@ -83,14 +83,13 @@ describe('dialog accessibility', () => {
     expect(screen.getByRole('group', { name: /alpha — review/ })).toBeInTheDocument();
   });
 
-  it('rate-limit indicator has a sr-only detail span for keyboard and AT users', async () => {
+  it('rate-limit detail is accessible via the status dialog', async () => {
     render(<App />);
     await screen.findByRole('link', { name: 'alpha' });
 
-    const detail = document.getElementById('rate-limit-detail');
-    expect(detail).toBeInTheDocument();
-    expect(detail).toHaveClass('sr-only');
-    expect(detail).toHaveTextContent(/4000\/5000 used/);
+    fireEvent.click(screen.getByRole('button', { name: 'Open dashboard status' }));
+    expect(await screen.findByRole('dialog', { name: 'Dashboard status' })).toBeInTheDocument();
+    expect(screen.getByText(/4000\/5000 used/)).toBeInTheDocument();
   });
 
   it('card menu popover restores focus to its trigger on Escape', async () => {

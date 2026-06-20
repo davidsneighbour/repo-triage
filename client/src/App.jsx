@@ -15,6 +15,7 @@ import { HelpDialog } from './components/HelpDialog.jsx';
 import { NoticesDialog } from './components/NoticesDialog.jsx';
 import { ReportsDialog } from './components/ReportsDialog.jsx';
 import { SettingsDialog } from './components/SettingsDialog.jsx';
+import { StatusDialog } from './components/StatusDialog.jsx';
 import { TagFilter } from './components/TagFilter.jsx';
 import { PriorityFilter } from './components/PriorityFilter.jsx';
 import { FieldsMenu } from './components/FieldsMenu.jsx';
@@ -27,6 +28,7 @@ export default function App() {
   const SyncIcon = ICON.sync;
   const SearchIcon = ICON.search;
   const HelpIcon = ICON.help;
+  const InfoIcon = ICON.info;
   const IgnoredIcon = ICON.ignored;
   const NoticesIcon = ICON.notices;
   const ReportsIcon = ICON.reports;
@@ -59,6 +61,7 @@ export default function App() {
   const [priorityFilter, setPriorityFilter] = useState([]);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
   const [remoteSettings, setRemoteSettings] = useState(null);
   const [tagRules, setTagRules] = useState([]);
   const [lastExport, setLastExport] = useState(null);
@@ -615,24 +618,6 @@ export default function App() {
     return groupBy === 'day' ? null : groupReposBy(filtered, groupBy, sortKey);
   }, [filtered, groupBy, sortKey]);
 
-  // Owners shown in the header link out to their GitHub profile/org page. When
-  // the set is large we collapse to a count (nothing meaningful to link to).
-  const ownerLink = (login) => (
-    <a
-      key={login}
-      href={`https://github.com/${login}`}
-      target="_blank"
-      rel="noreferrer"
-      className="text-neutral-500 hover:text-neutral-300 hover:underline"
-    >
-      @{login}
-    </a>
-  );
-  const ownerLabel = data.owners?.length
-    ? data.owners.length <= 3
-      ? data.owners.map((o, i) => <span key={o}>{i > 0 ? ', ' : ''}{ownerLink(o)}</span>)
-      : `${data.owners.length} owners`
-    : 'authenticated user';
 
   // Single polite live-region message; screen readers announce it on change.
   // Phrasing is kept distinct from the visible banners so it never duplicates
@@ -852,35 +837,21 @@ export default function App() {
         {moveAnnouncement}
       </div>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-900 px-5 py-3">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-base font-semibold tracking-tight text-neutral-100">repo.triage</h1>
-          <span className="text-xs text-neutral-600">
-            {ownerLabel} · {data.repos.length} repos · review cycle {data.defaultInactivityDays}d
-          </span>
-        </div>
+        <h1 className="text-base font-semibold tracking-tight text-neutral-100">repo.triage</h1>
         <div className="flex items-center gap-3">
-          {data.rateLimit?.remaining != null && (
-            <>
-              <span
-                aria-describedby="rate-limit-detail"
-                title={`GitHub API: ${data.rateLimit.used ?? '?'}/${data.rateLimit.limit ?? '?'} used · resets ${data.rateLimit.reset ? new Date(data.rateLimit.reset * 1000).toLocaleTimeString() : '?'}`}
-                className={cx(
-                  'text-[11px] tabular-nums',
-                  data.rateLimit.remaining === 0
-                    ? 'text-rose-400'
-                    : data.rateLimit.remaining < 100
-                    ? 'text-amber-400'
-                    : 'text-neutral-600'
-                )}
-              >
-                API {data.rateLimit.remaining}/{data.rateLimit.limit ?? '?'}
-              </span>
-              <span id="rate-limit-detail" className="sr-only">
-                GitHub API: {data.rateLimit.used ?? '?'}/{data.rateLimit.limit ?? '?'} used, resets {data.rateLimit.reset ? new Date(data.rateLimit.reset * 1000).toLocaleTimeString() : 'at unknown time'}
-              </span>
-            </>
-          )}
-          {data.lastFetch && <span className="text-[11px] text-neutral-600">synced {timeAgo(data.lastFetch)}</span>}
+          <button
+            onClick={() => setStatusOpen(true)}
+            className={cx(
+              'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-neutral-800',
+              data.sourceWarnings?.length > 0 || data.rateLimit?.remaining === 0
+                ? 'border-amber-500/60 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
+                : 'border-neutral-700 bg-neutral-900 text-neutral-200'
+            )}
+            aria-label="Open dashboard status"
+          >
+            <InfoIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            Status
+          </button>
           <button
             onClick={openSettings}
             className="flex items-center gap-1.5 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800"
@@ -965,13 +936,6 @@ export default function App() {
             {!data.tokenPresent && ' — no token found. Set GITHUB_TOKEN in .env, or run `gh auth login`.'}
           </div>
         )}
-        {data.sourceWarnings?.length > 0 && (
-          <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
-            {data.sourceWarnings.map((w, i) => (
-              <div key={i}>{w}</div>
-            ))}
-          </div>
-        )}
         {showingCachedData && (
           <div className="mb-4 rounded-lg border border-neutral-700 bg-neutral-900/70 px-4 py-3 text-xs text-neutral-300">
             Showing cached board while refreshing from GitHub.
@@ -1041,6 +1005,7 @@ export default function App() {
         />
       )}
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
+      {statusOpen && <StatusDialog data={data} onClose={() => setStatusOpen(false)} />}
       {reportsOpen && <ReportsDialog onClose={() => setReportsOpen(false)} />}
       {noticesScope != null && (
         <NoticesDialog

@@ -84,11 +84,17 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
   const dueText = repo.needsCheckToday ? 'review today' : `review in ${repo.dueInDays} days`;
   const cardLabel = `${repo.name}${repo.owner ? `, ${repo.owner}` : ''} — ${dueText}`;
 
-  // Keyboard alternative to drag: [ pulls a card toward Today, ] pushes it
-  // further out, one column at a time. Mirrors the drag target math. Only the
-  // day-schedule board is schedulable; other groupings are read-only views.
+  // Keyboard shortcuts on the focused card:
+  //   Enter — open the card menu (when focus is on the card itself, not a child)
+  //   [ / ] — move one column toward Today / further out (day-schedule board only)
   const onCardKeyDown = (e) => {
-    if (!schedulable || (e.key !== '[' && e.key !== ']') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return;
+    if (e.key === 'Enter' && e.target === e.currentTarget) {
+      e.preventDefault();
+      onToggleMenu(repo.id);
+      return;
+    }
+    if (!schedulable || (e.key !== '[' && e.key !== ']')) return;
     e.preventDefault();
     const span = Math.max(1, handlers.defaultInactivity || 7);
     const cur = repo.boardOffset ?? 0;
@@ -106,7 +112,7 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
       aria-grabbed={schedulable ? dragging : undefined}
       role="group"
       aria-label={cardLabel}
-      aria-keyshortcuts={schedulable ? '[ ]' : undefined}
+      aria-keyshortcuts={schedulable ? 'Enter [ ]' : 'Enter'}
       onKeyDown={onCardKeyDown}
       onPointerDown={longPressEnabled ? onPointerDown : undefined}
       onPointerMove={longPressEnabled ? onPointerMove : undefined}

@@ -170,6 +170,7 @@ same reports are available from the CLI (`repo-triage report <kind>`).
 
 * `F1` — open this help
 * `Esc` — close the open dialog
+* `Enter` — open the card menu (when focus is on a card, not a child element)
 * `[` — move the focused card one column toward Today
 * `]` — move the focused card one column further out (snooze)
 

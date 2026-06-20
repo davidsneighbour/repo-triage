@@ -2,7 +2,7 @@
 # No local checkout or build required.
 #
 # Usage:
-#   curl -O https://raw.githubusercontent.com/davidsneighbour/project-dashboard/main/docker-compose.prod.yml
+#   curl -O https://raw.githubusercontent.com/davidsneighbour/repo-triage/main/docker-compose.prod.yml
 #   cp .env.example .env   # fill in GITHUB_TOKEN
 #   docker compose -f docker-compose.prod.yml up -d
 #
@@ -12,7 +12,7 @@
 
 services:
   repo-dashboard:
-    image: ghcr.io/davidsneighbour/project-dashboard:${IMAGE_TAG:-latest}
+    image: ghcr.io/davidsneighbour/repo-triage:${IMAGE_TAG:-latest}
     container_name: repo-dashboard
     ports:
       - "8787:8787"

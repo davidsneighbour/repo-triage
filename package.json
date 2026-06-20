@@ -1,14 +1,14 @@
 {
-  "name": "@davidsneighbour/project-dashboard",
+  "name": "@davidsneighbour/repo-triage",
   "version": "3.2.1",
   "description": "A local-only dashboard that lists **all** your GitHub repositories as a kanban board and lets you triage them by priority.",
-  "homepage": "https://github.com/davidsneighbour/project-dashboard#readme",
+  "homepage": "https://github.com/davidsneighbour/repo-triage#readme",
   "bugs": {
-    "url": "https://github.com/davidsneighbour/project-dashboard/issues"
+    "url": "https://github.com/davidsneighbour/repo-triage/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davidsneighbour/project-dashboard.git"
+    "url": "git+https://github.com/davidsneighbour/repo-triage.git"
   },
   "license": "MIT",
   "author": "Patrick Kollitsch <davidsneighbourdev+gh@gmail.com>",

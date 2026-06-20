@@ -180,6 +180,10 @@ export default function App() {
       }
       return next;
     });
+  const stableFields = useMemo(() => fields, [
+    fields.language, fields.pushed, fields.stars, fields.issues, fields.forks,
+    fields.notice, fields.open_prs, fields.latest_release, fields.last_commit, fields.ci_status,
+  ]);
 
   // Board grouping: the day schedule (default) or by owner/tag/language.
   const GROUP_BY_STORAGE = 'repo-triage-group-by';
@@ -681,7 +685,7 @@ export default function App() {
     menuIntent,
     showOwner: showOwners,
     density,
-    fields,
+    fields: stableFields,
     onToggleMenu,
     onDragStartCard,
     onDropOnCard,

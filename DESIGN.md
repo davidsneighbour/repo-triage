@@ -391,7 +391,7 @@ The board is a sticky-column horizontal scroll area:
 │ ● Title   subtitle   [m/N]  │  ← column header (accent dot, count chip)
 └─────────────────────────────┘
 ┌─────────────────────────────┐
-│ ⌕ filter column...          │  ← per-column filter input (full width)
+│ ☑ ⌕ filter column...  ↕ ▾  │  ← select-all checkbox | filter input | sort
 └─────────────────────────────┘
 ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐  ← drop zone (dashed border, scrolls vertically)
 │  [card]                     │
@@ -402,6 +402,27 @@ The board is a sticky-column horizontal scroll area:
 
 The count chip shows visible/total (`m/N`) when the column filter is active,
 otherwise just the total.
+
+**Per-column sort dropdown** — a `<select>` element to the right of the filter
+input. Its icon (`↕`) is always `text-neutral-600`; the select itself is
+`text-neutral-500 bg-transparent border-neutral-800` when unset (default order)
+and switches to `text-neutral-200 bg-neutral-800 border-neutral-600` when an
+active sort is applied. Sort is local column state (not persisted). Available
+options:
+
+| Value | Label |
+| ----- | ----- |
+| *(blank)* | default order (board/drag order) |
+| `name:asc` | name ↑ |
+| `name:desc` | name ↓ |
+| `stars:asc` | stars ↑ |
+| `stars:desc` | stars ↓ |
+| `owner:asc` | owner ↑ |
+| `owner:desc` | owner ↓ |
+
+Within-column sort overrides the drag/position order for the lifetime of the
+session (cleared on page reload). The board-wide sort selector in the toolbar
+sets the default across all columns independently.
 
 ### Card anatomy
 
@@ -847,11 +868,13 @@ only colour is the per-column accent dot, exactly as in the column header.
 
 The long-press target for rescheduling a card — a bottom sheet titled with the
 repo name. Its control is a **single numeric field**: "mark done for **N**
-days" (optionally with a small row of quick-pick presets that fill the field).
-One number expresses both "move to a day" and "snooze for N days". Submitting
-applies the schedule via the shared handler; cancel closes without mutating. The
-precise backend mapping (one-off snooze vs. review-interval override) is tracked
-outside this document — the sheet's **UI contract is the single field**. Uses
+days" (optionally with a small row of quick-pick presets: 1, 3, 7, 14, 30).
+Submitting calls the shared `onSnooze(id, days)` handler, which hits
+`POST /api/repos/:id/snooze` — a **one-off snooze**. The repo resurfaces in N
+days without permanently changing its review cadence. The snooze is cleared
+automatically on the next check, tap, or explicit clear action. Cancel closes
+without mutating. The sheet does **not** alter the per-repo inactivity override
+(`/api/repos/:id/inactivity`); use the CardMenu for cadence changes. Uses
 `input`/`button-primary` tokens at mobile touch-target size.
 
 #### Mobile toolbar & action sheet

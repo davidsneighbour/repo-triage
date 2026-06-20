@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.0.0](https://github.com/davidsneighbour/repo-triage/compare/v3.2.1...v4.0.0) (2026-06-20)
+
+### ⚠ BREAKING CHANGES
+
+* package renamed from @davidsneighbour/project-dashboard to
+@davidsneighbour/repo-triage; Docker image path changed from
+ghcr.io/davidsneighbour/project-dashboard to ghcr.io/davidsneighbour/repo-triage;
+all GitHub repository URLs updated accordingly.
+
+Signed-off-by: Patrick Kollitsch <davidsneighbourdev+gh@gmail.com>
+
+### Features
+
+* rename package and all references from project-dashboard to repo-triage ([088e6f8](https://github.com/davidsneighbour/repo-triage/commit/088e6f8463559185cae309317c37ac538434977c))
+
 ## [3.2.1](https://github.com/davidsneighbour/repo-triage/compare/v3.2.0...v3.2.1) (2026-06-20)
 
 ### Bug fixes

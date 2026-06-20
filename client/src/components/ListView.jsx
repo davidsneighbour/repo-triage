@@ -96,7 +96,11 @@ export function ListView({ repos, showOwner, fields = {}, onToggleSelect, onSele
   const [sortDir, setSortDir] = useState('asc');
   const show = (k) => fields[k] !== false;
 
+  const LIST_RENDER_LIMIT = 200;
   const sorted = useMemo(() => sortReposForList(repos, sortCol, sortDir), [repos, sortCol, sortDir]);
+  const [showAll, setShowAll] = useState(false);
+  const rendered = showAll ? sorted : sorted.slice(0, LIST_RENDER_LIMIT);
+  useEffect(() => { setShowAll(false); }, [sorted]);
 
   // Header "select all" toggles every row currently in the table.
   const canSelect = Boolean(onToggleSelect && onSelectMany);
@@ -171,11 +175,22 @@ export function ListView({ repos, showOwner, fields = {}, onToggleSelect, onSele
           </tr>
         </thead>
         <tbody>
-          {sorted.map((repo) => (
+          {rendered.map((repo) => (
             <ListRow key={repo.id} repo={repo} showOwner={showOwner} fields={fields} selected={selectedIds ? selectedIds.has(repo.id) : false} onToggleSelect={onToggleSelect} {...rowProps} />
           ))}
         </tbody>
       </table>
+      {!showAll && sorted.length > LIST_RENDER_LIMIT && (
+        <div className="sticky bottom-0 border-t border-neutral-800 bg-neutral-950 px-4 py-2 text-center">
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            className="text-[11px] text-neutral-500 hover:text-neutral-300"
+          >
+            Showing {LIST_RENDER_LIMIT} of {sorted.length} repos — show all
+          </button>
+        </div>
+      )}
     </div>
   );
 }

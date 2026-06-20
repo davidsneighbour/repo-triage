@@ -4,6 +4,8 @@ import { cx, ACCENT, ICON } from '../lib/constants.js';
 import { repoMatchesQuery, sortColumnRepos } from '../lib/board.js';
 import { RepoCard } from './RepoCard.jsx';
 
+const COLUMN_RENDER_LIMIT = 100;
+
 // Per-column sort options surfaced in the column's own dropdown. The blank value
 // keeps the board-wide order; each axis offers ascending and descending.
 const COLUMN_SORT_OPTIONS = [
@@ -29,6 +31,11 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
   const ordered = useMemo(() => sortColumnRepos(repos, sortKey, sortDir), [repos, sortKey, sortDir]);
   const visible = useMemo(() => ordered.filter((r) => repoMatchesQuery(r, cq)), [ordered, cq]);
   const filtering = cq.trim() !== '';
+  const [showAll, setShowAll] = useState(false);
+  const rendered = showAll ? visible : visible.slice(0, COLUMN_RENDER_LIMIT);
+
+  // Reset showAll when the visible set changes (filter applied, sync, etc.)
+  useEffect(() => { setShowAll(false); }, [visible]);
 
   // Select-all reflects (and toggles) only the currently visible cards so a
   // column filter scopes the bulk selection too.
@@ -131,7 +138,7 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
           over ? 'border-neutral-500 bg-neutral-900/60' : 'border-neutral-800/60'
         )}
       >
-        {visible.map((r) => (
+        {rendered.map((r) => (
           <RepoCard
             key={r.id}
             repo={r}
@@ -144,6 +151,15 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
             {...cardRest}
           />
         ))}
+        {!showAll && visible.length > COLUMN_RENDER_LIMIT && (
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            className="w-full rounded-md border border-dashed border-neutral-700 py-1.5 text-[11px] text-neutral-500 hover:border-neutral-600 hover:text-neutral-300"
+          >
+            Show all {visible.length} repos
+          </button>
+        )}
         {repos.length === 0 && (
           <div className="grid flex-1 place-items-center text-center text-xs text-neutral-700">
             {isGlobalFiltered ? 'no matches' : schedulable ? 'drag here' : 'empty'}

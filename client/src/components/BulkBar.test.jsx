@@ -11,6 +11,7 @@ const actions = {
   unignore: vi.fn(),
   tag: vi.fn(),
   untag: vi.fn(),
+  priority: vi.fn(),
 };
 const noop = () => {};
 
@@ -20,7 +21,7 @@ describe('BulkBar', () => {
   it('shows "Move to Today" button when no column list is provided', () => {
     render(<BulkBar count={2} actions={actions} columns={[]} onClear={noop} />);
     expect(screen.getByRole('button', { name: 'Move to Today' })).toBeInTheDocument();
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Move selected to column' })).not.toBeInTheDocument();
   });
 
   it('shows a column select when columns are provided', () => {
@@ -33,7 +34,7 @@ describe('BulkBar', () => {
   it('select ignores the blank default option (guard branch)', () => {
     const cols = [{ key: 'day-1', title: 'Tomorrow', daysAgoTarget: 6 }];
     render(<BulkBar count={1} actions={actions} columns={cols} onClear={noop} />);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Move selected to column' }), { target: { value: '' } });
     expect(actions.moveTo).not.toHaveBeenCalled();
   });
 

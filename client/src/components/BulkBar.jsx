@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useIsMobile } from '../lib/useIsMobile.js';
-import { cx } from '../lib/constants.js';
+import { cx, PRIORITY_FILTER_OPTIONS } from '../lib/constants.js';
 
 // Action bar shown while one or more repos are selected. Each action applies to
 // the whole selection (via App's bulkActions) and then clears it. On mobile it
@@ -65,6 +65,22 @@ export function BulkBar({ count, actions, columns = [], onClear }) {
         <button className={btn} onClick={actions.moveToday}>Move to Today</button>
       )}
       <button className={btn} onClick={actions.clear}>Clear check</button>
+      <label className="flex items-center gap-1">
+        <span className="text-[11px] text-neutral-400">Priority</span>
+        <select
+          value=""
+          onChange={(e) => {
+            if (e.target.value !== '') actions.priority(e.target.value === 'null' ? null : Number(e.target.value));
+          }}
+          aria-label="Set priority for selected repos"
+          className="rounded-md border border-neutral-700 bg-neutral-950 px-2 py-1 text-[11px] text-neutral-200 outline-hidden focus:border-neutral-500"
+        >
+          <option value="" disabled>set…</option>
+          {PRIORITY_FILTER_OPTIONS.map((o) => (
+            <option key={o.level} value={o.level === 0 ? 'null' : o.level}>{o.label}</option>
+          ))}
+        </select>
+      </label>
       <button className={btn} onClick={actions.ignore}>Ignore</button>
       <button className={btn} onClick={actions.unignore}>Unignore</button>
       <span className="ml-1 flex items-center gap-1">

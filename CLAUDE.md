@@ -100,7 +100,8 @@ set in each `vitest.config.js` and fail the run on regression.
 
 * `index.js`: Express app, in-memory `repoCache`, schedule logic (`effectiveState`), sync loop.
 * `github.js`: GitHub API pagination, multi-owner loading (`parseOwners` + per-owner fetch with org-membership detection), auth-invalid detection, rate-limit state parsing, non-fatal `sourceStatus.warnings`. `enrichRepos()` runs opt-in per-repo GraphQL enrichment via `gh api graphql` after each sync.
-* `db.js`: SQLite setup and schema for `repo_state`, `repo_notice`, `repo_tag`, `repo_flag`, `prefs`.
+* `db.js`: Opens the SQLite connection, sets WAL mode, and runs pending migrations via `lib/migrations.js`.
+* `lib/migrations.js`: Schema migration registry and runner. See **Database migrations** below.
 
 ### CLI (`cli/`)
 
@@ -147,11 +148,60 @@ horizontally scrollable future columns; drag-drop and card-menu mutations
 always re-fetch via `load()`; inclusive filters (`own`/`forks`/`archived`,
 persisted); header shows sync status and GitHub API remaining/limit.
 
+## Database migrations
+
+Schema history lives in `server/lib/migrations.js` as an ordered array of
+migration objects. The runner uses `PRAGMA user_version` (a 32-bit integer in
+the SQLite header) to track the highest applied version. On startup `db.js`
+calls `runMigrations(db)` before any route module prepares statements.
+
+### Version numbering
+
+Use the format `yyyymmddNN` — the date the migration is written plus a
+two-digit counter (e.g. `2026062001` = 20 June 2026, first migration of the
+day). This sorts lexicographically and makes history auditable.
+
+### How to add a migration
+
+1. Open `server/lib/migrations.js`.
+2. Append a new entry to the `MIGRATIONS` array **after** all existing entries:
+
+   ```js
+   {
+     version: 2026062002,          // yyyymmddNN — must be > all existing versions
+     description: 'add foo column to repo_state',
+     up(db) {
+       // Use better-sqlite3 synchronous APIs only.
+       // Guard ALTER TABLE ADD COLUMN with a PRAGMA table_info check so the
+       // migration is safe to re-run against a DB that already has the column.
+       const cols = db.prepare('PRAGMA table_info(repo_state)').all().map(c => c.name);
+       if (!cols.includes('foo')) {
+         db.exec(`ALTER TABLE repo_state ADD COLUMN foo TEXT`);
+       }
+     },
+   },
+   ```
+
+3. Use `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS` for any
+   new tables or indexes — never bare `CREATE TABLE`.
+4. Add a test in `server/migrations.test.js` covering the new migration.
+
+### Rules
+
+* **Never mutate an existing migration.** Once committed, a migration is
+  permanent history. Fix mistakes with a new migration.
+* **Keep each migration small and self-describing.** One logical change per
+  entry.
+* **A failed migration aborts startup.** The runner throws before the HTTP
+  server binds, so a broken migration is obvious immediately.
+* **`/api/health` exposes `schemaVersion`.** The current `user_version` integer
+  appears in the health response for debugging and deployment verification.
+
 ## API routes
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| GET | `/api/health` | Liveness/readiness probe (status, cacheReady, repoCount, uptime) |
+| GET | `/api/health` | Liveness/readiness probe (status, cacheReady, repoCount, uptime, schemaVersion) |
 | GET | `/api/repos` | Repos + computed columns + rate-limit snapshot |
 | POST | `/api/refresh` | Manual GitHub refresh |
 | POST | `/api/repos/:id/check` | Set effective check age via `{ daysAgo }` |

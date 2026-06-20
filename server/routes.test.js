@@ -77,7 +77,9 @@ describe('GET /api/health', () => {
       cacheReady: true,
       repoCount: expect.any(Number),
       uptimeSeconds: expect.any(Number),
+      schemaVersion: expect.any(Number),
     }));
+    expect(res.body.schemaVersion).toBeGreaterThan(0);
   });
 });
 

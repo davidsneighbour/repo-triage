@@ -122,6 +122,7 @@ router.get('/health', (req, res) => {
     lastFetch,
     lastError,
     uptimeSeconds: Math.round((Date.now() - STARTED_AT) / 1000),
+    schemaVersion: db.pragma('user_version', { simple: true }),
   });
 });
 

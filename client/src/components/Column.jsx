@@ -16,7 +16,7 @@ const COLUMN_SORT_OPTIONS = [
   { value: 'owner:desc', label: 'owner ↓' },
 ];
 
-export function Column({ col, repos, onDropColumn, schedulable = true, mobile = false, ...cardProps }) {
+export function Column({ col, repos, onDropColumn, schedulable = true, mobile = false, isGlobalFiltered = false, ...cardProps }) {
   const acc = ACCENT[col.accent];
   const ColSearchIcon = ICON.search;
   const SortIcon = ICON.sort;
@@ -145,7 +145,9 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
           />
         ))}
         {repos.length === 0 && (
-          <div className="grid flex-1 place-items-center text-center text-xs text-neutral-700">{schedulable ? 'drag here' : 'empty'}</div>
+          <div className="grid flex-1 place-items-center text-center text-xs text-neutral-700">
+            {isGlobalFiltered ? 'no matches' : schedulable ? 'drag here' : 'empty'}
+          </div>
         )}
         {repos.length > 0 && visible.length === 0 && (
           <div className="grid flex-1 place-items-center text-center text-xs text-neutral-700">no matches</div>

@@ -697,6 +697,7 @@ export default function App() {
     onGhCreateIssue,
     onAnnounceMove: announceMove,
     colFilterCache,
+    isGlobalFiltered: q.trim() !== '',
   };
 
   // The inclusive own/forks/archived filter pills. Rendered inline in the

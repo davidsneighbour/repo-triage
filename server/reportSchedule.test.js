@@ -58,6 +58,35 @@ describe('checkReportSchedule', () => {
     });
   });
 
+  it('logs an error and skips export when cron expression is invalid', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // Store a config with an invalid cron (too few fields) directly, bypassing
+    // the settings-route validation that would reject it first.
+    setScheduleConfig({ cron: 'not-valid-cron', outputPath: path.join(tmpDir, 'bad-cron') });
+    const now = new Date(2099, 0, 1, 0, 0);
+    checkReportSchedule(now);
+    expect(spy).toHaveBeenCalledWith('[report-schedule] invalid cron expression:', expect.any(String));
+    spy.mockRestore();
+  });
+
+  it('records error status when outputPath cannot be created', () => {
+    // Create a regular file where the outputPath sub-directory should live so
+    // mkdirSync throws ENOTDIR.
+    const blocker = path.join(tmpDir, 'blocking-file');
+    fs.writeFileSync(blocker, 'i am a file');
+    const badPath = path.join(blocker, 'sub');
+    const now = new Date(2098, 0, 1, 0, 0);
+    const cron = `0 ${now.getHours()} ${now.getDate()} ${now.getMonth() + 1} *`;
+    setScheduleConfig({ cron, outputPath: badPath });
+    checkReportSchedule(now);
+
+    return new Promise((resolve) => setTimeout(resolve, 50)).then(() => {
+      const last = getLastExport();
+      expect(last?.status).toBe('error');
+      expect(last?.error).toMatch(/cannot create outputPath/);
+    });
+  });
+
   it('does not run twice in the same minute', () => {
     const outputPath = path.join(tmpDir, 'reports-dedup');
     const now = new Date(2027, 0, 1, 9, 0, 0);

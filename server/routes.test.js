@@ -253,6 +253,11 @@ describe('POST /api/repos/bulk', () => {
     expect(res.body.error).toMatch(/ids/);
   });
 
+  it('returns 400 with no request body (covers req.body || {} guard)', async () => {
+    const res = await request(app).post('/api/repos/bulk');
+    expect(res.status).toBe(400);
+  });
+
   it('returns 400 for an unknown action', async () => {
     const res = await request(app).post('/api/repos/bulk').send({ action: 'nuke', ids: [REPO.id] });
     expect(res.status).toBe(400);
@@ -319,6 +324,12 @@ describe('POST /api/repos/bulk', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/tag/);
   });
+
+  it('bulk-touches repos', async () => {
+    const res = await request(app).post('/api/repos/bulk').send({ action: 'touch', ids: [REPO.id] });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, count: 1 });
+  });
 });
 
 describe('notices', () => {
@@ -381,6 +392,12 @@ describe('notices', () => {
 });
 
 describe('POST /api/repos/:id/state', () => {
+  it('accepts a request with no body and applies null defaults (covers req.body || {} guard)', async () => {
+    const res = await request(app).post(`/api/repos/${REPO.id}/state`);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+  });
+
   it('restores priority_set_at and checked_at and reflects them in the payload', async () => {
     const anchor = '2026-05-01T00:00:00.000Z';
     const checked = '2026-05-02T08:00:00.000Z';
@@ -444,6 +461,12 @@ describe('tags', () => {
     expect(list.body.tags).toEqual(['oss']);
   });
 
+  it('removing a tag from an unknown repo id does not error (covers findRepo null ?? fallback)', async () => {
+    const res = await request(app).delete('/api/repos/99999/tags/anything');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+  });
+
   it('deletes a tag everywhere it is used', async () => {
     await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: 'doomed' });
     const del = await request(app).delete('/api/tags/Doomed'); // normalised to lower-case
@@ -482,6 +505,12 @@ describe('flags', () => {
 
     const list = await request(app).get(`/api/repos/${REPO.id}/flags`);
     expect(list.body.flags).toEqual(['muted']);
+  });
+
+  it('removing a flag from an unknown repo id does not error (covers findRepo null ?? fallback)', async () => {
+    const res = await request(app).delete('/api/repos/99999/flags/any-flag');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
   });
 });
 
@@ -546,6 +575,24 @@ describe('POST /api/refresh', () => {
     const board = await request(app).get('/api/repos');
     expect(board.body.lastError).toMatch(/boom/);
   });
+
+  it('records a string rejection (no .message) via the e.message || e fallback', async () => {
+    fetchAllRepos.mockRejectedValueOnce('string error without message property');
+    await request(app).post('/api/refresh');
+    await new Promise((r) => setTimeout(r, 10));
+    const board = await request(app).get('/api/repos');
+    expect(board.body.lastError).toMatch(/string error/);
+  });
+
+  it('returns queued: false without starting a second sync when one is already in progress', async () => {
+    let resolveFetch;
+    fetchAllRepos.mockImplementationOnce(() => new Promise((r) => { resolveFetch = r; }));
+    await request(app).post('/api/refresh'); // starts sync
+    const second = await request(app).post('/api/refresh'); // queued while syncing
+    expect(second.body.queued).toBe(false);
+    resolveFetch([REPO]);
+    await new Promise((r) => setTimeout(r, 0));
+  });
 });
 
 describe('backup & restore (runs last — mutates shared triage state)', () => {
@@ -582,6 +629,11 @@ describe('backup & restore (runs last — mutates shared triage state)', () => {
 
   it('rejects a malformed backup with 400', async () => {
     const res = await request(app).post('/api/restore').send({ nope: true });
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a restore with no request body (covers req.body || {} guard)', async () => {
+    const res = await request(app).post('/api/restore');
     expect(res.status).toBe(400);
   });
 
@@ -964,6 +1016,12 @@ describe('GET/PUT/DELETE /api/tag-rules', () => {
 
     const get = await request(app).get('/api/tag-rules');
     expect(get.body.rules.find((r) => r.tag === 'tmp')).toBeUndefined();
+  });
+
+  it('DELETE returns removed: 0 for a tag rule that does not exist (covers the false branch of info.changes guard)', async () => {
+    const res = await request(app).delete('/api/tag-rules/nonexistent-tag');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ ok: true, removed: 0 });
   });
 
   it('tag rule applies to effective_inactivity_days for a tagged repo', async () => {

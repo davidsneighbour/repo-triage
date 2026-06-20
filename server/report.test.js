@@ -183,4 +183,22 @@ describe('formatters', () => {
     expect(csv).toContain('# Due today');
     expect(csv).toContain('metric,value');
   });
+
+  it('toMarkdown treats null/undefined row values as empty strings', () => {
+    const md = toMarkdown({ ...report, rows: [[null, undefined]] });
+    expect(md).toContain('|  |  |');
+  });
+
+  it('toCsv treats null/undefined row values as empty strings', () => {
+    const csv = toCsv({ ...report, rows: [[null, undefined]] });
+    expect(csv).toContain(',\n');
+  });
+});
+
+describe('buildReport weekly staleDays fallback', () => {
+  it('defaults staleDays to 0 when days is a non-numeric string', () => {
+    const r = buildReport('weekly', REPOS, { now: NOW, days: 'bad' });
+    const stale = r.sections.find((s) => s.kind === 'stale');
+    expect(stale.title).toMatch(/0d/);
+  });
 });

@@ -504,4 +504,13 @@ describe('sendNotify', () => {
     expect(() => sendNotify('T', 'M', ef)).not.toThrow();
     Object.defineProperty(process, 'platform', origPlatform);
   });
+
+  it('calls powershell on win32', () => {
+    const ef = vi.fn();
+    const origPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+    sendNotify('Title', 'Message', ef);
+    Object.defineProperty(process, 'platform', origPlatform);
+    expect(ef).toHaveBeenCalledWith('powershell', expect.arrayContaining(['-Command']), expect.any(Object));
+  });
 });

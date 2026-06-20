@@ -1,6 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
+import Database from 'better-sqlite3';
 import { createHmac } from 'node:crypto';
 import { beforeAll, beforeEach, afterAll, afterEach, describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
@@ -525,6 +526,34 @@ describe('backup & restore (runs last — mutates shared triage state)', () => {
     expect(repo.notice_count).toBe(1);
     expect(repo.priority).toBeNull();
   });
+
+  it('restores ignored:true on a repo_state row', async () => {
+    const res = await request(app).post('/api/restore').send({
+      repo_state: [{ repo_id: REPO.id, ignored: true }],
+      repo_notice: [],
+      repo_tag: [],
+    });
+    expect(res.status).toBe(200);
+    const board = await request(app).get('/api/repos');
+    const repo = board.body.repos.find((r) => r.id === REPO.id);
+    expect(repo.ignored).toBe(true);
+    await request(app).post(`/api/repos/${REPO.id}/ignore`).send({ ignored: false });
+  });
+
+  it('skips invalid repo_flag entries (missing flag or repo_id)', async () => {
+    const res = await request(app).post('/api/restore').send({
+      repo_state: [],
+      repo_notice: [],
+      repo_tag: [],
+      repo_flag: [
+        { repo_id: REPO.id, flag: 'pinned' }, // valid
+        { repo_id: REPO.id },                  // no flag → skipped
+        { flag: 'other' },                      // no repo_id → skipped
+      ],
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.restored).toEqual({ repo_state: 0, repo_notice: 0, repo_tag: 0, repo_flag: 3 });
+  });
 });
 
 describe('POST /api/repos/:id/snooze', () => {
@@ -1030,5 +1059,52 @@ describe('GET/POST /api/undo + POST/DELETE /api/undo/:id', () => {
   it('POST /undo/:id returns 404 for unknown id', async () => {
     const res = await request(app).post('/api/undo/99999');
     expect(res.status).toBe(404);
+  });
+
+  it('POST /undo/:id executes a restoreState op', async () => {
+    const restoreOps = [{
+      type: 'restoreState',
+      repoId: REPO.id,
+      fullName: REPO.full_name,
+      prioritySetAt: null,
+      checkedAt: new Date().toISOString(),
+    }];
+    const post = await request(app).post('/api/undo').send({ label: 'Restore state', ops: restoreOps });
+    expect(post.status).toBe(200);
+    const id = post.body.id;
+
+    const exec = await request(app).post(`/api/undo/${id}`);
+    expect(exec.status).toBe(200);
+    expect(exec.body.ok).toBe(true);
+  });
+
+  it('POST /undo/:id with ignored:true applies ignore to the repo', async () => {
+    const ignoreOps = [{ type: 'setIgnored', repoId: REPO.id, fullName: REPO.full_name, ignored: true }];
+    const post = await request(app).post('/api/undo').send({ label: 'Undo unignore', ops: ignoreOps });
+    const id = post.body.id;
+
+    const exec = await request(app).post(`/api/undo/${id}`);
+    expect(exec.status).toBe(200);
+
+    const repos = await request(app).get('/api/repos');
+    const repo = repos.body.repos.find((r) => r.id === REPO.id);
+    expect(repo.ignored).toBe(true);
+
+    // Clean up — leave the repo unignored for subsequent tests.
+    await request(app).post(`/api/repos/${REPO.id}/ignore`).send({ ignored: false });
+  });
+
+  it('POST /api/undo/:id returns 400 when the ops column contains corrupt JSON', async () => {
+    const direct = new Database(path.join(tmpDir, 'dashboard.db'));
+    const { lastInsertRowid } = direct.prepare(
+      "INSERT INTO undo_log (label, ops, created_at) VALUES ('corrupt-test', 'not-valid-json', ?)"
+    ).run(new Date().toISOString());
+    direct.close();
+
+    const res = await request(app).post(`/api/undo/${lastInsertRowid}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('corrupt undo entry');
+
+    await request(app).delete(`/api/undo/${lastInsertRowid}`);
   });
 });

@@ -621,8 +621,10 @@ Column colour assignment (Today column is always column index 0):
 ### Repo card
 
 Draggable. On drag: `cursor-grab` → `cursor-grabbing`. On hover: `border-muted`
-replaces default `border`. The `···` settings button is hidden at rest (via
-`group-hover` or always visible — current implementation always shows it).
+replaces default `border`. The `···` settings button is **always visible** —
+hiding it on hover was rejected because it creates a discoverability problem for
+keyboard-only and touch users, and the dashboard's density-over-decoration
+principle makes persistent affordances preferable to hover-reveal patterns.
 
 Keyboard alternative to drag (`aria-keyshortcuts="[ ]"`): with focus anywhere on
 a card, `]` pushes it one column further out and `[` pulls it one column toward

@@ -242,6 +242,10 @@ export default function App() {
           if (p.fields != null && typeof p.fields === 'object') setFields({ ...DEFAULT_FIELDS, ...p.fields });
           if (p.filters != null && typeof p.filters === 'object') setFilters({ ...defaultFilters, ...p.filters });
           if (p.showIgnored != null) setShowIgnored(Boolean(p.showIgnored));
+          if (p.tagFilter != null && typeof p.tagFilter === 'object') {
+            setTagFilter({ tags: Array.isArray(p.tagFilter.tags) ? p.tagFilter.tags : [], mode: p.tagFilter.mode === 'all' ? 'all' : 'any' });
+          }
+          if (Array.isArray(p.priorityFilter)) setPriorityFilter(p.priorityFilter.filter((v) => [0, 1, 2, 3].includes(Number(v))).map(Number));
         }
         setServerPrefsLoaded(true);
       })
@@ -251,8 +255,8 @@ export default function App() {
 
   useEffect(() => {
     if (!serverPrefsLoaded) return;
-    api.putPrefs?.({ density, sort: sortKey, view, groupBy, fields, filters, showIgnored })?.catch(() => {});
-  }, [serverPrefsLoaded, density, sortKey, view, groupBy, fields, filters, showIgnored]);
+    api.putPrefs?.({ density, sort: sortKey, view, groupBy, fields, filters, showIgnored, tagFilter, priorityFilter })?.catch(() => {});
+  }, [serverPrefsLoaded, density, sortKey, view, groupBy, fields, filters, showIgnored, tagFilter, priorityFilter]);
 
   // Tracks the undo_log entry ID for the currently-shown toast (if persisted).
   const pendingUndoIdRef = useRef(null);

@@ -108,7 +108,7 @@ const putPrefsStmt = db.prepare(`
     value = excluded.value,
     updated_at = excluded.updated_at
 `);
-const ALLOWED_PREF_KEYS = new Set(['density', 'sort', 'view', 'groupBy', 'fields', 'filters', 'showIgnored']);
+const ALLOWED_PREF_KEYS = new Set(['density', 'sort', 'view', 'groupBy', 'fields', 'filters', 'showIgnored', 'tagFilter', 'priorityFilter']);
 
 router.get('/prefs', (req, res) => {
   const row = getPrefsStmt.get(PREFS_KEY);

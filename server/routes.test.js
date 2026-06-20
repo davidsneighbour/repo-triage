@@ -692,7 +692,7 @@ describe('GET /api/prefs + PUT /api/prefs', () => {
   });
 
   it('PUT stores prefs and GET reads them back', async () => {
-    const payload = { density: 'compact', sort: 'alpha', view: 'list', groupBy: 'day', fields: { lang: false }, filters: { showOwn: true, showForks: false, showArchived: false }, showIgnored: false };
+    const payload = { density: 'compact', sort: 'alpha', view: 'list', groupBy: 'day', fields: { lang: false }, filters: { showOwn: true, showForks: false, showArchived: false }, showIgnored: false, tagFilter: { tags: ['bug'], mode: 'any' }, priorityFilter: [1, 2] };
     const put = await request(app).put('/api/prefs').send(payload);
     expect(put.status).toBe(200);
     expect(put.body).toEqual({ ok: true });

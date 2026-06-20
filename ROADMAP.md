@@ -7,22 +7,22 @@ GitHub Issues is the source of truth. This file is a generated snapshot — rege
 
 ## Project state
 
-All 19 original feature issues (v1) are shipped. All 13 post-completion audit issues (#21–#33)
-are shipped. Coverage issue #34 was fixed this session (all thresholds now pass). There are
-currently **21 open issues** across a11y, UX, performance, fixes, docs, and design.
+All 59 previously tracked issues are closed. The project is in a **post-feature maintenance** phase.
+The test suite passes (all 409 tests across client, server, and CLI), but **branch coverage has regressed
+below the 85% threshold** in both client and server workspaces after the recent batch of UX commits
+(#55–#59). There are currently **2 open issues**, both coverage fixes.
 
 ### Health indicators
 
 | Check | Status |
 | --- | --- |
-| Tests (all workspaces) | ✅ 562 passed (44 client + 8 server + 1 CLI files) |
-| Client coverage — Stmts | ✅ 91.44% (need 90%) |
-| Client coverage — Branch | ✅ 85.53% (need 85%) |
-| Client coverage — Funcs | ✅ 86.6% (need 85%) |
-| Client coverage — Lines | ✅ 93.73% (need 90%) |
-| Server coverage — Branch | ✅ 85.04% (need 85%) |
-| CLI coverage — Branch | ✅ 85.41% (need 85%) |
-| `npm run test:coverage` | ✅ exits zero |
+| Tests (all workspaces) | ✅ All tests pass (client + server + CLI) |
+| Client coverage — Stmts | ✅ 90.36% (need 90%) |
+| Client coverage — Branch | ❌ 83.89% (need 85%) |
+| Client coverage — Funcs | ✅ 85.09% (need 85%) |
+| Client coverage — Lines | ✅ 92.81% (need 90%) |
+| Server coverage — Branch | ❌ 83.61% (need 85%) |
+| `npm run test:coverage` | ❌ exits non-zero (branch threshold failures) |
 
 ---
 
@@ -30,83 +30,14 @@ currently **21 open issues** across a11y, UX, performance, fixes, docs, and desi
 
 | # | Issue | Notes |
 | --- | --- | --- |
-| #35 | [fix: card-notice block uses wrong background token](https://github.com/davidsneighbour/project-dashboard/issues/35) | `RepoCard.jsx:274` uses `bg-neutral-950` instead of the `surface-subtle` design token. One-line fix. |
-
----
-
-## Docs & design
-
-| # | Issue | Notes |
-| --- | --- | --- |
-| #36 | [docs: DESIGN.md missing column sort dropdown and snooze semantics](https://github.com/davidsneighbour/project-dashboard/issues/36) | Two undocumented features: per-column sort control and MoveSheet snooze vs cadence semantics. |
-| #37 | [design: decide ··· button visibility (always-visible vs group-hover)](https://github.com/davidsneighbour/project-dashboard/issues/37) | Open product decision. Current: always visible. Alternative: hide at rest + keyboard trigger. Record decision in DESIGN.md and implement if changed. |
-
----
-
-## Accessibility
-
-| # | Issue | Notes |
-| --- | --- | --- |
-| #40 | [a11y: drag-and-drop has no ARIA semantics](https://github.com/davidsneighbour/project-dashboard/issues/40) | No screen-reader announcement on card move. Use the existing live region in App.jsx. Depends on keyboard handler (#43). |
-| #42 | [a11y: no live-region announcement after sync redistributes cards](https://github.com/davidsneighbour/project-dashboard/issues/42) | After `load()` completes, push a diff summary into the existing `role="status"` live region. |
-| #43 | [a11y: no keyboard shortcut to open CardMenu from focused card](https://github.com/davidsneighbour/project-dashboard/issues/43) | `Enter` on focused card should open the ··· menu. Wire into `onCardKeyDown`. Unlocks #40. |
-
----
-
-## UX
-
-| # | Issue | Notes |
-| --- | --- | --- |
-| #44 | [ux: [/] keyboard shortcuts are not discoverable](https://github.com/davidsneighbour/project-dashboard/issues/44) | Add a keyboard shortcuts table to HelpDialog. Optionally add `:focus-within` hint on the card. |
-| #45 | [ux: BulkBar is missing a bulk priority setter](https://github.com/davidsneighbour/project-dashboard/issues/45) | Add Priority dropdown to BulkBar (P1/P2/P3/None). Same pattern as existing bulk actions. Can be batched with #55. |
-| #46 | [ux: column filter state is lost when switching group-by mode](https://github.com/davidsneighbour/project-dashboard/issues/46) | Lift column filter state to App.jsx or sessionStorage. Keyed by `groupBy + columnKey`. |
-| #47 | [ux: global filter empty state shows 'drag here' instead of 'no matches'](https://github.com/davidsneighbour/project-dashboard/issues/47) | Pass `q` (or `isFiltered` bool) into Column so it can show the right empty-state message. Small. |
-| #48 | [ux: tag filter and priority filter are not persisted across reloads](https://github.com/davidsneighbour/project-dashboard/issues/48) | Add `tagFilter` and `priorityFilter` to the `/api/prefs` PUT/GET cycle. Consistent with other persisted view prefs. |
-| #49 | [ux: no quick action to copy a repo's clone URL](https://github.com/davidsneighbour/project-dashboard/issues/49) | Add HTTPS + SSH copy entries to CardMenu. Uses `navigator.clipboard` — no API call needed. |
-| #50 | [ux: settings dialog should have a keyboard shortcut](https://github.com/davidsneighbour/project-dashboard/issues/50) | Add `,` shortcut in App.jsx keydown handler. Update HelpDialog. |
-| #55 | [ux: BulkBar actions are sequential per-repo API calls](https://github.com/davidsneighbour/project-dashboard/issues/55) | Add `POST /api/repos/bulk` endpoint for batch mutations. One round-trip instead of N. |
-| #57 | [ux: move header metadata into an info modal to reduce dashboard clutter](https://github.com/davidsneighbour/project-dashboard/issues/57) | Move owner list, repo count, review cycle, API usage, and org-scope warnings out of the header into a dedicated info modal. Needs naming decision. |
-| #58 | [ux: compact card mode hides too little — remove tag button, pushed date, review button, last-checked text](https://github.com/davidsneighbour/project-dashboard/issues/58) | In compact/dense mode, strip secondary elements: new-tag button, pushed date, review-date button, last-checked text. |
-| #59 | [ux: clicking anywhere on a repo card should toggle its multi-select checkbox](https://github.com/davidsneighbour/project-dashboard/issues/59) | Make the card body a click target for multi-select toggle. Buttons/links inside the card must not propagate. |
-
----
-
-## Performance
-
-| # | Issue | Notes |
-| --- | --- | --- |
-| #51 | [perf: no list virtualization for large repo sets](https://github.com/davidsneighbour/project-dashboard/issues/51) | Board columns and ListView render all repos as real DOM nodes. Becomes noticeable at 200+ repos. Consider `@tanstack/virtual`. |
-| #52 | [perf: RepoCard memo gets spurious re-renders](https://github.com/davidsneighbour/project-dashboard/issues/52) | `fields` prop is a new object each App render, busting React.memo. Pass discrete booleans or stabilise with `useMemo`. |
-| #53 | [perf: CardMenu resize recalculation is not throttled](https://github.com/davidsneighbour/project-dashboard/issues/53) | Wrap the `resize` listener in `requestAnimationFrame`. One-file change. |
-
----
-
-## New features
-
-| # | Issue | Notes |
-| --- | --- | --- |
-| #56 | [feat: database migration system](https://github.com/davidsneighbour/project-dashboard/issues/56) | Versioned SQLite migrations (`yyyymmddNN_description`). Auto-run on startup, rollback on failure, expose schema version in `/api/health`. |
+| #62 | [fix: client branch coverage below 85% threshold (currently 83.89%)](https://github.com/davidsneighbour/project-dashboard/issues/62) | Regression introduced by UX commits #55–#59. Worst offenders: `App.jsx` (74.92%), `StatusDialog.jsx` (67.85%), `BulkBar.jsx` (68.42%). |
+| #63 | [fix: server branch coverage below 85% threshold (currently 83.61%)](https://github.com/davidsneighbour/project-dashboard/issues/63) | Regression from recent server additions (bulk endpoint, webhook, undo, tagrules). Worst offenders: `sync.js` (50%), `reportSchedule.js` (78.94%), `routes/repos.js` (75.51%). |
 
 ---
 
 ## Suggested order
 
-For a single contributor:
+1. **#62** — client branch coverage: add targeted tests for `StatusDialog.jsx`, `BulkBar.jsx`, and `App.jsx` branches added in #55–#59
+2. **#63** — server branch coverage: add targeted tests for `sync.js`, `reportSchedule.js`, and route error-path branches
 
-1. **#35** — one-line token fix, zero risk
-2. **#47** — two-line empty-state fix
-3. **#53** — one-file RAF throttle
-4. **#50** — add `,` settings shortcut + help dialog entry
-5. **#58** — compact mode cleanup (targeted RepoCard changes, clear acceptance criteria)
-6. **#59** — full-card checkbox toggle (needs event-propagation care)
-7. **#43** → **#40** → **#42** — keyboard→menu, then ARIA drag, then live-region (#40 and #42 benefit from #43 being done first)
-8. **#44** — keyboard shortcut discoverability (update help dialog)
-9. **#48** — persist tag/priority filters (small prefs change)
-10. **#46** — lift column filter state
-11. **#52** — RepoCard memo (requires understanding App.jsx state flow)
-12. **#57** — header info modal (UX/design decision first, then implementation)
-13. **#36** + **#37** — docs and design decision (can be done anytime)
-14. **#49** + **#45** — copy clone URL and bulk priority (additive CardMenu/BulkBar work)
-15. **#55** — bulk endpoint (server + client change; pair with #45)
-16. **#56** — DB migration system (self-contained, no UI)
-17. **#51** — virtualization (largest scope; do last)
+Both can be worked in parallel. Fix client first if only one can be done — the CI exit-code failure in the root `npm run test:coverage` is driven by client.

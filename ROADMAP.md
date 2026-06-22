@@ -7,9 +7,9 @@ GitHub Issues is the source of truth. This file is a generated snapshot — rege
 
 ## Project state
 
-All 63 tracked issues are closed. The project is in a **clean, green state**.
-All 610 tests pass across client, server, and CLI workspaces, and all branch coverage
-thresholds are met. No open issues.
+4 open issues across two themes: **dependency security** and **multi-token / token-storage features**.
+All 610 tests pass across client, server, and CLI workspaces. Branch coverage thresholds are met.
+The production bundle (server + client) carries no audit findings.
 
 ### Health indicators
 
@@ -23,9 +23,54 @@ thresholds are met. No open issues.
 | Server coverage — Branch | ✅ 85.04% (need 85%) |
 | CLI coverage — Branch | ✅ 85.41% (need 85%) |
 | `npm run test:coverage` | ✅ exits zero |
+| npm audit — production deps | ✅ 0 findings |
+| npm audit — devDeps | ⚠️ 12 findings (see issues #64 and #67) |
+
+#### Audit notes (devDependencies only — not in production bundle)
+
+| Package | Severity | Fix available? | Issue |
+| --- | --- | --- | --- |
+| `showdown` via `clean-jsdoc-theme@4` | Moderate | Yes (breaking: v5) | [#64] |
+| `undici` via `release-it ≥ 20` | High (3) + Moderate (4) | Yes (breaking: v19) | [#67] |
+| `js-yaml` via `@dnbhq/markdownlint-config` | Moderate | ❌ No fix available | — |
+| `markdown-it` via markdownlint stack | Moderate | ❌ No fix available | — |
 
 ---
 
-## No open issues
+## Open issues
 
-The backlog is empty. New work should start by opening a GitHub issue.
+### Dependencies & security
+
+* **[#64] chore(deps): upgrade clean-jsdoc-theme v4 → v5**
+  [https://github.com/davidsneighbour/repo-triage/issues/64](https://github.com/davidsneighbour/repo-triage/issues/64)
+  Moderate `showdown` ReDoS via the JSDoc HTML theme. Fix is a breaking upgrade to v5. Low urgency (devDep, docs tooling only). Review theme config changes before upgrading.
+
+* **[#67] chore(deps): upgrade release-it to resolve high-severity undici vulnerabilities**
+  [https://github.com/davidsneighbour/repo-triage/issues/67](https://github.com/davidsneighbour/repo-triage/issues/67)
+  High-severity `undici` CVEs via `release-it ≥ 20` / `@dnbhq/release-config`. DevDep only — not in production. Fix requires downgrading or locking `release-it` to v19. **Should be addressed before the next release run.**
+
+### Feature: multi-token & secure token storage
+
+These two issues are coupled — implement in order.
+
+* **[#65] feat: support multiple GitHub access tokens for multi-owner access**
+  [https://github.com/davidsneighbour/repo-triage/issues/65](https://github.com/davidsneighbour/repo-triage/issues/65)
+  Single `GITHUB_TOKEN` can only authenticate one owner. Multi-owner setups with private repos across different accounts need per-owner tokens. Design question (config format) is open — resolve before implementation. **Prerequisite for #66.**
+
+* **[#66] feat: store GitHub tokens in DB with encryption**
+  [https://github.com/davidsneighbour/repo-triage/issues/66](https://github.com/davidsneighbour/repo-triage/issues/66)
+  Persist tokens to SQLite encrypted at rest (AES-GCM), passphrase supplied at startup or via env. Allows runtime token management without env-var restarts. **Depends on #65 being designed first.**
+
+---
+
+## Suggested order of work
+
+1. **#67** — fix high-severity devDep audit findings before next release run
+2. **#64** — upgrade JSDoc theme (lower urgency, batching with #67 saves one PR)
+3. **#65** — design and implement multi-token configuration (answer open questions first)
+4. **#66** — encrypted DB token storage (builds on #65)
+
+## Open clarification questions
+
+* **#65 / #66**: What is the preferred token configuration format — parallel env vars, a JSON mapping, or a `tokens` table in the DB? This decision gates the implementation of both issues.
+* **#66**: Should a missing passphrase block server startup (fail-safe) or allow startup with a warning and no token access (fail-open)?

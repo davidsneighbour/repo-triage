@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import fs from 'node:fs';
 import { runMigrations } from './lib/migrations.js';
+import { init as initTokenManager, hasStoredTokens } from './lib/tokenManager.js';
 
 // Persist the DB in a mounted volume (/data in Docker). Fall back to ./data
 // when running outside the container.
@@ -28,5 +29,20 @@ db.pragma('journal_mode = WAL');
 // by the time the first request arrives. A failed migration throws here,
 // aborting startup rather than running against a broken schema.
 runMigrations(db);
+
+// Fail-safe passphrase check: if the tokens table already contains encrypted
+// tokens and no passphrase was supplied, refuse to start so data is never
+// silently inaccessible. When the table is empty, startup proceeds normally
+// (bootstrap mode — use GITHUB_TOKEN env var instead).
+const passphrase = (process.env.TOKEN_PASSPHRASE || '').trim();
+if (!passphrase && hasStoredTokens(db)) {
+  throw new Error(
+    'TOKEN_PASSPHRASE is required: the database contains encrypted tokens but the env var is not set. ' +
+    'Set TOKEN_PASSPHRASE before starting the server.'
+  );
+}
+if (passphrase) {
+  initTokenManager(db, passphrase);
+}
 
 export default db;

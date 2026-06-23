@@ -149,6 +149,28 @@ describe('runMigrations', () => {
     expect(schemaVersion()).toBe(0);
     // runMigrations should not throw even though repo_state already exists.
     expect(() => runMigrations(db)).not.toThrow();
-    expect(schemaVersion()).toBe(MIGRATIONS[0].version);
+    expect(schemaVersion()).toBe(MIGRATIONS.at(-1).version);
+  });
+
+  it('creates the tokens table in the 2026062301 migration', () => {
+    runMigrations(db);
+    const tables = tableNames();
+    expect(tables).toContain('tokens');
+    const cols = db.prepare('PRAGMA table_info(tokens)').all().map((r) => r.name);
+    for (const col of ['id', 'name', 'token_encrypted', 'iv', 'auth_tag', 'salt', 'owners', 'created_at']) {
+      expect(cols, `column ${col} should exist`).toContain(col);
+    }
+    // idx_tokens_name index must exist.
+    const indexes = db
+      .prepare(`SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='tokens'`)
+      .all()
+      .map((r) => r.name);
+    expect(indexes).toContain('idx_tokens_name');
+  });
+
+  it('tokens migration is safe to re-run (idempotent via IF NOT EXISTS)', () => {
+    runMigrations(db);
+    // Running again should not throw.
+    expect(() => runMigrations(db)).not.toThrow();
   });
 });

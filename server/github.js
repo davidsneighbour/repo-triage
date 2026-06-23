@@ -2,9 +2,11 @@
  * @module github
  * @description GitHub REST API client: multi-owner repository fetching,
  *   rate-limit tracking, per-repo GraphQL enrichment via `gh api graphql`,
- *   and token resolution from `GITHUB_TOKEN` env or `gh auth token`.
+ *   and token resolution from the encrypted tokens table, `GITHUB_TOKEN` env,
+ *   or `gh auth token`.
  */
 import { execFileSync, spawn } from 'node:child_process';
+import { resolveTokenForOwner as dbResolveToken } from './lib/tokenManager.js';
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -135,6 +137,25 @@ export function resolveToken() {
   const gh = ghAuthToken();
   if (gh) return { token: gh, source: 'gh' };
   return { token: null, source: null };
+}
+
+/**
+ * Returns a per-owner token resolver backed by the DB token table and the
+ * env / gh-CLI fallback. Pass `null` as owner to get the best available
+ * token with no owner preference (used for the viewer-login probe and for
+ * the no-owners repo fetch).
+ *
+ * @returns {(owner: string|null) => { token: string|null, source: 'db'|'env'|'gh'|null }}
+ */
+export function buildResolveOwnerToken() {
+  const fallback = resolveToken();
+  return function (owner) {
+    if (owner) {
+      const dbToken = dbResolveToken(owner);
+      if (dbToken) return { token: dbToken, source: 'db' };
+    }
+    return fallback;
+  };
 }
 
 function buildHeaders(token) {
@@ -360,17 +381,32 @@ async function fetchOwnerRepos(owner, viewerLogin, token, headers) {
   throw repoListError(orgRes);
 }
 
-async function fetchConfiguredOwners(owners, token, headers) {
-  // The viewer's login lets us pull private repos for the token owner itself.
-  let viewerLogin = null;
-  const meRes = await ghGet(`${GITHUB_API}/user`, headers);
+// Resolve the viewer login for a given token (cached so we don't hit /user
+// once per owner when many owners share the same token).
+async function getViewerLogin(token, cache) {
+  if (cache.has(token)) return cache.get(token);
+  const meRes = await ghGet(`${GITHUB_API}/user`, buildHeaders(token));
+  let login = null;
   if (meRes.ok) {
     const me = await meRes.json().catch(() => null);
-    viewerLogin = me?.login ? String(me.login).toLowerCase() : null;
+    login = me?.login ? String(me.login).toLowerCase() : null;
   }
+  cache.set(token, login);
+  return login;
+}
 
+async function fetchConfiguredOwners(owners, resolveOwnerToken) {
+  const loginCache = new Map();
   const byId = new Map();
   for (const owner of owners) {
+    const { token } = resolveOwnerToken(owner);
+    if (!token) {
+      sourceStatus.warnings.push(`No token available for owner "${owner}" — skipped.`);
+      sourceStatus.owners.push({ owner, count: 0, scope: 'error' });
+      continue;
+    }
+    const headers = buildHeaders(token);
+    const viewerLogin = await getViewerLogin(token, loginCache);
     try {
       const { repos, scope } = await fetchOwnerRepos(owner, viewerLogin, token, headers);
       for (const r of repos) byId.set(r.id, r);
@@ -519,12 +555,13 @@ export async function enrichRepos(repos, token) {
  *   rate limit is exhausted (403 with `remaining=0`).
  */
 export async function fetchAllRepos(ownersOverride = undefined) {
-  const { token, source } = resolveToken();
+  const resolveOwnerToken = buildResolveOwnerToken();
+  const { token, source } = resolveOwnerToken(null);
   authStatus.source = source;
   authStatus.present = Boolean(token);
   if (!token) {
     throw new Error(
-      'No GitHub token found. Set GITHUB_TOKEN in your .env, or run `gh auth login` so the dashboard can use `gh auth token`.'
+      'No GitHub token found. Set GITHUB_TOKEN in your .env, run `gh auth login`, or add a token via the tokens API.'
     );
   }
 
@@ -547,7 +584,7 @@ export async function fetchAllRepos(ownersOverride = undefined) {
     raw = r.repos;
     sourceStatus.owners.push({ owner: null, count: raw.length, scope: 'self' });
   } else {
-    raw = await fetchConfiguredOwners(owners, token, headers);
+    raw = await fetchConfiguredOwners(owners, resolveOwnerToken);
   }
 
   // gh api --paginate doesn't update rateLimit headers; do one REST probe.

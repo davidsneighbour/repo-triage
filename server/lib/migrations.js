@@ -122,6 +122,25 @@ export const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 2026062301,
+    description: 'add tokens table for encrypted per-owner GitHub token storage',
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tokens (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          name            TEXT NOT NULL,
+          token_encrypted TEXT NOT NULL,
+          iv              TEXT NOT NULL,
+          auth_tag        TEXT NOT NULL,
+          salt            TEXT NOT NULL,
+          owners          TEXT NOT NULL DEFAULT '',
+          created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_tokens_name ON tokens (name);
+      `);
+    },
+  },
 ];
 
 /**

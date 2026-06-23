@@ -8,6 +8,7 @@ import syncRouter from './routes/sync.js';
 import settingsRouter from './routes/settings.js';
 import ghRouter from './routes/gh.js';
 import tagRulesRouter from './routes/tagrules.js';
+import tokensRouter from './routes/tokens.js';
 import webhookRouter from './routes/webhook.js';
 import undoRouter from './routes/undo.js';
 
@@ -31,6 +32,7 @@ app.use('/api', syncRouter);
 app.use('/api', settingsRouter);
 app.use('/api', ghRouter);
 app.use('/api', tagRulesRouter);
+app.use('/api', tokensRouter);
 app.use('/api', undoRouter);
 
 // ---- Static client (built by Vite) ----------------------------------------

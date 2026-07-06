@@ -65,6 +65,29 @@ describe('CardMenu GitHub actions — PR list', () => {
   });
 });
 
+describe('CardMenu GitHub actions — browse issues', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('shows "Browse issues" button when onViewIssues is provided', () => {
+    render(<CardMenu repo={baseRepo} anchorRef={anchor} {...makeHandlers({ onViewIssues: vi.fn() })} />);
+    expect(screen.getByRole('button', { name: 'Browse issues' })).toBeInTheDocument();
+  });
+
+  it('does not show "Browse issues" when onViewIssues is absent', () => {
+    render(<CardMenu repo={baseRepo} anchorRef={anchor} {...makeHandlers()} />);
+    expect(screen.queryByRole('button', { name: 'Browse issues' })).not.toBeInTheDocument();
+  });
+
+  it('calls onViewIssues with the repo id and closes the menu', () => {
+    const onViewIssues = vi.fn();
+    const onClose = vi.fn();
+    render(<CardMenu repo={baseRepo} anchorRef={anchor} {...makeHandlers({ onViewIssues, onClose })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Browse issues' }));
+    expect(onViewIssues).toHaveBeenCalledWith(1);
+    expect(onClose).toHaveBeenCalled();
+  });
+});
+
 describe('CardMenu GitHub actions — issue creation', () => {
   beforeEach(() => vi.clearAllMocks());
 

@@ -127,4 +127,12 @@ export const api = {
   executeUndo: (id) => fetch(`/api/undo/${id}`, { method: 'POST' }).then(json),
   discardUndo: (id) => fetch(`/api/undo/${id}`, { method: 'DELETE' }).then(json),
   getLastExport: () => fetch('/api/reports/last-export').then(json),
+  repoIssues: (id) => fetch(`/api/repos/${id}/issues`).then(json),
+  syncRepoIssues: (id) => fetch(`/api/repos/${id}/issues/sync`, { method: 'POST' }).then(json),
+  setIssueSync: (id, enabled) =>
+    fetch(`/api/repos/${id}/issue-sync`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    }).then(json),
 };

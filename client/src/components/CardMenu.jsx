@@ -5,7 +5,7 @@ import { useDialog } from '../lib/useDialog.js';
 import { useIsMobile } from '../lib/useIsMobile.js';
 import { cx, tagColor, PRIORITY_LEVELS, PRIORITY_META, FLAG_NAMES, FLAG_META } from '../lib/constants.js';
 
-export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = false, defaultInactivity, allTags = [], onSetChecked, onClearCheck, onSetPriority, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onAddTag, onRemoveTag, onAddFlag, onRemoveFlag, onGhPrs, onGhCreateIssue, onClose }) {
+export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = false, defaultInactivity, allTags = [], onSetChecked, onClearCheck, onSetPriority, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onAddTag, onRemoveTag, onAddFlag, onRemoveFlag, onGhPrs, onGhCreateIssue, onViewIssues, onClose }) {
   const [days, setDays] = useState(repo.inactivity_days ?? '');
   const [notice, setNotice] = useState('');
   const [tag, setTag] = useState('');
@@ -278,7 +278,7 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
           </button>
         </div>
 
-        {(onGhPrs || onGhCreateIssue) && (
+        {(onGhPrs || onGhCreateIssue || onViewIssues) && (
         <div className="mt-2 border-t border-neutral-800 pt-2">
           <p className="px-1 pb-1 text-[10px] uppercase tracking-widest text-neutral-500">GitHub actions</p>
           <div className="flex flex-col gap-1">
@@ -355,6 +355,18 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
                   </ul>
                 )}
               </>
+            )}
+
+            {onViewIssues && (
+              <button
+                onClick={() => {
+                  onViewIssues(repo.id);
+                  onClose();
+                }}
+                className="rounded-md bg-neutral-800 py-1 text-[11px] text-neutral-300 hover:bg-neutral-700"
+              >
+                Browse issues
+              </button>
             )}
 
             {onGhCreateIssue && issueStep == null && (

@@ -13,6 +13,7 @@ import { BulkBar } from './components/BulkBar.jsx';
 import { Toast } from './components/Toast.jsx';
 import { HelpDialog } from './components/HelpDialog.jsx';
 import { NoticesDialog } from './components/NoticesDialog.jsx';
+import { IssuesDialog } from './components/IssuesDialog.jsx';
 import { ReportsDialog } from './components/ReportsDialog.jsx';
 import { SettingsDialog } from './components/SettingsDialog.jsx';
 import { StatusDialog } from './components/StatusDialog.jsx';
@@ -55,6 +56,8 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   // Notices dialog scope: null (closed) | 'all' | a repo id.
   const [noticesScope, setNoticesScope] = useState(null);
+  // Issues dialog scope: null (closed) | a repo id.
+  const [issuesRepoId, setIssuesRepoId] = useState(null);
   // Transient tag query: which tags to match and whether any/all.
   const [tagFilter, setTagFilter] = useState({ tags: [], mode: 'any' });
   // Independent priority filter: a list of selected levels (1|2|3, 0 = none).
@@ -482,6 +485,7 @@ export default function App() {
   const onGhPrs = useCallback((id) => api.ghPrs(id), []);
   const onGhCreateIssue = useCallback((id, title, body) => api.ghCreateIssue(id, title, body), []);
   const onViewNotices = useCallback((scope) => setNoticesScope(scope), []);
+  const onViewIssues = useCallback((repoId) => setIssuesRepoId(repoId), []);
   const onAddTag = useCallback((id, tag) => mutate(() => api.addTag(id, tag)), [mutate]);
   const onRemoveTag = useCallback((id, tag) => mutate(() => api.removeTag(id, tag)), [mutate]);
   const onAddFlag = useCallback((id, flag) => mutate(() => api.addFlag(id, flag)), [mutate]);
@@ -665,6 +669,8 @@ export default function App() {
     return (groupedColumns || []).map((col) => ({ ...col, schedulable: false }));
   }, [groupBy, dayColumns, groups, groupedColumns, uncheckedRepos, uncheckedColumn]);
 
+  const issuesRepo = issuesRepoId != null ? data.repos.find((r) => r.id === issuesRepoId) : null;
+
   const cardProps = {
     menuOpenId: openMenuId,
     menuIntent,
@@ -693,6 +699,7 @@ export default function App() {
     defaultInactivity: data.defaultInactivityDays,
     onGhPrs,
     onGhCreateIssue,
+    onViewIssues,
     onAnnounceMove: announceMove,
     colFilterCache,
     isGlobalFiltered: q.trim() !== '',
@@ -1022,6 +1029,7 @@ export default function App() {
           }
         />
       )}
+      {issuesRepo && <IssuesDialog repo={issuesRepo} onClose={() => setIssuesRepoId(null)} />}
       {toast && (
         <Toast
           message={toast.message}

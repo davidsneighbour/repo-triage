@@ -711,7 +711,11 @@ Contains these action groups, each separated by a `border-neutral-800` divider:
    "Add" button (disabled while the field is empty), and a "View all (N)" link
    that opens the Notices dialog scoped to this repo. `N` is the repo's notice
    count.
-7. Backdrop scrim (`fixed inset-0 z-10`) closes the menu on outside click.
+7. **GitHub actions** — "View on GitHub ↗", copy HTTPS/SSH clone URL, "List
+   open PRs" (inline expandable list, see Notices-style row treatment), "New
+   issue…" (inline create form), and "Browse issues" (opens the Issues dialog
+   scoped to this repo — see Issues dialog).
+8. Backdrop scrim (`fixed inset-0 z-10`) closes the menu on outside click.
 
 Do not add new action groups without updating this document.
 
@@ -824,6 +828,38 @@ languages, archived, active) and a **view** selector (table / markdown / csv).
 Read-only and neutral throughout — reports are reference data, never carry an
 urgency accent. All report data comes from `/api/reports/:kind` (shared with the
 `repo-triage report` CLI command).
+
+### Issues dialog
+
+A modal overlay (same structure as the Notices/Reports dialogs — `z-30` scrim,
+centred `z-40` panel, Esc to close), opened from a card's `CardMenu` →
+**GitHub actions** → "Browse issues". Always scoped to a single repo — unlike
+Notices there is no all-repos mode, since issues are inherently per-repository.
+
+* **Header** — title, repo name, an **auto-sync on/off** toggle pill
+  (`aria-pressed`) that flips the repo's issue-sync opt-out, and a **sync now**
+  button (spinning `RefreshCw` glyph while in flight) that re-runs the sync and
+  reloads. Opening the dialog itself triggers one on-demand sync in the
+  background, so the list is fresh without requiring a manual click.
+* **Filter row** — a search input (title + body, client-side, case-insensitive),
+  an **open / closed / all** state segmented control (defaults to **open**),
+  a **number / title / updated** sort segmented control, and the same
+  ascending/descending direction toggle used by the Notices dialog.
+* **Tag row** — every label present on the repo's synced issues, rendered as
+  toggle chips with a leading colour dot from the categorical palette (same
+  `tagColor` hash as repo tags — issue labels are identity, not urgency).
+  Multiple selected tags match with **any** semantics. Hidden entirely when the
+  repo has no labelled issues.
+* **Body** — a vertical list of rows (`surface-subtle` background, matching
+  `notices-row`): issue number + title, label chips, state, and a relative
+  "updated" timestamp. Clicking a row expands it in place to show the full
+  issue body (`whitespace-pre-wrap`) and a "View on GitHub ↗" link; a second
+  click collapses it. Empty state: "no matching issues" in `text-faint`.
+
+Closed issues are kept locally (not dropped) specifically so this dialog can
+show them — the **open** default keeps them out of the way without losing the
+history. All issue data comes from the local `repo_issue` sync table via
+`GET/POST /api/repos/:id/issues(/sync)`; see `server/lib/issueSync.js`.
 
 ### Banners
 

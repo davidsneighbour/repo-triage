@@ -93,6 +93,7 @@ set in each `vitest.config.js` and fail the run on regression.
 | `DATA_DIR` | no | `/data` (Docker), `./data` fallback | SQLite directory |
 | `ENRICH_METADATA` | no | `false` | Run per-repo GraphQL enrichment after each sync (open PRs, latest release, last commit, CI status). Requires `gh` CLI to be logged in. Costs rate-limit budget. |
 | `PAGINATE_VIA_GH` | no | `false` | Route repo-list pagination through `gh api --paginate` instead of REST. Org/membership detection stays on REST. Rate-limit state is refreshed via one REST call after each gh sync. |
+| `ISSUE_SYNC_INTERVAL_MINUTES` | no | `10080` (7 days) | Periodic GitHub issue sync interval for tracked repos (opt-out per repo via `PUT /api/repos/:id/issue-sync`). Does not run on server startup — only on this interval or via on-demand/manual sync. |
 
 ## Architecture
 
@@ -102,6 +103,7 @@ set in each `vitest.config.js` and fail the run on regression.
 * `github.js`: GitHub API pagination, multi-owner loading (`parseOwners` + per-owner fetch with org-membership detection), auth-invalid detection, rate-limit state parsing, non-fatal `sourceStatus.warnings`. `enrichRepos()` runs opt-in per-repo GraphQL enrichment via `gh api graphql` after each sync.
 * `db.js`: Opens the SQLite connection, sets WAL mode, and runs pending migrations via `lib/migrations.js`.
 * `lib/migrations.js`: Schema migration registry and runner. See **Database migrations** below.
+* `lib/issueSync.js`: Sync engine for per-repo GitHub issues, stored in the `repo_issue` table. `syncRepoIssues()`/`syncAllRepoIssues()` back all three trigger modes (periodic interval, on-demand, manual); opt-out per repo via `repo_state.issue_sync_enabled`; stops early and warns (`issueSyncStatus.warnings`) if the shared rate-limit budget runs low.
 
 ### CLI (`cli/`)
 
@@ -221,6 +223,10 @@ day). This sorts lexicographically and makes history auditable.
 | PUT | `/api/settings` | Write runtime setting overrides; unknown keys stripped; owners change triggers re-sync |
 | GET | `/api/prefs` | Read persisted view/display prefs blob (density, sort, view, groupBy, fields, filters, showIgnored) |
 | PUT | `/api/prefs` | Write view/display prefs blob (unknown keys stripped) |
+| GET | `/api/repos/:id/issues` | Locally stored synced GitHub issues for a repo + `syncEnabled` |
+| POST | `/api/repos/:id/issues/sync` | On-demand/manual single-repo issue refresh (fetch + upsert into `repo_issue`) |
+| PUT | `/api/repos/:id/issue-sync` | Enable/disable issue sync for a repo via `{ enabled }` (opt-out, enabled by default) |
+| POST | `/api/issues/sync` | Manual refresh-all: syncs issues for every opted-in tracked repo |
 
 ## Implementation constraints
 

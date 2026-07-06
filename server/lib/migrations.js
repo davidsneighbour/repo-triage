@@ -141,6 +141,33 @@ export const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 2026070601,
+    description: 'add repo_issue table and per-repo issue-sync opt-out column',
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS repo_issue (
+          repo_id           INTEGER NOT NULL,
+          number            INTEGER NOT NULL,
+          title             TEXT NOT NULL,
+          state             TEXT NOT NULL,
+          labels            TEXT NOT NULL DEFAULT '[]',
+          body              TEXT,
+          html_url          TEXT,
+          github_updated_at TEXT,
+          synced_at         TEXT NOT NULL,
+          PRIMARY KEY (repo_id, number)
+        );
+        CREATE INDEX IF NOT EXISTS idx_repo_issue_repo_id ON repo_issue (repo_id);
+      `);
+
+      // Issue sync is opt-out (enabled by default) — see repo_state.issue_sync_enabled.
+      const cols = db.prepare('PRAGMA table_info(repo_state)').all().map((c) => c.name);
+      if (!cols.includes('issue_sync_enabled')) {
+        db.exec(`ALTER TABLE repo_state ADD COLUMN issue_sync_enabled INTEGER DEFAULT 1`);
+      }
+    },
+  },
 ];
 
 /**

@@ -537,6 +537,60 @@ export async function enrichRepos(repos, token) {
   return out;
 }
 
+// ---- Per-repo issue sync via REST -------------------------------------------
+// Used by server/lib/issueSync.js. Kept in this module so it shares token
+// resolution, rate-limit tracking, and the ghGet() 401/403 handling used by
+// fetchAllRepos.
+
+// Bounds worst-case pagination cost per repo (1000 issues) — repos beyond
+// that size are expected to be rare for a personal/team triage dashboard.
+const ISSUE_PAGE_CAP = 10;
+
+function mapIssue(raw) {
+  return {
+    number: raw.number,
+    title: raw.title,
+    state: raw.state,
+    labels: Array.isArray(raw.labels)
+      ? raw.labels.map((l) => (typeof l === 'string' ? l : l.name)).filter(Boolean)
+      : [],
+    body: raw.body ?? null,
+    html_url: raw.html_url ?? null,
+    github_updated_at: raw.updated_at ?? null,
+  };
+}
+
+/**
+ * Fetches all issues (open + closed, excluding pull requests) for one
+ * repository via the REST issues endpoint, paginated up to
+ * {@link ISSUE_PAGE_CAP} pages.
+ *
+ * @param {string} fullName - "owner/repo".
+ * @param {string} token - Resolved GitHub token for the owner.
+ * @returns {Promise<object[]>} Mapped issue objects (see {@link mapIssue}).
+ * @throws {Error} On 401 (invalid token), 403 rate-limit-exhausted (from `ghGet`), or any other non-ok response.
+ */
+export async function fetchRepoIssues(fullName, token) {
+  const headers = buildHeaders(token);
+  const out = [];
+  for (let page = 1; page <= ISSUE_PAGE_CAP; page++) {
+    const url = `${GITHUB_API}/repos/${fullName}/issues?state=all&per_page=100&page=${page}`;
+    const res = await ghGet(url, headers);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw repoListError({ status: res.status, body });
+    }
+    const batch = await res.json();
+    for (const item of batch) {
+      // The REST issues endpoint also returns pull requests; exclude them.
+      if (item.pull_request) continue;
+      out.push(mapIssue(item));
+    }
+    if (batch.length < 100) break;
+  }
+  return out;
+}
+
 /**
  * Fetches repositories for the dashboard, respecting `GITHUB_OWNERS`.
  *

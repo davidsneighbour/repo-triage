@@ -7,6 +7,9 @@ export const SYNC_ON_STARTUP = process.env.SYNC_ON_STARTUP !== 'false';
 export const SYNC_AUTO = process.env.SYNC_AUTO !== 'false';
 export const SYNC_INTERVAL_MINUTES_ENV = Math.max(1, Number(process.env.SYNC_INTERVAL_MINUTES || 60));
 export const ENRICH_METADATA = (process.env.ENRICH_METADATA || '').toLowerCase() === 'true';
+// Default: 10080 minutes = 7 days. Issue sync is opt-out per repo (see repo_state.issue_sync_enabled),
+// so the interval stays coarse-grained by default to bound GitHub API cost across all tracked repos.
+export const ISSUE_SYNC_INTERVAL_MINUTES_ENV = Math.max(1, Number(process.env.ISSUE_SYNC_INTERVAL_MINUTES || 10080));
 
 export const ALLOWED_SETTING_KEYS = new Set(['defaultInactivityDays', 'syncIntervalMinutes', 'githubOwners']);
 

@@ -173,4 +173,27 @@ describe('runMigrations', () => {
     // Running again should not throw.
     expect(() => runMigrations(db)).not.toThrow();
   });
+
+  it('creates the repo_issue table and issue_sync_enabled column in the 2026070601 migration', () => {
+    runMigrations(db);
+    const tables = tableNames();
+    expect(tables).toContain('repo_issue');
+    const issueCols = db.prepare('PRAGMA table_info(repo_issue)').all().map((r) => r.name);
+    for (const col of ['repo_id', 'number', 'title', 'state', 'labels', 'body', 'html_url', 'github_updated_at', 'synced_at']) {
+      expect(issueCols, `column ${col} should exist`).toContain(col);
+    }
+    const indexes = db
+      .prepare(`SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='repo_issue'`)
+      .all()
+      .map((r) => r.name);
+    expect(indexes).toContain('idx_repo_issue_repo_id');
+
+    const repoStateCols = db.prepare('PRAGMA table_info(repo_state)').all().map((r) => r.name);
+    expect(repoStateCols).toContain('issue_sync_enabled');
+  });
+
+  it('repo_issue migration is safe to re-run (idempotent via IF NOT EXISTS)', () => {
+    runMigrations(db);
+    expect(() => runMigrations(db)).not.toThrow();
+  });
 });

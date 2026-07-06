@@ -11,9 +11,11 @@ import tagRulesRouter from './routes/tagrules.js';
 import tokensRouter from './routes/tokens.js';
 import webhookRouter from './routes/webhook.js';
 import undoRouter from './routes/undo.js';
+import issuesRouter from './routes/issues.js';
 
-import { SYNC_ON_STARTUP, SYNC_AUTO, getEffectiveSyncIntervalMinutes } from './lib/settings.js';
+import { SYNC_ON_STARTUP, SYNC_AUTO, ISSUE_SYNC_INTERVAL_MINUTES_ENV, getEffectiveSyncIntervalMinutes } from './lib/settings.js';
 import { refreshRepos, queueRefresh, restartSyncInterval } from './lib/sync.js';
+import { restartIssueSyncInterval } from './lib/issueSync.js';
 import { buildPayload } from './lib/payload.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,6 +36,7 @@ app.use('/api', ghRouter);
 app.use('/api', tagRulesRouter);
 app.use('/api', tokensRouter);
 app.use('/api', undoRouter);
+app.use('/api', issuesRouter);
 
 // ---- Static client (built by Vite) ----------------------------------------
 // Bootstrap-only: present a production build when one exists. Route tests import
@@ -65,6 +68,9 @@ function startServer() {
 
     if (SYNC_AUTO) {
       restartSyncInterval(getEffectiveSyncIntervalMinutes());
+      // Issue sync runs on its own (coarser) interval — not on startup — to
+      // bound GitHub API cost across every tracked, opted-in repo.
+      restartIssueSyncInterval(ISSUE_SYNC_INTERVAL_MINUTES_ENV);
     }
   });
 }

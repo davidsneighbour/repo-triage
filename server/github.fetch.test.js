@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { execFileSync, spawn } from 'node:child_process';
-import { authStatus, enrichRepos, fetchAllRepos, isGhPaginateEnabled, parseOwners, rateLimit, sourceStatus } from './github.js';
+import { authStatus, enrichRepos, fetchAllRepos, fetchRepoIssues, isGhPaginateEnabled, parseOwners, rateLimit, sourceStatus } from './github.js';
 
 // `gh auth token` + enrichRepos use execFileSync; paginateViaGh uses spawn.
 vi.mock('node:child_process', () => ({
@@ -535,6 +535,62 @@ describe('enrichRepos', () => {
     await enrichRepos(repos, null);
     const [, args] = spawn.mock.calls[0];
     expect(args).not.toContain('--header');
+  });
+});
+
+describe('fetchRepoIssues', () => {
+  const issue = (over = {}) => ({
+    number: 1, title: 'a bug', state: 'open', labels: [{ name: 'bug' }],
+    body: 'details', html_url: 'https://x/i/1', updated_at: '2026-07-01T00:00:00Z',
+    ...over,
+  });
+
+  it('maps issues and excludes pull requests', async () => {
+    const fetchMock = routeFetch([
+      ['/repos/o/r/issues', makeRes({
+        body: [issue(), { ...issue({ number: 2 }), pull_request: { url: 'x' } }],
+        headers: RATE_HEADERS,
+      })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const issues = await fetchRepoIssues('o/r', 'tok');
+
+    expect(issues).toEqual([{
+      number: 1, title: 'a bug', state: 'open', labels: ['bug'],
+      body: 'details', html_url: 'https://x/i/1', github_updated_at: '2026-07-01T00:00:00Z',
+    }]);
+  });
+
+  it('stops paginating once a short page is returned', async () => {
+    const fetchMock = routeFetch([
+      ['/repos/o/r/issues', makeRes({ body: [issue()], headers: RATE_HEADERS })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchRepoIssues('o/r', 'tok');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws on a non-ok response', async () => {
+    const fetchMock = routeFetch([
+      ['/repos/o/r/issues', makeRes({ status: 404, body: 'Not Found', headers: RATE_HEADERS })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchRepoIssues('o/r', 'tok')).rejects.toThrow(/GitHub API 404/);
+  });
+
+  it('sends the resolved token as a bearer header', async () => {
+    const fetchMock = routeFetch([
+      ['/repos/o/r/issues', makeRes({ body: [], headers: RATE_HEADERS })],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchRepoIssues('o/r', 'my-token');
+
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer my-token');
   });
 });
 

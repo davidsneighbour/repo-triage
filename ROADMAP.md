@@ -7,10 +7,11 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-5 open issues across two themes: **dependency security** (#73 only - #72 is
-resolved) and **triage workflow / developer tooling**. The stacked feature
-branch chain (undici/clean-jsdoc/multi-token, issue sync, browsable issues,
-issue flagging - closed #64-#67, #74-#76) has been merged to `main` and pushed.
+4 open issues, all **triage workflow / developer tooling** - the **dependency
+security** theme is fully resolved (#72 and #73 both closed). The stacked
+feature branch chain (undici/clean-jsdoc/multi-token, issue sync, browsable
+issues, issue flagging - closed #64-#67, #74-#76) has been merged to `main`
+and pushed.
 
 ### Health indicators
 
@@ -32,30 +33,24 @@ issue flagging - closed #64-#67, #74-#76) has been merged to `main` and pushed.
 | `npm run test:coverage` | Pass: exits zero |
 | `npm run lint:markdown` | Fails: exits 1, but pre-existing and unrelated to tracked source - the `**/*.{md,mdx}` glob scans `node_modules` and generated `docs/api`/`CHANGELOG.md` (~32.5k findings, confirmed identical before and after #72's fix). Worth its own follow-up issue to scope the glob; not blocking. |
 | `npm audit --omit=dev` | Pass: 0 findings (was 8 - fixed by #72) |
-| `npm audit` | Fails: 3 findings (3 moderate), tracked in #73 |
+| `npm audit` | Pass: 0 findings (was 3 - fixed by #73) |
 
 #### Audit notes
-
-| Package / path | Severity | Notes | Issue |
-| --- | --- | --- | --- |
-| `esbuild` via `clean-jsdoc-theme@5.0.2` -> `@clean-jsdoc-theme/dwar` | Moderate | DevDependency for generated API docs; forced audit fix would downgrade clean-jsdoc-theme and risk reintroducing the old showdown finding. | [#73] |
 
 `linkify-it`/`js-yaml`/`markdown-it` (previously tracked in #72) are resolved:
 `@dnbhq/markdownlint-config` moved to `devDependencies` (it's dev-only tooling,
 never in the production Docker image) and `overrides` now pin `js-yaml@^4.2.0`,
 `markdown-it@>=14.2.0`, `linkify-it@>=5.0.1` across the whole tree.
 
+The `esbuild` advisory (previously tracked in #73) via `clean-jsdoc-theme` ->
+`@clean-jsdoc-theme/dwar` is resolved: `clean-jsdoc-theme` bumped `5.0.2` ->
+`5.0.6` plus an `overrides` pin of `esbuild@>=0.25.0` (upstream `dwar@5.0.6`
+still pins `esbuild@^0.21.5`). Confirmed `esbuild` resolves to `0.28.1` and
+`npm run docs:api` still builds valid output.
+
 ---
 
 ## Open issues
-
-### Dependencies & security
-
-* **[#73] chore(deps): resolve clean-jsdoc-theme esbuild audit finding**
-  [https://github.com/davidsneighbour/repo-triage/issues/73](https://github.com/davidsneighbour/repo-triage/issues/73)
-  Tracks the current moderate `esbuild` advisory through `clean-jsdoc-theme@5.0.2`.
-  Avoid a blind forced downgrade to `clean-jsdoc-theme@4.3.3`; that would likely
-  undo the completed v5 migration and risk the previous `showdown` finding.
 
 ### Feature: triage workflow & repository metadata
 
@@ -87,11 +82,10 @@ never in the production Docker image) and `overrides` now pin `js-yaml@^4.2.0`,
 
 ## Suggested order of work
 
-1. **#73** - address the clean-jsdoc/esbuild audit finding without regressing to the old clean-jsdoc v4/showdown path.
-2. **#69** - implement central tag management; answer the delete/reset semantics first.
-3. **#70** - add triage event logging after the tag/reset semantics are clearer.
-4. **#68** - design configurable settings sets; start with one built-in preset before reaching for plugin machinery.
-5. **#71** - build the dev overlay when client-side UI debugging starts paying for the extra tooling.
+1. **#69** - implement central tag management; answer the delete/reset semantics first.
+2. **#70** - add triage event logging after the tag/reset semantics are clearer.
+3. **#68** - design configurable settings sets; start with one built-in preset before reaching for plugin machinery.
+4. **#71** - build the dev overlay when client-side UI debugging starts paying for the extra tooling.
 
 ## Open clarification questions
 

@@ -46,7 +46,7 @@
     "@dnbhq/markdownlint-config": "0.2.7",
     "@dnbhq/release-config": "1.1.0",
     "@release-it/conventional-changelog": "11.0.1",
-    "clean-jsdoc-theme": "5.0.2",
+    "clean-jsdoc-theme": "5.0.6",
     "concurrently": "10.0.3",
     "jsdoc": "4.0.5",
     "release-it": "20.2.0"
@@ -55,7 +55,8 @@
     "undici": ">=7.28.0",
     "js-yaml": "^4.2.0",
     "markdown-it": ">=14.2.0",
-    "linkify-it": ">=5.0.1"
+    "linkify-it": ">=5.0.1",
+    "esbuild": ">=0.25.0"
   },
   "cspell": {
     "version": "0.2",

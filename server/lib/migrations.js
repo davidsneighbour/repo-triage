@@ -168,6 +168,16 @@ export const MIGRATIONS = [
       }
     },
   },
+  {
+    version: 2026070602,
+    description: 'add local flagged column to repo_issue for issue-level priority marking',
+    up(db) {
+      const cols = db.prepare('PRAGMA table_info(repo_issue)').all().map((c) => c.name);
+      if (!cols.includes('flagged')) {
+        db.exec(`ALTER TABLE repo_issue ADD COLUMN flagged INTEGER NOT NULL DEFAULT 0`);
+      }
+    },
+  },
 ];
 
 /**

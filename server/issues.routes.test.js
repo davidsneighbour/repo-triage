@@ -103,6 +103,43 @@ describe('PUT /api/repos/:id/issue-sync', () => {
   });
 });
 
+describe('POST /api/repos/:id/issues/:number/flag', () => {
+  it('flags a synced issue, is reflected in GET, and can be cleared', async () => {
+    fetchRepoIssues.mockResolvedValue([
+      { number: 9, title: 'flag candidate', state: 'open', labels: [], body: null, html_url: 'https://x/9', github_updated_at: '2026-07-04T00:00:00Z' },
+    ]);
+    await request(app).post(`/api/repos/${REPO.id}/issues/sync`);
+
+    let res = await request(app).post(`/api/repos/${REPO.id}/issues/9/flag`).send({ flagged: true });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, flagged: true });
+
+    let getRes = await request(app).get(`/api/repos/${REPO.id}/issues`);
+    expect(getRes.body.issues.find((i) => i.number === 9)).toMatchObject({ flagged: true });
+
+    res = await request(app).post(`/api/repos/${REPO.id}/issues/9/flag`).send({ flagged: false });
+    expect(res.body).toEqual({ ok: true, flagged: false });
+
+    getRes = await request(app).get(`/api/repos/${REPO.id}/issues`);
+    expect(getRes.body.issues.find((i) => i.number === 9)).toMatchObject({ flagged: false });
+  });
+
+  it('returns 404 for an unknown repo id', async () => {
+    const res = await request(app).post('/api/repos/999999/issues/9/flag').send({ flagged: true });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 for a non-numeric issue number', async () => {
+    const res = await request(app).post(`/api/repos/${REPO.id}/issues/abc/flag`).send({ flagged: true });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 when the issue has never been synced', async () => {
+    const res = await request(app).post(`/api/repos/${REPO.id}/issues/424242/flag`).send({ flagged: true });
+    expect(res.status).toBe(404);
+  });
+});
+
 describe('POST /api/issues/sync', () => {
   it('syncs all enabled repos and reports warnings/lastRun', async () => {
     fetchRepoIssues.mockResolvedValue([]);

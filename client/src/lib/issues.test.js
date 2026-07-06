@@ -53,6 +53,16 @@ describe('filterIssues', () => {
     expect(result.map((i) => i.number)).toEqual([1, 2]);
   });
 
+  it('filters to flagged issues only when flaggedOnly is set', () => {
+    const issues = [
+      issue({ number: 1, flagged: true }),
+      issue({ number: 2, flagged: false }),
+      issue({ number: 3 }), // flagged undefined — treated as falsy
+    ];
+    const result = filterIssues(issues, { flaggedOnly: true });
+    expect(result.map((i) => i.number)).toEqual([1]);
+  });
+
   it('composes state, tag, and search filters', () => {
     const issues = [
       issue({ number: 1, state: 'open', labels: ['bug'], title: 'crash on load' }),

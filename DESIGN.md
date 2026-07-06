@@ -843,18 +843,29 @@ Notices there is no all-repos mode, since issues are inherently per-repository.
   background, so the list is fresh without requiring a manual click.
 * **Filter row** — a search input (title + body, client-side, case-insensitive),
   an **open / closed / all** state segmented control (defaults to **open**),
-  a **number / title / updated** sort segmented control, and the same
-  ascending/descending direction toggle used by the Notices dialog.
+  a **number / title / updated** sort segmented control, the same
+  ascending/descending direction toggle used by the Notices dialog, and a
+  **flagged** toggle pill (leading `Star` glyph, filled when active) that
+  narrows the list to locally flagged issues only.
 * **Tag row** — every label present on the repo's synced issues, rendered as
   toggle chips with a leading colour dot from the categorical palette (same
   `tagColor` hash as repo tags — issue labels are identity, not urgency).
   Multiple selected tags match with **any** semantics. Hidden entirely when the
   repo has no labelled issues.
 * **Body** — a vertical list of rows (`surface-subtle` background, matching
-  `notices-row`): issue number + title, label chips, state, and a relative
-  "updated" timestamp. Clicking a row expands it in place to show the full
-  issue body (`whitespace-pre-wrap`) and a "View on GitHub ↗" link; a second
-  click collapses it. Empty state: "no matching issues" in `text-faint`.
+  `notices-row`): a leading **flag** toggle (`Star` glyph — outline
+  `text-neutral-600`, filled `text-neutral-100` when flagged; own button,
+  separate from the row's expand button so the two hit targets never nest),
+  then issue number + title, label chips, state, and a relative "updated"
+  timestamp. Clicking the row body (not the flag) expands it in place to show
+  the full issue body (`whitespace-pre-wrap`) and a "View on GitHub ↗" link; a
+  second click collapses it. Empty state: "no matching issues" in `text-faint`.
+
+The flag is a plain neutral toggle, not a new accent colour — it is a local,
+user-chosen "show me these" marker (see Triage priority for the contrast: that
+axis deliberately *is* a semantic accent, this one deliberately is not),
+independent of GitHub's own issue state and never written upstream. It
+survives re-sync: syncing an issue's title/body/labels never clears its flag.
 
 Closed issues are kept locally (not dropped) specifically so this dialog can
 show them — the **open** default keeps them out of the way without losing the

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw, Star, X } from 'lucide-react';
 import { api } from '../api.js';
 import { useDialog } from '../lib/useDialog.js';
 import { cx, tagColor } from '../lib/constants.js';
@@ -18,6 +18,7 @@ export function IssuesDialog({ repo, onClose }) {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('open');
+  const [flaggedOnly, setFlaggedOnly] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
   const [sort, setSort] = useState('number');
   const [dir, setDir] = useState('desc');
@@ -65,6 +66,18 @@ export function IssuesDialog({ repo, onClose }) {
     await api.setIssueSync(repo.id, next);
   };
 
+  // Local-only marker, independent of GitHub state — optimistic update with
+  // rollback on failure so the star reflects the actual persisted value.
+  const toggleFlag = async (issue) => {
+    const next = !issue.flagged;
+    setIssues((prev) => prev.map((i) => (i.number === issue.number ? { ...i, flagged: next } : i)));
+    try {
+      await api.setIssueFlagged(repo.id, issue.number, next);
+    } catch {
+      setIssues((prev) => prev.map((i) => (i.number === issue.number ? { ...i, flagged: !next } : i)));
+    }
+  };
+
   const allTags = useMemo(() => {
     const set = new Set();
     for (const issue of issues) for (const label of issue.labels) set.add(label);
@@ -72,8 +85,8 @@ export function IssuesDialog({ repo, onClose }) {
   }, [issues]);
 
   const visible = useMemo(
-    () => sortIssues(filterIssues(issues, { search, tags: selectedTags, state: stateFilter }), sort, dir),
-    [issues, search, selectedTags, stateFilter, sort, dir]
+    () => sortIssues(filterIssues(issues, { search, tags: selectedTags, state: stateFilter, flaggedOnly }), sort, dir),
+    [issues, search, selectedTags, stateFilter, flaggedOnly, sort, dir]
   );
 
   return createPortal(
@@ -158,6 +171,17 @@ export function IssuesDialog({ repo, onClose }) {
           >
             {dir === 'asc' ? '↑ asc' : '↓ desc'}
           </button>
+          <button
+            onClick={() => setFlaggedOnly((v) => !v)}
+            aria-pressed={flaggedOnly}
+            className={cx(
+              'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px]',
+              flaggedOnly ? 'border-neutral-600 bg-neutral-800 text-neutral-100' : 'border-neutral-800 text-neutral-500 hover:text-neutral-300'
+            )}
+          >
+            <Star className={cx('h-3 w-3', flaggedOnly && 'fill-current')} aria-hidden="true" />
+            flagged
+          </button>
         </div>
 
         {allTags.length > 0 && (
@@ -193,36 +217,46 @@ export function IssuesDialog({ repo, onClose }) {
                 const expanded = expandedNumber === issue.number;
                 return (
                   <li key={issue.number} className="rounded-md bg-neutral-950">
-                    <button
-                      onClick={() => setExpandedNumber(expanded ? null : issue.number)}
-                      aria-expanded={expanded}
-                      className="flex w-full items-start justify-between gap-3 px-3 py-2 text-left"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-xs text-neutral-200">
-                          <span className="text-neutral-500">#{issue.number}</span> {issue.title}
-                        </p>
-                        {issue.labels.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {issue.labels.map((label) => (
-                              <span key={label} className="flex items-center gap-1 rounded-sm bg-neutral-900 px-1.5 py-0.5 text-[10px] text-neutral-400">
-                                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tagColor(label) }} aria-hidden="true" />
-                                {label}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1">
-                        <span className="text-[10px] text-neutral-500">{issue.state}</span>
-                        <span
-                          className="text-[10px] tabular-nums text-neutral-500"
-                          title={issue.github_updated_at ? new Date(issue.github_updated_at).toLocaleString() : ''}
-                        >
-                          {timeAgo(issue.github_updated_at)}
-                        </span>
-                      </div>
-                    </button>
+                    <div className="flex w-full items-start gap-2 px-3 py-2">
+                      <button
+                        onClick={() => toggleFlag(issue)}
+                        aria-pressed={issue.flagged}
+                        aria-label={issue.flagged ? `Unflag issue #${issue.number}` : `Flag issue #${issue.number}`}
+                        className={cx('mt-0.5 shrink-0', issue.flagged ? 'text-neutral-100' : 'text-neutral-600 hover:text-neutral-300')}
+                      >
+                        <Star className={cx('h-3.5 w-3.5', issue.flagged && 'fill-current')} aria-hidden="true" />
+                      </button>
+                      <button
+                        onClick={() => setExpandedNumber(expanded ? null : issue.number)}
+                        aria-expanded={expanded}
+                        className="flex flex-1 items-start justify-between gap-3 text-left"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-xs text-neutral-200">
+                            <span className="text-neutral-500">#{issue.number}</span> {issue.title}
+                          </p>
+                          {issue.labels.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {issue.labels.map((label) => (
+                                <span key={label} className="flex items-center gap-1 rounded-sm bg-neutral-900 px-1.5 py-0.5 text-[10px] text-neutral-400">
+                                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tagColor(label) }} aria-hidden="true" />
+                                  {label}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <span className="text-[10px] text-neutral-500">{issue.state}</span>
+                          <span
+                            className="text-[10px] tabular-nums text-neutral-500"
+                            title={issue.github_updated_at ? new Date(issue.github_updated_at).toLocaleString() : ''}
+                          >
+                            {timeAgo(issue.github_updated_at)}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
                     {expanded && (
                       <div className="border-t border-neutral-900 px-3 py-2">
                         <p className="whitespace-pre-wrap break-words text-xs text-neutral-300">

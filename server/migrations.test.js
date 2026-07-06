@@ -196,4 +196,35 @@ describe('runMigrations', () => {
     runMigrations(db);
     expect(() => runMigrations(db)).not.toThrow();
   });
+
+  it('adds a flagged column to repo_issue defaulting to 0 in the 2026070602 migration', () => {
+    runMigrations(db);
+    const cols = db.prepare('PRAGMA table_info(repo_issue)').all();
+    const flagged = cols.find((c) => c.name === 'flagged');
+    expect(flagged).toBeDefined();
+    expect(flagged.notnull).toBe(1);
+    expect(flagged.dflt_value).toBe('0');
+  });
+
+  it('back-fills the flagged column on a pre-existing repo_issue table without one', () => {
+    db.exec(`
+      CREATE TABLE repo_issue (
+        repo_id INTEGER NOT NULL, number INTEGER NOT NULL, title TEXT NOT NULL,
+        state TEXT NOT NULL, labels TEXT NOT NULL DEFAULT '[]', body TEXT,
+        html_url TEXT, github_updated_at TEXT, synced_at TEXT NOT NULL,
+        PRIMARY KEY (repo_id, number)
+      );
+      INSERT INTO repo_issue (repo_id, number, title, state, synced_at)
+      VALUES (1, 1, 'existing issue', 'open', '2026-07-01T00:00:00.000Z');
+    `);
+    db.exec('PRAGMA user_version = 2026070601');
+    expect(() => runMigrations(db)).not.toThrow();
+    const row = db.prepare('SELECT flagged FROM repo_issue WHERE repo_id = 1 AND number = 1').get();
+    expect(row.flagged).toBe(0);
+  });
+
+  it('flagged-column migration is safe to re-run', () => {
+    runMigrations(db);
+    expect(() => runMigrations(db)).not.toThrow();
+  });
 });

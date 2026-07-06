@@ -2,10 +2,11 @@
 // the component so they're trivially unit-testable (see board.js/date.js for
 // the same pattern used by the rest of the board).
 
-export function filterIssues(issues, { search = '', tags = [], state = 'all' } = {}) {
+export function filterIssues(issues, { search = '', tags = [], state = 'all', flaggedOnly = false } = {}) {
   const q = search.trim().toLowerCase();
   return issues.filter((issue) => {
     if (state !== 'all' && issue.state !== state) return false;
+    if (flaggedOnly && !issue.flagged) return false;
     if (tags.length > 0 && !tags.some((t) => issue.labels.includes(t))) return false;
     if (q) {
       const haystack = `${issue.title} ${issue.body || ''}`.toLowerCase();

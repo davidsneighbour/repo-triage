@@ -135,4 +135,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled }),
     }).then(json),
+  setIssueFlagged: (id, number, flagged) =>
+    fetch(`/api/repos/${id}/issues/${number}/flag`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ flagged }),
+    }).then(json),
 };

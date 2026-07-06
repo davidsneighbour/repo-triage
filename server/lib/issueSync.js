@@ -46,6 +46,7 @@ const setIssueSyncEnabledStmt = db.prepare(`
   ON CONFLICT(repo_id) DO UPDATE SET issue_sync_enabled = excluded.issue_sync_enabled, updated_at = excluded.updated_at
 `);
 const getStoredIssuesStmt = db.prepare('SELECT * FROM repo_issue WHERE repo_id = ? ORDER BY number DESC');
+const setIssueFlaggedStmt = db.prepare('UPDATE repo_issue SET flagged = ? WHERE repo_id = ? AND number = ?');
 
 /**
  * Whether issue sync is enabled for `repoId`. Opt-out: enabled unless a
@@ -79,7 +80,24 @@ export function getStoredIssues(repoId) {
   return getStoredIssuesStmt.all(repoId).map((row) => ({
     ...row,
     labels: JSON.parse(row.labels || '[]'),
+    flagged: Boolean(row.flagged),
   }));
+}
+
+/**
+ * Sets or clears the local "flagged" marker for one synced issue. This is
+ * independent of GitHub's own state — it is never written upstream, and
+ * {@link syncRepoIssues}'s upsert never touches this column, so re-syncing
+ * an issue does not clear its flag.
+ *
+ * @param {number} repoId
+ * @param {number} number - Issue number (not the repo_issue row id).
+ * @param {boolean} flagged
+ * @returns {boolean} True if a matching stored issue was updated, false if none exists.
+ */
+export function setIssueFlagged(repoId, number, flagged) {
+  const result = setIssueFlaggedStmt.run(flagged ? 1 : 0, repoId, number);
+  return result.changes > 0;
 }
 
 /**

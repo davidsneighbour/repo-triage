@@ -4,6 +4,7 @@ import {
   getStoredIssues,
   isIssueSyncEnabled,
   issueSyncStatus,
+  setIssueFlagged,
   setIssueSyncEnabled,
   syncAllRepoIssues,
   syncRepoIssues,
@@ -37,6 +38,19 @@ router.put('/repos/:id/issue-sync', (req, res) => {
   const enabled = Boolean(req.body?.enabled);
   setIssueSyncEnabled(repo.id, enabled);
   res.json({ ok: true, syncEnabled: enabled });
+});
+
+// Local-only priority marker (never written upstream). Independent of sync —
+// re-syncing an issue's title/body/labels never clears its flag.
+router.post('/repos/:id/issues/:number/flag', (req, res) => {
+  const repo = findRepo(Number(req.params.id));
+  if (!repo) return res.status(404).json({ error: 'repo not found' });
+  const number = Number(req.params.number);
+  if (!Number.isInteger(number) || number <= 0) return res.status(400).json({ error: 'invalid issue number' });
+  const flagged = Boolean(req.body?.flagged);
+  const updated = setIssueFlagged(repo.id, number, flagged);
+  if (!updated) return res.status(404).json({ error: 'issue not found — sync it first' });
+  res.json({ ok: true, flagged });
 });
 
 // Manual "force refresh all" — same primitive the periodic timer uses.

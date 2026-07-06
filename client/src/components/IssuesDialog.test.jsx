@@ -8,6 +8,7 @@ vi.mock('../api.js', () => ({
     repoIssues: vi.fn(),
     syncRepoIssues: vi.fn(),
     setIssueSync: vi.fn(),
+    setIssueFlagged: vi.fn(),
   },
 }));
 
@@ -17,12 +18,14 @@ const noop = () => {};
 const issue = (over = {}) => ({
   number: 1, title: 'a bug', state: 'open', labels: ['bug'], body: 'the details',
   html_url: 'https://github.com/me/alpha/issues/1', github_updated_at: '2026-07-01T00:00:00Z',
+  flagged: false,
   ...over,
 });
 
 beforeEach(() => {
   vi.clearAllMocks();
   api.setIssueSync.mockResolvedValue({ ok: true, syncEnabled: true });
+  api.setIssueFlagged.mockResolvedValue({ ok: true, flagged: true });
 });
 
 describe('IssuesDialog — load and on-demand sync', () => {
@@ -160,5 +163,60 @@ describe('IssuesDialog — manual sync button', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /sync now/ }));
     expect(await screen.findByText(/a bug/)).toBeInTheDocument();
+  });
+});
+
+describe('IssuesDialog — flagging issues', () => {
+  it('flags an issue and calls the API with the repo id and issue number', async () => {
+    api.repoIssues.mockResolvedValue({ issues: [issue({ number: 3, flagged: false })], syncEnabled: true });
+    api.syncRepoIssues.mockResolvedValue({ ok: true, count: 1 });
+
+    render(<IssuesDialog repo={repo} onClose={noop} />);
+    await screen.findByText(/a bug/);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Flag issue #3' }));
+    expect(api.setIssueFlagged).toHaveBeenCalledWith(1, 3, true);
+    expect(await screen.findByRole('button', { name: 'Unflag issue #3' })).toBeInTheDocument();
+  });
+
+  it('rolls back the optimistic update when the API call fails', async () => {
+    api.repoIssues.mockResolvedValue({ issues: [issue({ number: 4, flagged: false })], syncEnabled: true });
+    api.syncRepoIssues.mockResolvedValue({ ok: true, count: 1 });
+    api.setIssueFlagged.mockRejectedValue(new Error('boom'));
+
+    render(<IssuesDialog repo={repo} onClose={noop} />);
+    await screen.findByText(/a bug/);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Flag issue #4' }));
+    expect(await screen.findByRole('button', { name: 'Flag issue #4' })).toBeInTheDocument();
+  });
+
+  it('does not expand the row when the flag button is clicked', async () => {
+    api.repoIssues.mockResolvedValue({ issues: [issue({ number: 5 })], syncEnabled: true });
+    api.syncRepoIssues.mockResolvedValue({ ok: true, count: 1 });
+
+    render(<IssuesDialog repo={repo} onClose={noop} />);
+    await screen.findByText(/a bug/);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Flag issue #5' }));
+    expect(screen.queryByText('the details')).not.toBeInTheDocument();
+  });
+
+  it('the "flagged" filter pill shows only flagged issues', async () => {
+    api.repoIssues.mockResolvedValue({
+      issues: [
+        issue({ number: 1, title: 'unflagged issue', flagged: false }),
+        issue({ number: 2, title: 'flagged issue', flagged: true }),
+      ],
+      syncEnabled: true,
+    });
+    api.syncRepoIssues.mockResolvedValue({ ok: true, count: 2 });
+
+    render(<IssuesDialog repo={repo} onClose={noop} />);
+    await screen.findByText(/unflagged issue/);
+
+    fireEvent.click(screen.getByRole('button', { name: 'flagged' }));
+    expect(screen.queryByText(/unflagged issue/)).not.toBeInTheDocument();
+    expect(screen.getByText(/flagged issue/)).toBeInTheDocument();
   });
 });

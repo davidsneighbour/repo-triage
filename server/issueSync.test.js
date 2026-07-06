@@ -35,6 +35,7 @@ const {
   isIssueSyncEnabled,
   issueSyncStatus,
   restartIssueSyncInterval,
+  setIssueFlagged,
   setIssueSyncEnabled,
   syncAllRepoIssues,
   syncRepoIssues,
@@ -118,6 +119,40 @@ describe('syncRepoIssues', () => {
     expect(result).toEqual({ ok: false, count: 0 });
     expect(issueSyncStatus.warnings.join(' ')).toMatch(/No token available for "me\/beta"/);
     expect(fetchRepoIssues).not.toHaveBeenCalled();
+  });
+
+  it('does not clear a flagged issue when it is re-synced', async () => {
+    fetchRepoIssues.mockResolvedValue([
+      { number: 6, title: 'flag me', state: 'open', labels: [], body: null, html_url: 'https://x/6', github_updated_at: '2026-07-01T00:00:00Z' },
+    ]);
+    await syncRepoIssues(REPO_A);
+    setIssueFlagged(REPO_A.id, 6, true);
+    expect(getStoredIssues(REPO_A.id).find((i) => i.number === 6).flagged).toBe(true);
+
+    // Re-sync with updated content — the flag must survive the upsert.
+    fetchRepoIssues.mockResolvedValue([
+      { number: 6, title: 'flag me (edited)', state: 'closed', labels: [], body: null, html_url: 'https://x/6', github_updated_at: '2026-07-03T00:00:00Z' },
+    ]);
+    await syncRepoIssues(REPO_A);
+    const stored = getStoredIssues(REPO_A.id).find((i) => i.number === 6);
+    expect(stored).toMatchObject({ title: 'flag me (edited)', state: 'closed', flagged: true });
+  });
+});
+
+describe('setIssueFlagged', () => {
+  it('sets and clears the flagged marker, returning false for an unknown issue', async () => {
+    fetchRepoIssues.mockResolvedValue([
+      { number: 7, title: 'flaggable', state: 'open', labels: [], body: null, html_url: 'https://x/7', github_updated_at: '2026-07-01T00:00:00Z' },
+    ]);
+    await syncRepoIssues(REPO_A);
+
+    expect(setIssueFlagged(REPO_A.id, 7, true)).toBe(true);
+    expect(getStoredIssues(REPO_A.id).find((i) => i.number === 7).flagged).toBe(true);
+
+    expect(setIssueFlagged(REPO_A.id, 7, false)).toBe(true);
+    expect(getStoredIssues(REPO_A.id).find((i) => i.number === 7).flagged).toBe(false);
+
+    expect(setIssueFlagged(REPO_A.id, 99999, true)).toBe(false);
   });
 });
 

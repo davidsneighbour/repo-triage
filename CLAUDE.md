@@ -103,7 +103,7 @@ set in each `vitest.config.js` and fail the run on regression.
 * `github.js`: GitHub API pagination, multi-owner loading (`parseOwners` + per-owner fetch with org-membership detection), auth-invalid detection, rate-limit state parsing, non-fatal `sourceStatus.warnings`. `enrichRepos()` runs opt-in per-repo GraphQL enrichment via `gh api graphql` after each sync.
 * `db.js`: Opens the SQLite connection, sets WAL mode, and runs pending migrations via `lib/migrations.js`.
 * `lib/migrations.js`: Schema migration registry and runner. See **Database migrations** below.
-* `lib/issueSync.js`: Sync engine for per-repo GitHub issues, stored in the `repo_issue` table. `syncRepoIssues()`/`syncAllRepoIssues()` back all three trigger modes (periodic interval, on-demand, manual); opt-out per repo via `repo_state.issue_sync_enabled`; stops early and warns (`issueSyncStatus.warnings`) if the shared rate-limit budget runs low.
+* `lib/issueSync.js`: Sync engine for per-repo GitHub issues, stored in the `repo_issue` table. `syncRepoIssues()`/`syncAllRepoIssues()` back all three trigger modes (periodic interval, on-demand, manual); opt-out per repo via `repo_state.issue_sync_enabled`; stops early and warns (`issueSyncStatus.warnings`) if the shared rate-limit budget runs low. `setIssueFlagged()` sets a local-only, never-upstream priority marker on a synced issue (`repo_issue.flagged`) that the sync upsert never touches, so it survives re-sync.
 
 ### CLI (`cli/`)
 
@@ -227,6 +227,7 @@ day). This sorts lexicographically and makes history auditable.
 | POST | `/api/repos/:id/issues/sync` | On-demand/manual single-repo issue refresh (fetch + upsert into `repo_issue`) |
 | PUT | `/api/repos/:id/issue-sync` | Enable/disable issue sync for a repo via `{ enabled }` (opt-out, enabled by default) |
 | POST | `/api/issues/sync` | Manual refresh-all: syncs issues for every opted-in tracked repo |
+| POST | `/api/repos/:id/issues/:number/flag` | Set/clear a local-only priority flag on a synced issue via `{ flagged }`; 404 if the issue hasn't been synced yet. Never written upstream; survives re-sync. |
 
 ## Implementation constraints
 

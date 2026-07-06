@@ -7,10 +7,12 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-8 open issues across four themes: **dependency security**, **multi-token / token
-storage**, **triage workflow improvements**, and **developer UI tooling**.
-The old clean-jsdoc/showdown and release-it/undici issues were closed because current
-repo state and audit output show those specific findings are no longer present.
+9 open issues across four themes: **dependency security**, **repository issue
+sync & browsing** (new), **triage workflow improvements**, and **developer UI
+tooling**. Multi-token support and encrypted DB token storage (#65, #66) are
+now implemented on branch `issue-67-fix-undici-release-it`
+(`07fea9cde983`) and closed as completed; that work still needs to be merged
+to `main`.
 
 ### Health indicators
 
@@ -61,21 +63,26 @@ repo state and audit output show those specific findings are no longer present.
   Avoid a blind forced downgrade to `clean-jsdoc-theme@4.3.3`; that would likely
   undo the completed v5 migration and risk the previous `showdown` finding.
 
-### Feature: multi-token & secure token storage
+### Feature: repository issue sync & browsing
 
-These two issues are coupled - implement in order.
+New theme, split from a single `TODO.md` note into three dependent issues -
+implement in order.
 
-* **[#65] feat: support multiple GitHub access tokens for multi-owner access**
-  [https://github.com/davidsneighbour/repo-triage/issues/65](https://github.com/davidsneighbour/repo-triage/issues/65)
-  Single `GITHUB_TOKEN` can only authenticate one owner. Multi-owner setups with
-  private repos across different accounts need per-owner tokens. Design question
-  (config format) is still open. **Prerequisite for #66.**
+* **[#74] feat: sync GitHub issues for tracked repositories**
+  [https://github.com/davidsneighbour/repo-triage/issues/74](https://github.com/davidsneighbour/repo-triage/issues/74)
+  Sync engine and local storage for each tracked repo's GitHub issues, with
+  periodic/on-open/manual trigger modes. **Prerequisite for #75 and #76.**
 
-* **[#66] feat: store GitHub tokens in DB with encryption**
-  [https://github.com/davidsneighbour/repo-triage/issues/66](https://github.com/davidsneighbour/repo-triage/issues/66)
-  Persist tokens to SQLite encrypted at rest, with the passphrase supplied at
-  startup or via env. Depends on the multi-token model from #65 and needs a clear
-  fail-safe/fail-open startup decision.
+* **[#75] feat: browsable issue list per repository (sortable/filterable/searchable)**
+  [https://github.com/davidsneighbour/repo-triage/issues/75](https://github.com/davidsneighbour/repo-triage/issues/75)
+  Tabular issue view with tag display, sort/filter by tag, search, and
+  full-text detail on selection. Depends on #74 for data.
+
+* **[#76] feat: local priority marking for repository issues**
+  [https://github.com/davidsneighbour/repo-triage/issues/76](https://github.com/davidsneighbour/repo-triage/issues/76)
+  Local-only "flag this issue" marking, independent of upstream GitHub state,
+  mirroring the existing repo-level priority pattern. Depends on #74, integrates
+  with #75.
 
 ### Feature: triage workflow & repository metadata
 
@@ -109,18 +116,25 @@ These two issues are coupled - implement in order.
 
 1. **#72** - resolve the high-severity markdownlint tooling audit path or document any unavoidable residual risk.
 2. **#73** - address the clean-jsdoc/esbuild audit finding without regressing to the old clean-jsdoc v4/showdown path.
-3. **#65** - decide the multi-token configuration model and implement backward-compatible token routing.
-4. **#66** - add encrypted token storage once #65 settles the token model.
-5. **#69** - implement central tag management; answer the delete/reset semantics first.
-6. **#70** - add triage event logging after the tag/reset semantics are clearer.
-7. **#68** - design configurable settings sets; start with one built-in preset before reaching for plugin machinery.
-8. **#71** - build the dev overlay when client-side UI debugging starts paying for the extra tooling.
+3. **#74** - build the issue sync engine; it unblocks both #75 and #76.
+4. **#75** - add the issue browsing/table UI once synced data exists.
+5. **#76** - add local issue priority marking once the browsing view can use it.
+6. **#69** - implement central tag management; answer the delete/reset semantics first.
+7. **#70** - add triage event logging after the tag/reset semantics are clearer.
+8. **#68** - design configurable settings sets; start with one built-in preset before reaching for plugin machinery.
+9. **#71** - build the dev overlay when client-side UI debugging starts paying for the extra tooling.
+
+Separately: merge branch `issue-67-fix-undici-release-it` to `main` - it already
+contains the completed multi-token/encrypted-storage work (closed #65, #66) plus
+the undici and clean-jsdoc dependency fixes (closed #67, #64).
 
 ## Open clarification questions
 
-* **#65 / #66**: What is the preferred token configuration format - parallel env vars, a JSON mapping, or a `tokens` table in the DB?
-* **#65**: Should a single token be allowed to cover multiple owners, or should token-owner mapping be 1:1?
-* **#66**: Should a missing passphrase block server startup (fail-safe) or allow startup with a warning and no token access (fail-open)?
+* **#74**: What should the default periodic issue-sync interval be, and should sync be opt-in per repo like `ENRICH_METADATA`?
+* **#74**: Should closed issues be retained locally for history or dropped once closed upstream?
+* **#75**: Should the issue browser be a new full-screen view, a dialog, or an expandable section of the existing repo detail view?
+* **#75**: Should issue search be client-side or hit a server-side search endpoint for large issue counts?
+* **#76**: Should issue-level priority reuse the existing 1/2/3 `PRIORITY_*` scale, or be a simpler boolean flag?
 * **#69**: On tag deletion, should "reset check status" clear `checked_at`, move repos to Today, or use another state transition?
 * **#70**: Should triage event logs be surfaced in the UI, CLI, API only, or stored without a read surface for now?
 * **#68**: Should settings sets begin as built-in presets, JSON/TOML config, or a plugin-like interface?

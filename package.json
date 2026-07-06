@@ -42,10 +42,8 @@
     "lint:markdown:fix": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc --fix \"**/*.{md,mdx}\"",
     "lint:markdown:single": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc"
   },
-  "dependencies": {
-    "@dnbhq/markdownlint-config": "0.2.7"
-  },
   "devDependencies": {
+    "@dnbhq/markdownlint-config": "0.2.7",
     "@dnbhq/release-config": "1.1.0",
     "@release-it/conventional-changelog": "11.0.1",
     "clean-jsdoc-theme": "5.0.2",
@@ -54,7 +52,10 @@
     "release-it": "20.2.0"
   },
   "overrides": {
-    "undici": ">=7.28.0"
+    "undici": ">=7.28.0",
+    "js-yaml": "^4.2.0",
+    "markdown-it": ">=14.2.0",
+    "linkify-it": ">=5.0.1"
   },
   "cspell": {
     "version": "0.2",

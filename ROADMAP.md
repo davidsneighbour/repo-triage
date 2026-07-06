@@ -7,28 +7,10 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-6 open issues across three themes: **dependency security**, **triage workflow
-improvements**, and **developer UI tooling**. The full GitHub-issue-sync feature
-arc (#74 sync engine, #75 browsable issue list, #76 local issue flagging) is
-now implemented and closed, along with the earlier multi-token/encrypted-storage
-work (#65, #66) and the undici/clean-jsdoc dependency fixes (#67, #64) - none of
-this is merged to `main` yet.
-
-### Local branches not yet merged to `main`
-
-A stacked chain of feature branches carries all of the above, each depending on
-the previous:
-
-```text
-main
- └─ issue-67-fix-undici-release-it   (undici + clean-jsdoc v5 + multi-token/encrypted tokens)
-     └─ issue-74-sync-github-issues      (issue sync engine + storage)
-         └─ issue-75-browsable-issue-list    (Issues dialog UI)
-             └─ issue-76-local-issue-priority    (local issue flagging)
-```
-
-Merging these (in order) to `main` is the single biggest piece of "next steps"
-work right now - everything below is unrelated to this chain.
+5 open issues across two themes: **dependency security** (#73 only - #72 is
+resolved) and **triage workflow / developer tooling**. The stacked feature
+branch chain (undici/clean-jsdoc/multi-token, issue sync, browsable issues,
+issue flagging - closed #64-#67, #74-#76) has been merged to `main` and pushed.
 
 ### Health indicators
 
@@ -48,31 +30,26 @@ work right now - everything below is unrelated to this chain.
 | CLI coverage - Funcs | Pass: 100% |
 | CLI coverage - Lines | Pass: 97.96% |
 | `npm run test:coverage` | Pass: exits zero |
-| `npm run lint:markdown` | Pass: no findings in tracked files |
-| `npm audit --omit=dev` | Fails: 8 findings (6 moderate, 2 high), tracked in #72 |
-| `npm audit` | Fails: 11 findings (9 moderate, 2 high), tracked in #72 and #73 |
+| `npm run lint:markdown` | Fails: exits 1, but pre-existing and unrelated to tracked source - the `**/*.{md,mdx}` glob scans `node_modules` and generated `docs/api`/`CHANGELOG.md` (~32.5k findings, confirmed identical before and after #72's fix). Worth its own follow-up issue to scope the glob; not blocking. |
+| `npm audit --omit=dev` | Pass: 0 findings (was 8 - fixed by #72) |
+| `npm audit` | Fails: 3 findings (3 moderate), tracked in #73 |
 
 #### Audit notes
 
 | Package / path | Severity | Notes | Issue |
 | --- | --- | --- | --- |
-| `linkify-it` via `@dnbhq/markdownlint-config` -> `markdownlint-rule-title-case-style` | High | Root markdownlint tooling; not installed in the production Docker runtime, but `npm audit --omit=dev` reports it because the config is a root dependency. | [#72] |
-| `js-yaml` via `@dnbhq/markdownlint-config` -> `markdownlint-cli2` | Moderate | Root markdownlint tooling; `npm audit fix --force` suggests a breaking downgrade. | [#72] |
-| `markdown-it` via the markdownlint stack | Moderate | Root markdownlint tooling; tied to the same dependency path as #72. | [#72] |
 | `esbuild` via `clean-jsdoc-theme@5.0.2` -> `@clean-jsdoc-theme/dwar` | Moderate | DevDependency for generated API docs; forced audit fix would downgrade clean-jsdoc-theme and risk reintroducing the old showdown finding. | [#73] |
+
+`linkify-it`/`js-yaml`/`markdown-it` (previously tracked in #72) are resolved:
+`@dnbhq/markdownlint-config` moved to `devDependencies` (it's dev-only tooling,
+never in the production Docker image) and `overrides` now pin `js-yaml@^4.2.0`,
+`markdown-it@>=14.2.0`, `linkify-it@>=5.0.1` across the whole tree.
 
 ---
 
 ## Open issues
 
 ### Dependencies & security
-
-* **[#72] chore(deps): resolve markdownlint tooling audit findings**
-  [https://github.com/davidsneighbour/repo-triage/issues/72](https://github.com/davidsneighbour/repo-triage/issues/72)
-  Tracks current `npm audit --omit=dev` findings in the root markdownlint stack:
-  high-severity `linkify-it` plus moderate `js-yaml` / `markdown-it` paths.
-  First decision: whether `@dnbhq/markdownlint-config` should remain a root
-  dependency or move to devDependencies. Validate with `npm run lint:markdown`.
 
 * **[#73] chore(deps): resolve clean-jsdoc-theme esbuild audit finding**
   [https://github.com/davidsneighbour/repo-triage/issues/73](https://github.com/davidsneighbour/repo-triage/issues/73)
@@ -110,13 +87,11 @@ work right now - everything below is unrelated to this chain.
 
 ## Suggested order of work
 
-1. **Merge the `issue-67-fix-undici-release-it` -> `issue-74` -> `issue-75` -> `issue-76` branch chain to `main`**, in that order - this is completed, tested work (closed #64, #65, #66, #67, #74, #75, #76) just waiting to land.
-2. **#72** - resolve the high-severity markdownlint tooling audit path or document any unavoidable residual risk.
-3. **#73** - address the clean-jsdoc/esbuild audit finding without regressing to the old clean-jsdoc v4/showdown path.
-4. **#69** - implement central tag management; answer the delete/reset semantics first.
-5. **#70** - add triage event logging after the tag/reset semantics are clearer.
-6. **#68** - design configurable settings sets; start with one built-in preset before reaching for plugin machinery.
-7. **#71** - build the dev overlay when client-side UI debugging starts paying for the extra tooling.
+1. **#73** - address the clean-jsdoc/esbuild audit finding without regressing to the old clean-jsdoc v4/showdown path.
+2. **#69** - implement central tag management; answer the delete/reset semantics first.
+3. **#70** - add triage event logging after the tag/reset semantics are clearer.
+4. **#68** - design configurable settings sets; start with one built-in preset before reaching for plugin machinery.
+5. **#71** - build the dev overlay when client-side UI debugging starts paying for the extra tooling.
 
 ## Open clarification questions
 

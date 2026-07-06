@@ -7,31 +7,48 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-9 open issues across four themes: **dependency security**, **repository issue
-sync & browsing** (new), **triage workflow improvements**, and **developer UI
-tooling**. Multi-token support and encrypted DB token storage (#65, #66) are
-now implemented on branch `issue-67-fix-undici-release-it`
-(`07fea9cde983`) and closed as completed; that work still needs to be merged
-to `main`.
+6 open issues across three themes: **dependency security**, **triage workflow
+improvements**, and **developer UI tooling**. The full GitHub-issue-sync feature
+arc (#74 sync engine, #75 browsable issue list, #76 local issue flagging) is
+now implemented and closed, along with the earlier multi-token/encrypted-storage
+work (#65, #66) and the undici/clean-jsdoc dependency fixes (#67, #64) - none of
+this is merged to `main` yet.
+
+### Local branches not yet merged to `main`
+
+A stacked chain of feature branches carries all of the above, each depending on
+the previous:
+
+```text
+main
+ └─ issue-67-fix-undici-release-it   (undici + clean-jsdoc v5 + multi-token/encrypted tokens)
+     └─ issue-74-sync-github-issues      (issue sync engine + storage)
+         └─ issue-75-browsable-issue-list    (Issues dialog UI)
+             └─ issue-76-local-issue-priority    (local issue flagging)
+```
+
+Merging these (in order) to `main` is the single biggest piece of "next steps"
+work right now - everything below is unrelated to this chain.
 
 ### Health indicators
 
 | Check | Status |
 | --- | --- |
-| Tests (all workspaces) | Pass: 655 tests (308 client + 289 server + 58 CLI) |
-| Client coverage - Stmts | Pass: 90.56% |
-| Client coverage - Branch | Pass: 85.3% |
-| Client coverage - Funcs | Pass: 85.45% |
-| Client coverage - Lines | Pass: 92.97% |
-| Server coverage - Stmts | Pass: 97.08% |
-| Server coverage - Branch | Pass: 85.18% |
-| Server coverage - Funcs | Pass: 93.92% |
-| Server coverage - Lines | Pass: 98.5% |
+| Tests (all workspaces) | Pass: 723 tests (342 client + 323 server + 58 CLI) |
+| Client coverage - Stmts | Pass: 90.85% |
+| Client coverage - Branch | Pass: 85.57% |
+| Client coverage - Funcs | Pass: 85.49% |
+| Client coverage - Lines | Pass: 93.08% |
+| Server coverage - Stmts | Pass: 97.24% |
+| Server coverage - Branch | Pass: 85.08% |
+| Server coverage - Funcs | Pass: 94.06% |
+| Server coverage - Lines | Pass: 98.63% |
 | CLI coverage - Stmts | Pass: 96.26% |
 | CLI coverage - Branch | Pass: 85.41% |
 | CLI coverage - Funcs | Pass: 100% |
 | CLI coverage - Lines | Pass: 97.96% |
 | `npm run test:coverage` | Pass: exits zero |
+| `npm run lint:markdown` | Pass: no findings in tracked files |
 | `npm audit --omit=dev` | Fails: 8 findings (6 moderate, 2 high), tracked in #72 |
 | `npm audit` | Fails: 11 findings (9 moderate, 2 high), tracked in #72 and #73 |
 
@@ -63,27 +80,6 @@ to `main`.
   Avoid a blind forced downgrade to `clean-jsdoc-theme@4.3.3`; that would likely
   undo the completed v5 migration and risk the previous `showdown` finding.
 
-### Feature: repository issue sync & browsing
-
-New theme, split from a single `TODO.md` note into three dependent issues -
-implement in order.
-
-* **[#74] feat: sync GitHub issues for tracked repositories**
-  [https://github.com/davidsneighbour/repo-triage/issues/74](https://github.com/davidsneighbour/repo-triage/issues/74)
-  Sync engine and local storage for each tracked repo's GitHub issues, with
-  periodic/on-open/manual trigger modes. **Prerequisite for #75 and #76.**
-
-* **[#75] feat: browsable issue list per repository (sortable/filterable/searchable)**
-  [https://github.com/davidsneighbour/repo-triage/issues/75](https://github.com/davidsneighbour/repo-triage/issues/75)
-  Tabular issue view with tag display, sort/filter by tag, search, and
-  full-text detail on selection. Depends on #74 for data.
-
-* **[#76] feat: local priority marking for repository issues**
-  [https://github.com/davidsneighbour/repo-triage/issues/76](https://github.com/davidsneighbour/repo-triage/issues/76)
-  Local-only "flag this issue" marking, independent of upstream GitHub state,
-  mirroring the existing repo-level priority pattern. Depends on #74, integrates
-  with #75.
-
 ### Feature: triage workflow & repository metadata
 
 * **[#69] feat: manage tags from the filter tags menu**
@@ -114,27 +110,16 @@ implement in order.
 
 ## Suggested order of work
 
-1. **#72** - resolve the high-severity markdownlint tooling audit path or document any unavoidable residual risk.
-2. **#73** - address the clean-jsdoc/esbuild audit finding without regressing to the old clean-jsdoc v4/showdown path.
-3. **#74** - build the issue sync engine; it unblocks both #75 and #76.
-4. **#75** - add the issue browsing/table UI once synced data exists.
-5. **#76** - add local issue priority marking once the browsing view can use it.
-6. **#69** - implement central tag management; answer the delete/reset semantics first.
-7. **#70** - add triage event logging after the tag/reset semantics are clearer.
-8. **#68** - design configurable settings sets; start with one built-in preset before reaching for plugin machinery.
-9. **#71** - build the dev overlay when client-side UI debugging starts paying for the extra tooling.
-
-Separately: merge branch `issue-67-fix-undici-release-it` to `main` - it already
-contains the completed multi-token/encrypted-storage work (closed #65, #66) plus
-the undici and clean-jsdoc dependency fixes (closed #67, #64).
+1. **Merge the `issue-67-fix-undici-release-it` -> `issue-74` -> `issue-75` -> `issue-76` branch chain to `main`**, in that order - this is completed, tested work (closed #64, #65, #66, #67, #74, #75, #76) just waiting to land.
+2. **#72** - resolve the high-severity markdownlint tooling audit path or document any unavoidable residual risk.
+3. **#73** - address the clean-jsdoc/esbuild audit finding without regressing to the old clean-jsdoc v4/showdown path.
+4. **#69** - implement central tag management; answer the delete/reset semantics first.
+5. **#70** - add triage event logging after the tag/reset semantics are clearer.
+6. **#68** - design configurable settings sets; start with one built-in preset before reaching for plugin machinery.
+7. **#71** - build the dev overlay when client-side UI debugging starts paying for the extra tooling.
 
 ## Open clarification questions
 
-* **#74**: What should the default periodic issue-sync interval be, and should sync be opt-in per repo like `ENRICH_METADATA`?
-* **#74**: Should closed issues be retained locally for history or dropped once closed upstream?
-* **#75**: Should the issue browser be a new full-screen view, a dialog, or an expandable section of the existing repo detail view?
-* **#75**: Should issue search be client-side or hit a server-side search endpoint for large issue counts?
-* **#76**: Should issue-level priority reuse the existing 1/2/3 `PRIORITY_*` scale, or be a simpler boolean flag?
 * **#69**: On tag deletion, should "reset check status" clear `checked_at`, move repos to Today, or use another state transition?
 * **#70**: Should triage event logs be surfaced in the UI, CLI, API only, or stored without a read surface for now?
 * **#68**: Should settings sets begin as built-in presets, JSON/TOML config, or a plugin-like interface?

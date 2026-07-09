@@ -7,33 +7,22 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-4 open issues, all **triage workflow / developer tooling** - the **dependency
-security** theme is fully resolved (#72 and #73 both closed). The stacked
-feature branch chain (undici/clean-jsdoc/multi-token, issue sync, browsable
-issues, issue flagging - closed #64-#67, #74-#76) has been merged to `main`
-and pushed.
+5 open issues: 3 **triage workflow** features, 1 **developer tooling** item,
+and 1 new **issue-dashboard** feature (#77, split out from a `TODO.md` note).
+The **dependency security** theme remains fully resolved (#72 and #73 both
+closed). The stacked feature branch chain (undici/clean-jsdoc/multi-token,
+issue sync, browsable issues, issue flagging - closed #64-#67, #74-#76) has
+been merged to `main` and pushed.
 
 ### Health indicators
 
 | Check | Status |
 | --- | --- |
 | Tests (all workspaces) | Pass: 723 tests (342 client + 323 server + 58 CLI) |
-| Client coverage - Stmts | Pass: 90.85% |
-| Client coverage - Branch | Pass: 85.57% |
-| Client coverage - Funcs | Pass: 85.49% |
-| Client coverage - Lines | Pass: 93.08% |
-| Server coverage - Stmts | Pass: 97.24% |
-| Server coverage - Branch | Pass: 85.08% |
-| Server coverage - Funcs | Pass: 94.06% |
-| Server coverage - Lines | Pass: 98.63% |
-| CLI coverage - Stmts | Pass: 96.26% |
-| CLI coverage - Branch | Pass: 85.41% |
-| CLI coverage - Funcs | Pass: 100% |
-| CLI coverage - Lines | Pass: 97.96% |
-| `npm run test:coverage` | Pass: exits zero |
+| `npm run test` | Pass: exits zero |
+| `npm audit --omit=dev` | Pass: 0 findings |
+| `npm audit` | Pass: 0 findings |
 | `npm run lint:markdown` | Fails: exits 1, but pre-existing and unrelated to tracked source - the `**/*.{md,mdx}` glob scans `node_modules` and generated `docs/api`/`CHANGELOG.md` (~32.5k findings, confirmed identical before and after #72's fix). Worth its own follow-up issue to scope the glob; not blocking. |
-| `npm audit --omit=dev` | Pass: 0 findings (was 8 - fixed by #72) |
-| `npm audit` | Pass: 0 findings (was 3 - fixed by #73) |
 
 #### Audit notes
 
@@ -78,14 +67,24 @@ still pins `esbuild@^0.21.5`). Confirmed `esbuild` resolves to `0.28.1` and
   must follow `DESIGN.md`, use static Tailwind class strings, and stay out of
   production builds.
 
+### Feature: issue tracking
+
+* **[#77] feat: cross-repo issue overview dashboard (local data only)**
+  [https://github.com/davidsneighbour/repo-triage/issues/77](https://github.com/davidsneighbour/repo-triage/issues/77)
+  Lists synced GitHub issues across all repos (not just per-repo) straight from
+  the local `repo_issue` table, with configurable columns; must not trigger any
+  GitHub sync itself. Split out of a `TODO.md` note; builds on the issue-sync
+  work from #74-#76.
+
 ---
 
 ## Suggested order of work
 
 1. **#69** - implement central tag management; answer the delete/reset semantics first.
 2. **#70** - add triage event logging after the tag/reset semantics are clearer.
-3. **#68** - design configurable settings sets; start with one built-in preset before reaching for plugin machinery.
-4. **#71** - build the dev overlay when client-side UI debugging starts paying for the extra tooling.
+3. **#77** - cross-repo issue dashboard; self-contained read-only view on top of already-synced data.
+4. **#68** - design configurable settings sets; start with one built-in preset before reaching for plugin machinery.
+5. **#71** - build the dev overlay when client-side UI debugging starts paying for the extra tooling.
 
 ## Open clarification questions
 
@@ -94,3 +93,5 @@ still pins `esbuild@^0.21.5`). Confirmed `esbuild` resolves to `0.28.1` and
 * **#68**: Should settings sets begin as built-in presets, JSON/TOML config, or a plugin-like interface?
 * **#68**: Should missing GitHub metadata count as failed, unknown, or not applicable in a settings-set score?
 * **#71**: Which component metadata attributes should be standardized before relying on overlay identifiers?
+* **#77**: Should this be a new top-level view/route, a dialog, or a tab alongside the existing board/list views?
+* **#77**: Should flagged issues get a dedicated filter or visual indicator here, matching the per-repo dialog?

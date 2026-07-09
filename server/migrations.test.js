@@ -41,9 +41,23 @@ describe('runMigrations', () => {
     // All expected tables exist after the initial migration.
     const tables = tableNames();
     for (const t of ['repo_state', 'repo_notice', 'repo_tag', 'repo_flag',
-      'prefs', 'settings', 'tag_rule', 'undo_log', 'activity_log']) {
+      'prefs', 'settings', 'tag_rule', 'tag_registry', 'undo_log', 'activity_log']) {
       expect(tables, `table ${t} should exist`).toContain(t);
     }
+  });
+
+  it('back-fills tag_registry from tags already present in repo_tag', () => {
+    // Simulate a pre-2026070901 database that already has repo_tag rows.
+    const preMigration = MIGRATIONS.filter((m) => m.version < 2026070901);
+    runMigrations(db, preMigration);
+    db.prepare(
+      `INSERT INTO repo_tag (repo_id, full_name, tag, created_at) VALUES (1, 'me/alpha', 'infra', datetime('now'))`
+    ).run();
+
+    runMigrations(db);
+
+    const tags = db.prepare('SELECT tag FROM tag_registry').all().map((r) => r.tag);
+    expect(tags).toContain('infra');
   });
 
   it('is a no-op when the database is already at the latest version', () => {

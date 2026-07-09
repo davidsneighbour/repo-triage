@@ -5,8 +5,8 @@ import { setDesktopViewport } from '../test/viewport.js';
 
 const tags = [{ tag: 'infra', count: 2 }, { tag: 'docs', count: 1 }];
 
-function open(onChange, value = { tags: [], mode: 'any' }, onDelete) {
-  render(<TagFilter available={tags} value={value} onChange={onChange} onDelete={onDelete} />);
+function open(onChange, value = { tags: [], mode: 'any' }, { onDelete, onCreate, onRename } = {}) {
+  render(<TagFilter available={tags} value={value} onChange={onChange} onDelete={onDelete} onCreate={onCreate} onRename={onRename} />);
   fireEvent.click(screen.getByRole('button', { name: 'Filter by tag' }));
 }
 
@@ -62,30 +62,163 @@ describe('TagFilter panel interactions (desktop)', () => {
     expect(screen.queryByRole('button', { name: 'match any' })).not.toBeInTheDocument();
   });
 
-  it('shows delete button when onDelete prop is provided', () => {
-    open(vi.fn(), { tags: [], mode: 'any' }, vi.fn());
-    expect(screen.getByRole('button', { name: 'Delete tag infra' })).toBeInTheDocument();
-  });
-
-  it('calls onDelete with the tag when confirmed', () => {
-    const onDelete = vi.fn();
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
-    open(vi.fn(), { tags: [], mode: 'any' }, onDelete);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete tag infra' }));
-    expect(onDelete).toHaveBeenCalledWith('infra');
-  });
-
-  it('does not call onDelete when confirm is cancelled', () => {
-    const onDelete = vi.fn();
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
-    open(vi.fn(), { tags: [], mode: 'any' }, onDelete);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete tag infra' }));
-    expect(onDelete).not.toHaveBeenCalled();
-  });
-
   it('shows "no tags yet" when no tags are available', () => {
     render(<TagFilter available={[]} value={{ tags: [], mode: 'any' }} onChange={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Filter by tag' }));
     expect(screen.getByText('no tags yet')).toBeInTheDocument();
+  });
+
+  describe('delete', () => {
+    it('shows delete button when onDelete prop is provided', () => {
+      open(vi.fn(), undefined, { onDelete: vi.fn() });
+      expect(screen.getByRole('button', { name: 'Delete tag infra' })).toBeInTheDocument();
+    });
+
+    it('arms an inline confirm instead of deleting immediately', () => {
+      const onDelete = vi.fn();
+      open(vi.fn(), undefined, { onDelete });
+      fireEvent.click(screen.getByRole('button', { name: 'Delete tag infra' }));
+      expect(onDelete).not.toHaveBeenCalled();
+      expect(screen.getByText((_, node) => node?.textContent === 'Delete #infra from all 2 repos?')).toBeInTheDocument();
+    });
+
+    it('calls onDelete with resetCheck=false when confirmed without checking the reset box', () => {
+      const onDelete = vi.fn();
+      open(vi.fn(), undefined, { onDelete });
+      fireEvent.click(screen.getByRole('button', { name: 'Delete tag infra' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+      expect(onDelete).toHaveBeenCalledWith('infra', false);
+    });
+
+    it('calls onDelete with resetCheck=true when the reset checkbox is checked', () => {
+      const onDelete = vi.fn();
+      open(vi.fn(), undefined, { onDelete });
+      fireEvent.click(screen.getByRole('button', { name: 'Delete tag infra' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: /also reset check status/i }));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+      expect(onDelete).toHaveBeenCalledWith('infra', true);
+    });
+
+    it('cancelling the inline confirm does not call onDelete', () => {
+      const onDelete = vi.fn();
+      open(vi.fn(), undefined, { onDelete });
+      fireEvent.click(screen.getByRole('button', { name: 'Delete tag infra' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onDelete).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Delete tag infra' })).toBeInTheDocument();
+    });
+
+    it('does not render delete affordances when onDelete is not provided', () => {
+      open(vi.fn());
+      expect(screen.queryByRole('button', { name: 'Delete tag infra' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('rename', () => {
+    it('shows a rename button when onRename prop is provided', () => {
+      open(vi.fn(), undefined, { onRename: vi.fn() });
+      expect(screen.getByRole('button', { name: 'Rename tag infra' })).toBeInTheDocument();
+    });
+
+    it('switches the row into an edit input on click', () => {
+      open(vi.fn(), undefined, { onRename: vi.fn() });
+      fireEvent.click(screen.getByRole('button', { name: 'Rename tag infra' }));
+      expect(screen.getByLabelText('Rename infra')).toHaveValue('infra');
+    });
+
+    it('calls onRename with the new value on Enter', () => {
+      const onRename = vi.fn();
+      open(vi.fn(), undefined, { onRename });
+      fireEvent.click(screen.getByRole('button', { name: 'Rename tag infra' }));
+      const input = screen.getByLabelText('Rename infra');
+      fireEvent.change(input, { target: { value: 'platform' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+      expect(onRename).toHaveBeenCalledWith('infra', 'platform');
+    });
+
+    it('calls onRename with the new value via the save button', () => {
+      const onRename = vi.fn();
+      open(vi.fn(), undefined, { onRename });
+      fireEvent.click(screen.getByRole('button', { name: 'Rename tag infra' }));
+      fireEvent.change(screen.getByLabelText('Rename infra'), { target: { value: 'platform' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save rename' }));
+      expect(onRename).toHaveBeenCalledWith('infra', 'platform');
+    });
+
+    it('cancels editing on Escape without calling onRename', () => {
+      const onRename = vi.fn();
+      open(vi.fn(), undefined, { onRename });
+      fireEvent.click(screen.getByRole('button', { name: 'Rename tag infra' }));
+      const input = screen.getByLabelText('Rename infra');
+      fireEvent.change(input, { target: { value: 'platform' } });
+      fireEvent.keyDown(input, { key: 'Escape' });
+      expect(onRename).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Rename tag infra' })).toBeInTheDocument();
+    });
+
+    it('cancels editing via the cancel button', () => {
+      const onRename = vi.fn();
+      open(vi.fn(), undefined, { onRename });
+      fireEvent.click(screen.getByRole('button', { name: 'Rename tag infra' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel rename' }));
+      expect(onRename).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Rename tag infra' })).toBeInTheDocument();
+    });
+
+    it('submitting an unchanged value cancels editing without calling onRename', () => {
+      const onRename = vi.fn();
+      open(vi.fn(), undefined, { onRename });
+      fireEvent.click(screen.getByRole('button', { name: 'Rename tag infra' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save rename' }));
+      expect(onRename).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Rename tag infra' })).toBeInTheDocument();
+    });
+  });
+
+  describe('create', () => {
+    it('shows a create-tag input when onCreate prop is provided', () => {
+      open(vi.fn(), undefined, { onCreate: vi.fn() });
+      expect(screen.getByLabelText('New tag name')).toBeInTheDocument();
+    });
+
+    it('does not show a create-tag input when onCreate is not provided', () => {
+      open(vi.fn());
+      expect(screen.queryByLabelText('New tag name')).not.toBeInTheDocument();
+    });
+
+    it('calls onCreate with the trimmed value and clears the input', () => {
+      const onCreate = vi.fn();
+      open(vi.fn(), undefined, { onCreate });
+      const input = screen.getByLabelText('New tag name');
+      fireEvent.change(input, { target: { value: '  security  ' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Create tag' }));
+      expect(onCreate).toHaveBeenCalledWith('security');
+      expect(input).toHaveValue('');
+    });
+
+    it('submits on Enter', () => {
+      const onCreate = vi.fn();
+      open(vi.fn(), undefined, { onCreate });
+      const input = screen.getByLabelText('New tag name');
+      fireEvent.change(input, { target: { value: 'security' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+      expect(onCreate).toHaveBeenCalledWith('security');
+    });
+
+    it('does not call onCreate for an empty value', () => {
+      const onCreate = vi.fn();
+      open(vi.fn(), undefined, { onCreate });
+      fireEvent.click(screen.getByRole('button', { name: 'Create tag' }));
+      expect(onCreate).not.toHaveBeenCalled();
+    });
+
+    it('does not call onCreate for a tag that already exists (case-insensitive)', () => {
+      const onCreate = vi.fn();
+      open(vi.fn(), undefined, { onCreate });
+      const input = screen.getByLabelText('New tag name');
+      fireEvent.change(input, { target: { value: 'Infra' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Create tag' }));
+      expect(onCreate).not.toHaveBeenCalled();
+    });
   });
 });

@@ -300,9 +300,11 @@ export default function App() {
   const colFilterCache = useRef({});
   const [syncDiffSuffix, setSyncDiffSuffix] = useState('');
 
+  const [tagRegistry, setTagRegistry] = useState([]);
+
   const load = useCallback(async () => {
     try {
-      const d = await api.list();
+      const [d, t] = await Promise.all([api.list(), api.getTags()]);
       // The server hasn't finished its first GitHub fetch yet and returned an
       // empty list. Don't blow away a populated cached board (or persist the
       // empty payload) — keep showing what we have and let the poll retry.
@@ -313,6 +315,7 @@ export default function App() {
         }
         return d;
       });
+      setTagRegistry(t?.tags || []);
       if (d.cacheReady) {
         setShowingCachedData(false);
         writeBoardCache(d);
@@ -503,7 +506,9 @@ export default function App() {
   const onAddFlag = useCallback((id, flag) => mutate(() => api.addFlag(id, flag)), [mutate]);
   const onRemoveFlag = useCallback((id, flag) => mutate(() => api.removeFlag(id, flag)), [mutate]);
   // Delete a tag from every repo that carries it (from the tag-filter dropdown).
-  const onDeleteTag = useCallback((tag) => mutate(() => api.deleteTag(tag)), [mutate]);
+  const onDeleteTag = useCallback((tag, resetCheck) => mutate(() => api.deleteTag(tag, resetCheck)), [mutate]);
+  const onCreateTag = useCallback((tag) => mutate(() => api.createTag(tag)), [mutate]);
+  const onRenameTag = useCallback((tag, newTag) => mutate(() => api.renameTag(tag, newTag)), [mutate]);
   const onToggleMenu = useCallback((id, intent = null) => {
     // An explicit intent (the "+ tag" chip) always opens and focuses; a plain
     // gear click toggles the menu open/closed.
@@ -595,16 +600,17 @@ export default function App() {
     });
   }, [data.repos]);
 
-  // Drop selected tags that no longer exist on any repo (e.g. after removing the
-  // last use of a tag) so the filter can't get stuck on a phantom tag.
+  // Drop selected tags that are no longer registered (e.g. after a delete or
+  // rename) so the filter can't get stuck on a phantom tag. A tag with zero
+  // current usage stays valid as long as it's still in the registry.
   useEffect(() => {
     setTagFilter((tf) => {
       if (tf.tags.length === 0) return tf;
-      const avail = new Set(availableTags.map((t) => t.tag));
+      const avail = new Set(tagRegistry.map((t) => t.tag));
       const kept = tf.tags.filter((t) => avail.has(t));
       return kept.length === tf.tags.length ? tf : { ...tf, tags: kept };
     });
-  }, [availableTags]);
+  }, [tagRegistry]);
 
   // Only surface the per-card owner indicator when the board mixes owners;
   // single-owner setups already name the owner in the header.
@@ -830,7 +836,14 @@ export default function App() {
         <IgnoredIcon className="h-3 w-3" aria-hidden="true" />
         show ignored
       </button>
-      <TagFilter available={availableTags} value={tagFilter} onChange={setTagFilter} onDelete={onDeleteTag} />
+      <TagFilter
+        available={tagRegistry}
+        value={tagFilter}
+        onChange={setTagFilter}
+        onDelete={onDeleteTag}
+        onCreate={onCreateTag}
+        onRename={onRenameTag}
+      />
       <PriorityFilter value={priorityFilter} onChange={setPriorityFilter} />
       <button
         onClick={() => setReportsOpen(true)}

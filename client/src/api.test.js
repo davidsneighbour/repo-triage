@@ -223,6 +223,27 @@ describe('api wrapper contract', () => {
         expect(fetchMock.mock.calls[1]).toEqual(['/api/repos/1/settings-sets/hygiene']);
     });
 
+    it('covers createTag, renameTag, and deleteTag with resetCheck', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ ok: true }) });
+
+        await api.createTag('infra');
+        await api.renameTag('infra', 'platform');
+        await api.deleteTag('platform', true);
+
+        const calls = fetchMock.mock.calls;
+        expect(calls[0]).toEqual(['/api/tags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag: 'infra' }),
+        }]);
+        expect(calls[1]).toEqual(['/api/tags/infra', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newTag: 'platform' }),
+        }]);
+        expect(calls[2]).toEqual(['/api/tags/platform?resetCheck=true', { method: 'DELETE' }]);
+    });
+
     it('covers getTagRules, putTagRule, deleteTagRule', async () => {
         const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ ok: true }) });
 

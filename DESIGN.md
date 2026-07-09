@@ -792,12 +792,39 @@ persisted in localStorage under its own key, separate from the filter pills.
 
 A toolbar button (`tags (N)` where `N` is the number of selected tags) opens a
 popover (portal, `fixed`, anchored below the trigger; backdrop scrim closes it —
-same pattern as the CardMenu). The popover lists every tag currently on the
-board with its usage count as checkbox rows, plus a **match any / all**
-segmented toggle (shown once two or more tags are selected) and a "clear"
-action. Selection narrows the board to repos matching the chosen tags (union for
-"any", intersection for "all"); it composes with the text and inclusive filters.
-Like the text filters it is a transient query — not persisted.
+same pattern as the CardMenu). The popover lists every *registered* tag — not
+just tags currently applied to a repo — with its usage count as checkbox rows,
+plus a **match any / all** segmented toggle (shown once two or more tags are
+selected) and a "clear" action. Selection narrows the board to repos matching
+the chosen tags (union for "any", intersection for "all"); it composes with
+the text and inclusive filters. Like the text filters, tag *selection* is a
+transient query — not persisted. Tag *existence* (the registry itself) is
+persisted server-side independent of any repo, so a tag can be created ahead
+of use.
+
+This popover is also the central place to manage tags, each affordance shown
+only when its handler is provided:
+
+* **Create** — a "new tag…" text field + "add" button pinned below the tag
+  list, separated by a top border. Registers the tag with zero usage; it then
+  appears in the list immediately, ready to be applied from any repo's
+  CardMenu. A duplicate (case-insensitive) name is a silent no-op.
+* **Rename** — a leading `Pencil` icon button per row (`Rename tag <tag>`)
+  swaps that row for an inline text input (autofocused, autoselected) plus
+  `Check`/`X` save-and-cancel icon buttons. Enter saves, Escape cancels —
+  scoped to the input itself (it stops the keydown from bubbling to the
+  popover's own Escape-to-close handling, so Escape cancels the edit without
+  closing the whole popover). Renaming to a name that already exists **merges**
+  the two tags: every repo carrying the old name ends up with the new one, and
+  any `tag_rule` review-interval override moves with it.
+* **Delete** — the existing trailing `Trash2` icon button (`Delete tag <tag>`)
+  now arms an **inline confirm** row instead of a blocking `window.confirm` —
+  the standard guard for destructive actions elsewhere in the app (see Notices
+  dialog). The confirm row states the tag and affected repo count, offers a
+  checkbox **"also reset check status for affected repos"**, and a rose
+  "Delete" / neutral "Cancel" button pair. Checking the box clears the
+  affected repos' check/anchor state (the same effect as the CardMenu's
+  "Clear check date") in addition to removing the tag everywhere.
 
 ### Triage priority
 

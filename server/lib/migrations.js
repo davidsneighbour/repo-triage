@@ -178,6 +178,32 @@ export const MIGRATIONS = [
       }
     },
   },
+  {
+    version: 2026070901,
+    description: 'add tag_registry table so tags can exist independent of repo_tag usage',
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tag_registry (
+          tag        TEXT PRIMARY KEY,
+          created_at TEXT NOT NULL
+        );
+      `);
+
+      // Back-fill the registry from tags already in use so existing data
+      // shows up in the "manage tags" surface without needing to be re-added.
+      // Guarded because some upgrade paths (and isolated migration tests)
+      // may not have repo_tag yet.
+      const hasRepoTag = db
+        .prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'repo_tag'`)
+        .get();
+      if (hasRepoTag) {
+        db.exec(`
+          INSERT OR IGNORE INTO tag_registry (tag, created_at)
+          SELECT DISTINCT tag, datetime('now') FROM repo_tag
+        `);
+      }
+    },
+  },
 ];
 
 /**

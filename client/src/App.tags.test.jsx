@@ -6,6 +6,7 @@ import { api } from './api.js';
 vi.mock('./api.js', () => ({
   api: {
     list: vi.fn(),
+    getTags: vi.fn(),
     refresh: vi.fn(),
     setPriority: vi.fn(),
     setChecked: vi.fn(),
@@ -15,6 +16,8 @@ vi.mock('./api.js', () => ({
     addTag: vi.fn(),
     removeTag: vi.fn(),
     deleteTag: vi.fn(),
+    createTag: vi.fn(),
+    renameTag: vi.fn(),
   },
 }));
 
@@ -43,9 +46,12 @@ describe('tags UI', () => {
     vi.clearAllMocks();
     window.localStorage.clear();
     api.list.mockResolvedValue(payload);
+    api.getTags.mockResolvedValue({ tags: [{ tag: 'infra', count: 1 }, { tag: 'oss', count: 1 }] });
     api.addTag.mockResolvedValue({ ok: true });
     api.removeTag.mockResolvedValue({ ok: true });
     api.deleteTag.mockResolvedValue({ ok: true });
+    api.createTag.mockResolvedValue({ ok: true });
+    api.renameTag.mockResolvedValue({ ok: true });
   });
 
   it('renders tag chips on cards', async () => {
@@ -94,17 +100,63 @@ describe('tags UI', () => {
     expect(screen.queryByRole('button', { name: 'Move to Today' })).not.toBeInTheDocument();
   });
 
-  it('deletes a tag everywhere from the tag-filter dropdown (after confirm)', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('deletes a tag everywhere from the tag-filter dropdown (after inline confirm)', async () => {
     render(<App />);
     await screen.findByRole('link', { name: 'alpha' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Filter by tag' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete tag infra' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
 
-    expect(confirmSpy).toHaveBeenCalled();
-    await waitFor(() => expect(api.deleteTag).toHaveBeenCalledWith('infra'));
-    confirmSpy.mockRestore();
+    await waitFor(() => expect(api.deleteTag).toHaveBeenCalledWith('infra', false));
+  });
+
+  it('cancelling the inline delete confirm does not call the API', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter by tag' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete tag infra' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByRole('button', { name: 'Delete tag infra' })).toBeInTheDocument();
+    expect(api.deleteTag).not.toHaveBeenCalled();
+  });
+
+  it('deletes a tag and resets check status when the checkbox is checked', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter by tag' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete tag infra' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /also reset check status/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(api.deleteTag).toHaveBeenCalledWith('infra', true));
+  });
+
+  it('creates a tag from the tag-filter dropdown', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter by tag' }));
+    fireEvent.change(screen.getByLabelText('New tag name'), { target: { value: 'security' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create tag' }));
+
+    await waitFor(() => expect(api.createTag).toHaveBeenCalledWith('security'));
+  });
+
+  it('renames a tag from the tag-filter dropdown', async () => {
+    render(<App />);
+    await screen.findByRole('link', { name: 'alpha' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter by tag' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Rename tag infra' }));
+    const input = screen.getByLabelText('Rename infra');
+    fireEvent.change(input, { target: { value: 'platform' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save rename' }));
+
+    await waitFor(() => expect(api.renameTag).toHaveBeenCalledWith('infra', 'platform'));
   });
 
   it('filters the board by a selected tag', async () => {

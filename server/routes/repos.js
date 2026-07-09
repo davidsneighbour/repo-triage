@@ -89,7 +89,26 @@ const addTagStmt = db.prepare(`
 const removeTagStmt = db.prepare('DELETE FROM repo_tag WHERE repo_id = ? AND tag = ?');
 const deleteTagEverywhereStmt = db.prepare('DELETE FROM repo_tag WHERE tag = ?');
 const tagsForRepoStmt = db.prepare('SELECT tag FROM repo_tag WHERE repo_id = ? ORDER BY tag');
-const allTagsStmt = db.prepare('SELECT tag, COUNT(*) AS count FROM repo_tag GROUP BY tag ORDER BY count DESC, tag ASC');
+const allTagsStmt = db.prepare(`
+  SELECT r.tag AS tag, COUNT(t.repo_id) AS count
+  FROM tag_registry r
+  LEFT JOIN repo_tag t ON t.tag = r.tag
+  GROUP BY r.tag
+  ORDER BY count DESC, r.tag ASC
+`);
+const registerTagStmt = db.prepare(`INSERT OR IGNORE INTO tag_registry (tag, created_at) VALUES (?, ?)`);
+const unregisterTagStmt = db.prepare('DELETE FROM tag_registry WHERE tag = ?');
+const tagRegisteredStmt = db.prepare('SELECT 1 FROM tag_registry WHERE tag = ?');
+const repoIdsForTagStmt = db.prepare('SELECT DISTINCT repo_id FROM repo_tag WHERE tag = ?');
+const mergeTagStmt = db.prepare(`
+  INSERT OR IGNORE INTO repo_tag (repo_id, full_name, tag, created_at)
+  SELECT repo_id, full_name, ?, created_at FROM repo_tag WHERE tag = ?
+`);
+const mergeTagRuleStmt = db.prepare(`
+  INSERT OR IGNORE INTO tag_rule (tag, days, updated_at)
+  SELECT ?, days, updated_at FROM tag_rule WHERE tag = ?
+`);
+const deleteTagRuleStmt = db.prepare('DELETE FROM tag_rule WHERE tag = ?');
 const addFlagStmt = db.prepare(`
   INSERT OR IGNORE INTO repo_flag (repo_id, full_name, flag, created_at)
   VALUES (@id, @full_name, @flag, @now)
@@ -108,6 +127,9 @@ const restoreTagStmt = db.prepare(
 );
 const restoreFlagStmt = db.prepare(
   `INSERT OR IGNORE INTO repo_flag (repo_id, full_name, flag, created_at) VALUES (@repo_id, @full_name, @flag, @created_at)`
+);
+const restoreTagRegistryStmt = db.prepare(
+  `INSERT OR IGNORE INTO tag_registry (tag, created_at) VALUES (@tag, @created_at)`
 );
 
 const normalizeTag = (raw) => (typeof raw === 'string' ? raw.trim().toLowerCase().slice(0, 50) : '');
@@ -212,6 +234,7 @@ router.post('/repos/bulk', (req, res) => {
           case 'tag': {
             const tag = normalizeTag(params.tag);
             if (!tag) throw new Error('tag must be non-empty');
+            registerTagStmt.run(tag, nowIso);
             addTagStmt.run({ id, full_name: repo?.full_name ?? null, tag, now: nowIso });
             logActivity(id, repo?.full_name ?? '', 'tag_add', { tag });
             break;
@@ -420,7 +443,9 @@ router.post('/repos/:id/tags', (req, res) => {
   const tag = normalizeTag(req.body?.tag);
   if (!tag) return res.status(400).json({ error: 'tag must be a non-empty string' });
   const repo = findRepo(id);
-  addTagStmt.run({ id, full_name: repo?.full_name ?? null, tag, now: new Date().toISOString() });
+  const now = new Date().toISOString();
+  registerTagStmt.run(tag, now);
+  addTagStmt.run({ id, full_name: repo?.full_name ?? null, tag, now });
   logActivity(id, repo?.full_name ?? '', 'tag_add', { tag });
   invalidatePayloadCache();
   res.json({ ok: true, tag });
@@ -439,10 +464,56 @@ router.get('/tags', (req, res) => {
   res.json({ tags: allTagsStmt.all() });
 });
 
-router.delete('/tags/:tag', (req, res) => {
-  const info = deleteTagEverywhereStmt.run(normalizeTag(req.params.tag));
+// Create a tag in the registry without attaching it to any repo yet
+// (repo_tag.repo_id is NOT NULL, so a tag can't exist there on its own).
+router.post('/tags', (req, res) => {
+  const tag = normalizeTag(req.body?.tag);
+  if (!tag) return res.status(400).json({ error: 'tag must be a non-empty string' });
+  registerTagStmt.run(tag, new Date().toISOString());
   invalidatePayloadCache();
-  res.json({ ok: true, removed: info.changes });
+  res.json({ ok: true, tag });
+});
+
+router.put('/tags/:tag', (req, res) => {
+  const from = normalizeTag(req.params.tag);
+  const to = normalizeTag(req.body?.newTag);
+  if (!to) return res.status(400).json({ error: 'newTag must be a non-empty string' });
+  if (!tagRegisteredStmt.get(from)) return res.status(404).json({ error: `tag "${from}" not found` });
+  if (from === to) return res.json({ ok: true, tag: to, merged: false });
+
+  const now = new Date().toISOString();
+  const merged = Boolean(tagRegisteredStmt.get(to));
+  db.transaction(() => {
+    mergeTagStmt.run(to, from);
+    deleteTagEverywhereStmt.run(from);
+    mergeTagRuleStmt.run(to, from);
+    deleteTagRuleStmt.run(from);
+    registerTagStmt.run(to, now);
+    unregisterTagStmt.run(from);
+  })();
+  invalidatePayloadCache();
+  res.json({ ok: true, tag: to, merged });
+});
+
+router.delete('/tags/:tag', (req, res) => {
+  const tag = normalizeTag(req.params.tag);
+  const resetCheck = req.query.resetCheck === 'true' || req.query.resetCheck === '1';
+  const now = new Date().toISOString();
+
+  let affectedRepoIds = [];
+  const info = db.transaction(() => {
+    if (resetCheck) affectedRepoIds = repoIdsForTagStmt.all(tag).map((r) => r.repo_id);
+    const result = deleteTagEverywhereStmt.run(tag);
+    unregisterTagStmt.run(tag);
+    for (const repoId of affectedRepoIds) {
+      const repo = findRepo(repoId);
+      clearScheduleStmt.run({ id: repoId, full_name: repo?.full_name ?? null, now });
+      logActivity(repoId, repo?.full_name ?? '', 'clear', { reason: 'tag_delete', tag });
+    }
+    return result;
+  })();
+  invalidatePayloadCache();
+  res.json({ ok: true, removed: info.changes, resetCount: affectedRepoIds.length });
 });
 
 // ---- Flags -----------------------------------------------------------------
@@ -502,6 +573,7 @@ router.get('/backup', (req, res) => {
     repo_notice: db.prepare('SELECT repo_id, full_name, body, created_at FROM repo_notice').all(),
     repo_tag: db.prepare('SELECT repo_id, full_name, tag, created_at FROM repo_tag').all(),
     repo_flag: db.prepare('SELECT repo_id, full_name, flag, created_at FROM repo_flag').all(),
+    tag_registry: db.prepare('SELECT tag, created_at FROM tag_registry').all(),
   });
 });
 
@@ -544,6 +616,14 @@ router.post('/restore', (req, res) => {
         if (f.repo_id == null || !f.flag) continue;
         restoreFlagStmt.run({ repo_id: f.repo_id, full_name: f.full_name ?? null, flag: normalizeTag(f.flag), created_at: f.created_at ?? now });
       }
+      db.prepare('DELETE FROM tag_registry').run();
+      for (const t of (body.tag_registry || [])) {
+        if (!t.tag) continue;
+        restoreTagRegistryStmt.run({ tag: normalizeTag(t.tag), created_at: t.created_at ?? now });
+      }
+      // Back-fill from the restored repo_tag rows, so tags still resolve for
+      // backups predating the tag registry (or a registry-only tag that was pruned).
+      db.prepare(`INSERT OR IGNORE INTO tag_registry (tag, created_at) SELECT DISTINCT tag, ? FROM repo_tag`).run(now);
     });
     restore();
   } catch (e) {
@@ -557,6 +637,7 @@ router.post('/restore', (req, res) => {
       repo_notice: body.repo_notice.length,
       repo_tag: body.repo_tag.length,
       repo_flag: (body.repo_flag || []).length,
+      tag_registry: (body.tag_registry || []).length,
     },
   });
 });

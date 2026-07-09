@@ -6,6 +6,7 @@ import { api } from './api.js';
 vi.mock('./api.js', () => ({
   api: {
     list: vi.fn(),
+    getTags: vi.fn(),
     refresh: vi.fn(),
     getPrefs: vi.fn(),
     putPrefs: vi.fn(),

@@ -7,6 +7,7 @@ import { setMobileViewport, setDesktopViewport } from './test/viewport.js';
 vi.mock('./api.js', () => ({
   api: {
     list: vi.fn(),
+    getTags: vi.fn(),
     refresh: vi.fn(),
     setPriority: vi.fn(),
     setChecked: vi.fn(),

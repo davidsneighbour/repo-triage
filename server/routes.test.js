@@ -477,6 +477,85 @@ describe('tags', () => {
     const all = await request(app).get('/api/tags');
     expect(all.body.tags.find((t) => t.tag === 'doomed')).toBeUndefined();
   });
+
+  it('creates a registry-only tag with zero usage that shows up in the tag list', async () => {
+    const create = await request(app).post('/api/tags').send({ tag: '  Unused  ' });
+    expect(create.status).toBe(200);
+    expect(create.body).toEqual({ ok: true, tag: 'unused' });
+
+    const all = await request(app).get('/api/tags');
+    expect(all.body.tags.find((t) => t.tag === 'unused')).toMatchObject({ tag: 'unused', count: 0 });
+  });
+
+  it('rejects creating a tag with an empty name', async () => {
+    const res = await request(app).post('/api/tags').send({ tag: '   ' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/non-empty/);
+  });
+
+  it('renames a tag across every repo that carries it', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: 'old-name' });
+    const rename = await request(app).put('/api/tags/old-name').send({ newTag: 'new-name' });
+    expect(rename.status).toBe(200);
+    expect(rename.body).toEqual({ ok: true, tag: 'new-name', merged: false });
+
+    const list = await request(app).get(`/api/repos/${REPO.id}/tags`);
+    expect(list.body.tags).toContain('new-name');
+    expect(list.body.tags).not.toContain('old-name');
+  });
+
+  it('merges into an existing tag when renaming collides with it', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: 'merge-a' });
+    await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: 'merge-b' });
+    const rename = await request(app).put('/api/tags/merge-a').send({ newTag: 'merge-b' });
+    expect(rename.body).toEqual({ ok: true, tag: 'merge-b', merged: true });
+
+    const list = await request(app).get(`/api/repos/${REPO.id}/tags`);
+    expect(list.body.tags).toContain('merge-b');
+    expect(list.body.tags).not.toContain('merge-a');
+  });
+
+  it('returns 404 when renaming a tag that is not registered', async () => {
+    const res = await request(app).put('/api/tags/does-not-exist').send({ newTag: 'whatever' });
+    expect(res.status).toBe(404);
+  });
+
+  it('rejects renaming to an empty tag name', async () => {
+    await request(app).post('/api/tags').send({ tag: 'rename-source' });
+    const res = await request(app).put('/api/tags/rename-source').send({ newTag: '  ' });
+    expect(res.status).toBe(400);
+  });
+
+  it('deletes a tag without resetting check state by default', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: 'no-reset' });
+    await request(app).post(`/api/repos/${REPO.id}/check`).send({ daysAgo: 1 });
+
+    const before = await request(app).get('/api/repos');
+    const checkedBefore = before.body.repos.find((r) => r.id === REPO.id).checked_at;
+    expect(checkedBefore).not.toBeNull();
+
+    const del = await request(app).delete('/api/tags/no-reset');
+    expect(del.body.resetCount).toBe(0);
+
+    const after = await request(app).get('/api/repos');
+    expect(after.body.repos.find((r) => r.id === REPO.id).checked_at).toBe(checkedBefore);
+  });
+
+  it('deletes a tag and resets check state for affected repos when resetCheck=true', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/tags`).send({ tag: 'reset-me' });
+    await request(app).post(`/api/repos/${REPO.id}/check`).send({ daysAgo: 1 });
+
+    const before = await request(app).get('/api/repos');
+    expect(before.body.repos.find((r) => r.id === REPO.id).checked_at).not.toBeNull();
+
+    const del = await request(app).delete('/api/tags/reset-me?resetCheck=true');
+    expect(del.body.resetCount).toBe(1);
+
+    const after = await request(app).get('/api/repos');
+    const repo = after.body.repos.find((r) => r.id === REPO.id);
+    expect(repo.checked_at).toBeNull();
+    expect(repo.priority_set_at).toBeNull();
+  });
 });
 
 describe('flags', () => {
@@ -611,6 +690,7 @@ describe('backup & restore (runs last — mutates shared triage state)', () => {
         repo_notice: expect.any(Array),
         repo_tag: expect.any(Array),
         repo_flag: expect.any(Array),
+        tag_registry: expect.any(Array),
       })
     );
     expect(backup.body.repo_tag.some((t) => t.tag === 'backup-me')).toBe(true);
@@ -653,7 +733,7 @@ describe('backup & restore (runs last — mutates shared triage state)', () => {
       ],
     });
     expect(res.status).toBe(200);
-    expect(res.body.restored).toEqual({ repo_state: 2, repo_notice: 2, repo_tag: 2, repo_flag: 0 });
+    expect(res.body.restored).toEqual({ repo_state: 2, repo_notice: 2, repo_tag: 2, repo_flag: 0, tag_registry: 0 });
 
     const board = await request(app).get('/api/repos');
     const repo = board.body.repos.find((r) => r.id === REPO.id);
@@ -687,7 +767,36 @@ describe('backup & restore (runs last — mutates shared triage state)', () => {
       ],
     });
     expect(res.status).toBe(200);
-    expect(res.body.restored).toEqual({ repo_state: 0, repo_notice: 0, repo_tag: 0, repo_flag: 3 });
+    expect(res.body.restored).toEqual({ repo_state: 0, repo_notice: 0, repo_tag: 0, repo_flag: 3, tag_registry: 0 });
+  });
+
+  it('skips invalid tag_registry entries and defaults a missing created_at', async () => {
+    const res = await request(app).post('/api/restore').send({
+      repo_state: [],
+      repo_notice: [],
+      repo_tag: [],
+      tag_registry: [
+        { tag: 'no-date' },  // valid, missing created_at → defaulted to now
+        { created_at: '2026-01-01T00:00:00.000Z' }, // no tag → skipped
+      ],
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.restored.tag_registry).toBe(2);
+
+    const all = await request(app).get('/api/tags');
+    expect(all.body.tags.find((t) => t.tag === 'no-date')).toMatchObject({ tag: 'no-date', count: 0 });
+  });
+
+  it('round-trips a registry-only (unused) tag through backup/restore', async () => {
+    await request(app).post('/api/tags').send({ tag: 'unused-backup' });
+
+    const backup = await request(app).get('/api/backup');
+    expect(backup.body.tag_registry.some((t) => t.tag === 'unused-backup')).toBe(true);
+
+    await request(app).post('/api/restore').send(backup.body);
+
+    const all = await request(app).get('/api/tags');
+    expect(all.body.tags.find((t) => t.tag === 'unused-backup')).toMatchObject({ tag: 'unused-backup', count: 0 });
   });
 });
 

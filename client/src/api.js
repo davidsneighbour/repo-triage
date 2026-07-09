@@ -70,7 +70,21 @@ export const api = {
       body: JSON.stringify({ tag }),
     }).then(json),
   removeTag: (id, tag) => fetch(`/api/repos/${id}/tags/${encodeURIComponent(tag)}`, { method: 'DELETE' }).then(json),
-  deleteTag: (tag) => fetch(`/api/tags/${encodeURIComponent(tag)}`, { method: 'DELETE' }).then(json),
+  getTags: () => fetch('/api/tags').then(json),
+  createTag: (tag) =>
+    fetch('/api/tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag }),
+    }).then(json),
+  renameTag: (tag, newTag) =>
+    fetch(`/api/tags/${encodeURIComponent(tag)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newTag }),
+    }).then(json),
+  deleteTag: (tag, resetCheck = false) =>
+    fetch(`/api/tags/${encodeURIComponent(tag)}${resetCheck ? '?resetCheck=true' : ''}`, { method: 'DELETE' }).then(json),
   addFlag: (id, flag) =>
     fetch(`/api/repos/${id}/flags`, {
       method: 'POST',

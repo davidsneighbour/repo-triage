@@ -1,0 +1,4 @@
+interface:
+  display_name: "Astro Migration Project"
+  short_description: "Bootstrap and run parity-first Astro migrations"
+  default_prompt: "Use $dnb-astro-migration-project to migrate this repository to Astro with issue-backed tracking."

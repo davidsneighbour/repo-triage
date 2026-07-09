@@ -39,11 +39,14 @@ repotriage
 rolldown
 scannable
 schedulable
+scratchpad
 snooze
 sqlite
 supertest
 Tailwind
 TailwindCSS
+textareas
+tinykeys
 toggleable
 triage
 triaging

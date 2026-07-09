@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git log *)",
+      "Bash(node -e ' *)",
+      "Bash(node --experimental-vm-modules -e ' *)",
+      "Bash(timeout 40 bash -c 'until curl -sf http://localhost:5173 >/dev/null; do sleep 1; done')",
+      "Bash(curl -s http://localhost:8787/api/health)",
+      "Bash(grep -n \"^  const .*= \\(\\\\|^  const .*=$\\\\|extras\\\\s*=\\\\|Fragment\\\\|<>$\" /home/patrick/github.com/davidsneighbour/repo-triage/client/src/App.jsx)",
+      "Bash(grep -n \"useState\\(\\\\[\\\\]\\)\\\\|useEffect\\(\\(\\) => {$\" /home/patrick/github.com/davidsneighbour/repo-triage/client/src/App.jsx)",
+      "Bash(git config *)",
+      "Bash(gh workflow *)"
+    ]
+  }
+}

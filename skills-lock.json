@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "skills": {
+    "dnb-astro-migration-project": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-astro-migration-project/SKILL.md",
+      "computedHash": "39146159924806ccef05eb9ee45f31bd38d7eab15345f59e94d51a49291738d8"
+    },
+    "dnb-behaviour-spec": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-behaviour-spec/SKILL.md",
+      "computedHash": "24aed2c41c6268fd364797e6955e55a419b61247b9d9aaaa45f944f638f8c7f8"
+    },
+    "dnb-blog-draft-materialise": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-blog-draft-materialise/SKILL.md",
+      "computedHash": "4abfe9f7e0f664bb6be15cb0a74c83d5f68d40c9c2c257001754865ba83b9741"
+    },
+    "dnb-blog-draft-meta-matter": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-blog-draft-meta-matter/SKILL.md",
+      "computedHash": "d5aad61c07a29e6e051366ea9e421da4e493f07c5a68b7401bd1994dc92331e8"
+    },
+    "dnb-create-js-documentation": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-create-js-documentation/SKILL.md",
+      "computedHash": "074d27ea30bc96a45b6b61494234e06e91d0a468f3d8ad83fbf8e3da59d33f51"
+    },
+    "dnb-dependency-maintenance": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-dependency-maintenance/SKILL.md",
+      "computedHash": "aa4843921e4ec396989d1d84a664d150f0a1c72c6d4bf2e93c5104df4cca2bcd"
+    },
+    "dnb-interface-engineering": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-interface-engineering/SKILL.md",
+      "computedHash": "5ff9d920a08167e03c3daa5b30964ea664bd55d1669a7d5889b8f417ea0637ab"
+    },
+    "dnb-markdown-formatting": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-markdown-formatting/SKILL.md",
+      "computedHash": "9294facf7998d31c4d21430e0925ac980a23a4216d080c303a5d189bd76d149e"
+    },
+    "dnb-osv-scan": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-osv-scan/SKILL.md",
+      "computedHash": "56be93596e078cf602efbbf7c135f6492b856041114aee771b0013e2febb83c0"
+    },
+    "dnb-post-into-void": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-post-into-void/SKILL.md",
+      "computedHash": "1dfdbe566c1059f1c7369242dfb5f5c8e3e3507e30ed88d9137be908a2e47e3a"
+    },
+    "dnb-post-session-into-void": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-post-session-into-void/SKILL.md",
+      "computedHash": "26b415750954b9b20c8891b3753ee6f5f9eb63938b904a0fe39b43934ed900e9"
+    },
+    "dnb-project-state-report": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-project-state-report/SKILL.md",
+      "computedHash": "b74385261f5ead70c474339c4b64585bac77557bc49a1f06ab2ee6ba0aabe907"
+    },
+    "dnb-project-task-triage": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-project-task-triage/SKILL.md",
+      "computedHash": "e9a3863bb60859a21ab90b52a5b9175f7579015f2580f58b01c4a3c99c0356d3"
+    },
+    "dnb-quality-gate-organisation": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-quality-gate-organisation/SKILL.md",
+      "computedHash": "a801a8af9f72825fd5e42d31a53866522983d6b9d995137767fe4dbd4ac93dff"
+    },
+    "dnb-reference": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-reference/SKILL.md",
+      "computedHash": "8548850c9145ac576abdb8edfdd70f3b199c38cb8044edd41934678136ff053c"
+    },
+    "dnb-resume-interrupted-work": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-resume-interrupted-work/SKILL.md",
+      "computedHash": "e4e284286d96304630f4a0ac569bb1d0cc3c0ad6041a4e5b09f98f772617762e"
+    },
+    "dnb-select-next-issue": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-select-next-issue/SKILL.md",
+      "computedHash": "2b0d1578ea4d90142c78d05d1eb7ad2f97e1b8dccd94caae58fbf3e42883bd74"
+    },
+    "dnb-strict-typescript-check": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-strict-typescript-check/SKILL.md",
+      "computedHash": "a7a9e9b62ce87dceef0006c919a0733c435a088b263d833c36fb0ce4a6aa2087"
+    },
+    "dnb-voice": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-voice/SKILL.md",
+      "computedHash": "e711689c345037a08bb726867c64b5d85d05126d10624936143f0b93df3b8134"
+    },
+    "dnb-work-on-issue": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-work-on-issue/SKILL.md",
+      "computedHash": "a2e16f0ffdbf6d0cd308483ab1e44a3005bdd37dd2923b74a4a97b229d1fbf1c"
+    },
+    "dnb-work-on-next-issue": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-work-on-next-issue/SKILL.md",
+      "computedHash": "8d849a533b22c1743dd01abed75e1f7f1a06ba0bf21a8b7cf598a418ec837ea7"
+    },
+    "dnb-work-through-issues": {
+      "source": "davidsneighbour/ai",
+      "sourceType": "github",
+      "skillPath": "skills/dnb-work-through-issues/SKILL.md",
+      "computedHash": "78a052c54e93526a55565b74b5693b350449e6bff339cbe055f2c80267ade7a7"
+    }
+  }
+}

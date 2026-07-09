@@ -20,6 +20,7 @@ import { StatusDialog } from './components/StatusDialog.jsx';
 import { TagFilter } from './components/TagFilter.jsx';
 import { PriorityFilter } from './components/PriorityFilter.jsx';
 import { FieldsMenu } from './components/FieldsMenu.jsx';
+import { DevIdOverlay } from './components/DevIdOverlay.jsx';
 
 // Colour/priority helpers now live in lib/constants; re-export for back-compat
 // (e.g. tests importing `ownerColor` from this module).
@@ -1054,6 +1055,7 @@ export default function App() {
           }}
         />
       )}
+      {import.meta.env.DEV && <DevIdOverlay />}
     </div>
   );
 }

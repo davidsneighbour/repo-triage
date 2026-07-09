@@ -872,6 +872,54 @@ show them — the **open** default keeps them out of the way without losing the
 history. All issue data comes from the local `repo_issue` sync table via
 `GET/POST /api/repos/:id/issues(/sync)`; see `server/lib/issueSync.js`.
 
+### Dev id overlay
+
+A development-only tool for pointing an AI assistant (or a human) at a
+specific element during local UI debugging — not a product feature.
+`DevIdOverlay.jsx` is rendered from `App.jsx` behind `import.meta.env.DEV`, so
+Vite dead-code-eliminates it (component, strings, and the `tinykeys`
+dependency) entirely out of the production bundle — confirmed empty by
+grepping `dist/assets/*.js` for its strings after a build.
+
+* **Toggle** — a small `[id]`-labelled button fixed at `bottom-4 right-4`,
+  `z-50` (above every dialog). `aria-pressed` reflects state; the choice
+  persists to `localStorage` (`repo-triage-dev-id-overlay`) so it survives a
+  reload. Also toggleable via `Ctrl+Shift+I` (via `tinykeys`), ignored while
+  focus is in an `input`/`textarea`/`select`/`contenteditable` element so it
+  never fires while typing.
+* **Hover** — while active, `mousemove` tracks the cursor and, throttled via
+  `requestAnimationFrame` (one pending frame at a time, not one timer per
+  event), resolves the element under the cursor with
+  `document.elementFromPoint()` and shows a small fixed tooltip next to it:
+  `pointer-events: none`, high `z-50`, monospace, truncated, dark
+  surface/border tokens matching every other popover. Hovering the overlay's
+  own toggle button is ignored (checked via a container ref), so it never
+  identifies itself.
+* **Identifier** — `getElementIdentifier()` (`lib/devIdOverlay.js`, pure and
+  unit-tested) prefers, in order: the hovered element's own `id` (`#foo`); its
+  own first two class names (`tag.class-a.class-b`); a
+  `data-slot`/`data-testid`/`data-component` attribute; finally the bare tag
+  name. Deliberately checks the element itself only, never an ancestor — the
+  whole app mounts under Vite's `<div id="root">`, so walking up to the
+  "nearest" ancestor id resolves almost every element to `#root`, which
+  identifies nothing useful (caught during manual verification, not left as a
+  theoretical concern). Deliberately data-driven, not a new tagging
+  convention — no component in this app currently sets those `data-*`
+  attributes, so today's output leans on class names; standardizing metadata
+  attributes is a separate future decision, not required for this tool to be
+  useful now.
+* **Copy** — while active, a **click anywhere** is intercepted (capture-phase
+  listener, `preventDefault`/`stopPropagation`, skipped for clicks inside the
+  overlay itself) and copies that element's identifier via
+  `navigator.clipboard.writeText()`; the tooltip swaps to `copied: <id>` for
+  1.2s. This is a deliberate inspect-mode trade-off — while the overlay is on,
+  it owns clicks instead of the app underneath.
+* **Cleanup** — the `mousemove`/`click` listeners and any pending
+  `requestAnimationFrame`/copy-feedback timeout are only registered while
+  active and are torn down on toggle-off or unmount (effect cleanup keyed on
+  the active flag). The `Ctrl+Shift+I` listener itself is always registered
+  (so the overlay can be turned on) and unsubscribed only on unmount.
+
 ### Banners
 
 Full-width alerts in the board area (above the columns). Two variants:

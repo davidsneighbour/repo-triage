@@ -31,6 +31,7 @@ const { fetchAllRepos, fetchRepoIssues, buildResolveOwnerToken } = await import(
 const { refreshRepos } = await import('./lib/sync.js');
 const db = (await import('./db.js')).default;
 const {
+  getAllStoredIssues,
   getStoredIssues,
   isIssueSyncEnabled,
   issueSyncStatus,
@@ -193,6 +194,27 @@ describe('syncAllRepoIssues', () => {
     expect(results).toEqual([]);
     expect(fetchRepoIssues).not.toHaveBeenCalled();
     expect(issueSyncStatus.warnings.join(' ')).toMatch(/rate limit budget low/);
+  });
+});
+
+describe('getAllStoredIssues', () => {
+  it('returns issues across every repo, most recently active first', async () => {
+    Object.assign(rateLimit, { remaining: 4999 });
+    fetchRepoIssues.mockResolvedValue([
+      { number: 100, title: 'alpha older', state: 'open', labels: [], body: null, html_url: null, github_updated_at: '2026-06-01T00:00:00Z' },
+    ]);
+    await syncRepoIssues(REPO_A);
+    fetchRepoIssues.mockResolvedValue([
+      { number: 101, title: 'beta newer', state: 'open', labels: ['bug'], body: null, html_url: null, github_updated_at: '2026-07-08T00:00:00Z' },
+    ]);
+    await syncRepoIssues(REPO_B);
+
+    const all = getAllStoredIssues();
+    const alpha = all.find((i) => i.repo_id === REPO_A.id && i.number === 100);
+    const beta = all.find((i) => i.repo_id === REPO_B.id && i.number === 101);
+    expect(alpha).toBeDefined();
+    expect(beta).toMatchObject({ labels: ['bug'], flagged: false });
+    expect(all.indexOf(beta)).toBeLessThan(all.indexOf(alpha));
   });
 });
 

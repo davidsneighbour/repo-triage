@@ -46,6 +46,7 @@ const setIssueSyncEnabledStmt = db.prepare(`
   ON CONFLICT(repo_id) DO UPDATE SET issue_sync_enabled = excluded.issue_sync_enabled, updated_at = excluded.updated_at
 `);
 const getStoredIssuesStmt = db.prepare('SELECT * FROM repo_issue WHERE repo_id = ? ORDER BY number DESC');
+const getAllStoredIssuesStmt = db.prepare('SELECT * FROM repo_issue ORDER BY github_updated_at DESC');
 const setIssueFlaggedStmt = db.prepare('UPDATE repo_issue SET flagged = ? WHERE repo_id = ? AND number = ?');
 
 /**
@@ -78,6 +79,20 @@ export function setIssueSyncEnabled(repoId, enabled) {
  */
 export function getStoredIssues(repoId) {
   return getStoredIssuesStmt.all(repoId).map((row) => ({
+    ...row,
+    labels: JSON.parse(row.labels || '[]'),
+    flagged: Boolean(row.flagged),
+  }));
+}
+
+/**
+ * Returns every locally stored issue across all repos, most recently active
+ * first. Reads only from `repo_issue` — never triggers a GitHub sync.
+ *
+ * @returns {object[]}
+ */
+export function getAllStoredIssues() {
+  return getAllStoredIssuesStmt.all().map((row) => ({
     ...row,
     labels: JSON.parse(row.labels || '[]'),
     flagged: Boolean(row.flagged),

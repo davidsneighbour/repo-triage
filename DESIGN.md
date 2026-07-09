@@ -555,7 +555,7 @@ What changes on mobile:
 * **Collapsed toolbar.** The dense desktop toolbar collapses to a few inline
   controls (search, sync, day picker) plus an overflow **action sheet** holding
   the rest (view toggle, group-by, sort, density, fields, the inclusive filters,
-  show-ignored, tag/priority filters, reports, notices, help).
+  show-ignored, tag/priority filters, reports, notices, issues, help).
 * **Bottom sheets.** Transient surfaces that are anchored popovers on desktop —
   `CardMenu`, `TagFilter`, `PriorityFilter` — render as full-width **bottom
   sheets** (slide-up) on mobile so their controls are thumb-reachable and never
@@ -896,8 +896,11 @@ urgency accent. All report data comes from `/api/reports/:kind` (shared with the
 
 A modal overlay (same structure as the Notices/Reports dialogs — `z-30` scrim,
 centred `z-40` panel, Esc to close), opened from a card's `CardMenu` →
-**GitHub actions** → "Browse issues". Always scoped to a single repo — unlike
-Notices there is no all-repos mode, since issues are inherently per-repository.
+**GitHub actions** → "Browse issues". Always scoped to a single repo. The
+all-repos equivalent is the separate **Issues overview dialog** below, not a
+second mode of this component — the two differ enough (no sync controls, an
+added repo column, a much larger row count) that folding them into one
+component would cost more than it saves.
 
 * **Header** — title, repo name, an **auto-sync on/off** toggle pill
   (`aria-pressed`) that flips the repo's issue-sync opt-out, and a **sync now**
@@ -983,6 +986,40 @@ grepping `dist/assets/*.js` for its strings after a build.
   the active flag). The `Ctrl+Shift+I` listener itself is always registered
   (so the overlay can be turned on) and unsubscribed only on unmount.
 
+### Issues overview dialog
+
+A modal overlay (same structure as the other dialogs — `z-30` scrim, centred
+`z-40` panel at a wider `max-w-4xl` to fit the added repo column, Esc to
+close), opened from a new toolbar **issues** button (`ICON.issues`, same
+`CircleDot` glyph as the per-repo surface) next to Reports/Notices. Lists
+every locally synced issue across every repo in one place, so a user doesn't
+have to open each repo's Issues dialog individually to see what's outstanding.
+
+* **Read-only, local-only** — it reads exclusively from `GET /api/issues`
+  (`server/lib/issueSync.js` → `getAllStoredIssues()`), which reads only the
+  `repo_issue` table. Opening this dialog never triggers a GitHub sync or API
+  call, unlike the per-repo Issues dialog's on-demand sync-on-open — this is a
+  deliberate difference, not an oversight, so browsing the overview never
+  spends GitHub rate-limit budget. There is accordingly no auto-sync toggle or
+  "sync now" button here; use the per-repo dialog or `repo-triage-cli` /
+  `POST /api/issues/sync` to refresh the underlying data.
+* **Header** — title and a count line ("N synced issues across all repos").
+* **Filter row** — the same search / state / sort / direction / flagged
+  controls as the per-repo Issues dialog, plus a **repo** sort option (added
+  to `lib/issues.js`'s `sortIssues`) so the list can be grouped by repository.
+  A trailing **columns** button (`SlidersHorizontal` glyph) opens a small
+  checkbox menu toggling the **status**, **activity**, and **labels** columns
+  independently — title, repo name, and the flag toggle are always shown, since
+  they're the point of a cross-repo list. "Activity" is time since
+  `github_updated_at` (the same field the per-repo dialog calls "updated");
+  there is no separate issue-age column because GitHub's issue creation date
+  isn't part of the locally synced `repo_issue` schema.
+* **Body** — the same row anatomy as the per-repo dialog (flag toggle, number +
+  title, optional label chips) plus a repo name line under the title, and the
+  optional status/activity columns trailing the row. Rows are not expandable
+  (no full body / "View on GitHub" — that detail view is one click away via
+  the per-repo dialog). Empty state: "no matching issues" in `text-faint`.
+
 ### Banners
 
 Full-width alerts in the board area (above the columns). Two variants:
@@ -1043,7 +1080,7 @@ The header keeps only **search**, **sync**, and the **day picker** inline. A
 single overflow trigger (`···`) opens a bottom **action sheet** containing the
 remaining toolbar controls (board/list toggle, group-by, sort, density, fields,
 the own/forks/archived inclusive filters + show-all, show-ignored, tag filter,
-priority filter, reports, notices, help). Controls keep their desktop semantics
+priority filter, reports, notices, issues, help). Controls keep their desktop semantics
 and active/inactive styling (filter-pill pattern) but are laid out as full-width
 rows at ≥ 44px height. No new control types — only relocation and resizing.
 

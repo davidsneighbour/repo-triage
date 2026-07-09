@@ -20,6 +20,7 @@ export function sortIssues(issues, sort = 'number', dir = 'desc') {
   const mul = dir === 'asc' ? 1 : -1;
   return [...issues].sort((a, b) => {
     if (sort === 'title') return a.title.localeCompare(b.title) * mul;
+    if (sort === 'repo') return (a.repo_full_name || '').localeCompare(b.repo_full_name || '') * mul;
     if (sort === 'updated') {
       const at = a.github_updated_at ? new Date(a.github_updated_at).getTime() : 0;
       const bt = b.github_updated_at ? new Date(b.github_updated_at).getTime() : 0;

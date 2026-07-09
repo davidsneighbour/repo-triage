@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { findRepo } from '../lib/sync.js';
 import {
+  getAllStoredIssues,
   getStoredIssues,
   isIssueSyncEnabled,
   issueSyncStatus,
@@ -17,6 +18,16 @@ router.get('/repos/:id/issues', (req, res) => {
   const repo = findRepo(Number(req.params.id));
   if (!repo) return res.status(404).json({ error: 'repo not found' });
   res.json({ issues: getStoredIssues(repo.id), syncEnabled: isIssueSyncEnabled(repo.id) });
+});
+
+// Cross-repo issue overview: every locally stored issue across all tracked
+// repos, most recently active first. Read-only — never triggers a sync.
+router.get('/issues', (req, res) => {
+  const issues = getAllStoredIssues().map((issue) => {
+    const repo = findRepo(issue.repo_id);
+    return { ...issue, repo_full_name: repo?.full_name ?? null };
+  });
+  res.json({ issues });
 });
 
 // On-demand / manual single-repo refresh (e.g. triggered when a repo detail view opens).

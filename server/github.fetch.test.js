@@ -220,7 +220,7 @@ describe('fetchAllRepos — default (no owners configured)', () => {
       ['/orgs/octocat/repos', () => makeRes({ status: 404, body: 'Not Found', headers: RATE_HEADERS })],
       ['/users/octocat/repos', () => makeRes({
         body: [
-          repo({ id: 1, full_name: 'octocat/full', owner: { login: 'octocat', type: 'User' }, forks_count: 7, default_branch: 'main', topics: ['cli', 'go'], license: { spdx_id: 'MIT' } }),
+          repo({ id: 1, full_name: 'octocat/full', owner: { login: 'octocat', type: 'User' }, forks_count: 7, default_branch: 'main', topics: ['cli', 'go'], license: { spdx_id: 'MIT' }, has_wiki: true, has_issues: true }),
           repo({ id: 2, full_name: 'octocat/bare', owner: { login: 'octocat', type: 'User' } }),
         ],
         headers: RATE_HEADERS,
@@ -231,11 +231,11 @@ describe('fetchAllRepos — default (no owners configured)', () => {
 
     const repos = await fetchAllRepos();
     expect(repos.find((r) => r.id === 1)).toMatchObject({
-      forks_count: 7, default_branch: 'main', topics: ['cli', 'go'], license: 'MIT',
+      forks_count: 7, default_branch: 'main', topics: ['cli', 'go'], license: 'MIT', has_wiki: true, has_issues: true,
     });
-    // Missing fields fall back to 0 / null / [].
+    // Missing fields fall back to 0 / null / [] / false.
     expect(repos.find((r) => r.id === 2)).toMatchObject({
-      forks_count: 0, default_branch: null, topics: [], license: null,
+      forks_count: 0, default_branch: null, topics: [], license: null, has_wiki: false, has_issues: false,
     });
   });
 });

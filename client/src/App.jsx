@@ -68,6 +68,7 @@ export default function App() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [remoteSettings, setRemoteSettings] = useState(null);
   const [tagRules, setTagRules] = useState([]);
+  const [settingsSets, setSettingsSets] = useState([]);
   const [lastExport, setLastExport] = useState(null);
   // Mobile overflow: the collapsed toolbar controls live in a bottom action sheet.
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -326,6 +327,15 @@ export default function App() {
     load();
   }, [load]);
 
+  // Settings-set presets are static config, not board state — fetched once.
+  // Optional-chained so App still mounts cleanly in tests whose api.js mock
+  // doesn't stub this endpoint (the feature is additive, not load-bearing).
+  useEffect(() => {
+    Promise.resolve(api.getSettingsSets?.())
+      .then((d) => setSettingsSets(d?.presets ?? []))
+      .catch(() => {});
+  }, []);
+
   // After each board update, compute a brief sync diff so AT users know which
   // repos moved to Today. Skipped on the initial load (prevDay0Ids starts null).
   // Cleared when syncing starts so stale diffs don't repeat on filter changes.
@@ -485,6 +495,7 @@ export default function App() {
   const onAddNotice = useCallback((id, body) => mutate(() => api.addNotice(id, body)), [mutate]);
   const onGhPrs = useCallback((id) => api.ghPrs(id), []);
   const onGhCreateIssue = useCallback((id, title, body) => api.ghCreateIssue(id, title, body), []);
+  const onGetConformance = useCallback((id, presetId) => api.getRepoConformance(id, presetId), []);
   const onViewNotices = useCallback((scope) => setNoticesScope(scope), []);
   const onViewIssues = useCallback((repoId) => setIssuesRepoId(repoId), []);
   const onAddTag = useCallback((id, tag) => mutate(() => api.addTag(id, tag)), [mutate]);
@@ -701,6 +712,8 @@ export default function App() {
     onGhPrs,
     onGhCreateIssue,
     onViewIssues,
+    settingsSets,
+    onGetConformance,
     onAnnounceMove: announceMove,
     colFilterCache,
     isGlobalFiltered: q.trim() !== '',

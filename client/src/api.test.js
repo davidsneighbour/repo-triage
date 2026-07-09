@@ -213,6 +213,16 @@ describe('api wrapper contract', () => {
         expect(calls[4]).toEqual(['/api/repos/1/flags/pinned', { method: 'DELETE' }]);
     });
 
+    it('covers getSettingsSets and getRepoConformance', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ ok: true }) });
+
+        await api.getSettingsSets();
+        await api.getRepoConformance(1, 'hygiene');
+
+        expect(fetchMock.mock.calls[0]).toEqual(['/api/settings-sets']);
+        expect(fetchMock.mock.calls[1]).toEqual(['/api/repos/1/settings-sets/hygiene']);
+    });
+
     it('covers getTagRules, putTagRule, deleteTagRule', async () => {
         const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ ok: true }) });
 

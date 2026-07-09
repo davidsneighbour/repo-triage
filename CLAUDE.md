@@ -103,7 +103,8 @@ set in each `vitest.config.js` and fail the run on regression.
 * `github.js`: GitHub API pagination, multi-owner loading (`parseOwners` + per-owner fetch with org-membership detection), auth-invalid detection, rate-limit state parsing, non-fatal `sourceStatus.warnings`. `enrichRepos()` runs opt-in per-repo GraphQL enrichment via `gh api graphql` after each sync.
 * `db.js`: Opens the SQLite connection, sets WAL mode, and runs pending migrations via `lib/migrations.js`.
 * `lib/migrations.js`: Schema migration registry and runner. See **Database migrations** below.
-* `lib/issueSync.js`: Sync engine for per-repo GitHub issues, stored in the `repo_issue` table. `syncRepoIssues()`/`syncAllRepoIssues()` back all three trigger modes (periodic interval, on-demand, manual); opt-out per repo via `repo_state.issue_sync_enabled`; stops early and warns (`issueSyncStatus.warnings`) if the shared rate-limit budget runs low. `setIssueFlagged()` sets a local-only, never-upstream priority marker on a synced issue (`repo_issue.flagged`) that the sync upsert never touches, so it survives re-sync.
+* `lib/issueSync.js`: Sync engine for per-repo GitHub issues, stored in the `repo_issue` table. `syncRepoIssues()`/`syncAllRepoIssues()` back all three trigger modes (periodic interval, on-demand, manual); opt-out per repo via `repo_state.issue_sync_enabled`; stops early and warns (`issueSyncStatus.warnings`) if the shared rate-limit budget runs low. `setIssueFlagged()` sets a local-only, never-upstream priority marker on a synced issue (`repo_issue.flagged`) that the sync upsert never touches, so it survives re-sync. `getAllStoredIssues()` backs the cross-repo issues overview — reads only `repo_issue`, never syncs.
+* `lib/settingsSets.js`: Loads named policy presets from `settings-sets.json` (JSON config, not built-in code or a plugin system) and scores a repo against a preset's checks (`evaluatePreset()`). Each check is declarative — a `field` on the repo object plus an evaluator `type` (`nonEmpty`/`nonEmptyArray`/`truthy`/`falsy`) — not arbitrary code. The shipped `hygiene` preset only reads fields already on the synced repo object, so evaluating it costs no GitHub API calls.
 
 ### CLI (`cli/`)
 
@@ -228,6 +229,8 @@ day). This sorts lexicographically and makes history auditable.
 | PUT | `/api/repos/:id/issue-sync` | Enable/disable issue sync for a repo via `{ enabled }` (opt-out, enabled by default) |
 | POST | `/api/issues/sync` | Manual refresh-all: syncs issues for every opted-in tracked repo |
 | POST | `/api/repos/:id/issues/:number/flag` | Set/clear a local-only priority flag on a synced issue via `{ flagged }`; 404 if the issue hasn't been synced yet. Never written upstream; survives re-sync. |
+| GET | `/api/settings-sets` | List configured policy presets (id/name/description/checkCount) from `settings-sets.json` |
+| GET | `/api/repos/:id/settings-sets/:presetId` | Evaluate one repo against one preset's checks; returns `{ presetId, presetName, checks, passCount, total }` |
 
 ## Implementation constraints
 

@@ -445,6 +445,8 @@ function mapRepo(r) {
     default_branch: r.default_branch ?? null,
     topics: Array.isArray(r.topics) ? r.topics : [],
     license: r.license?.spdx_id ?? r.license?.name ?? null,
+    has_wiki: Boolean(r.has_wiki),
+    has_issues: Boolean(r.has_issues),
   };
 }
 

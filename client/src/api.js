@@ -141,4 +141,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ flagged }),
     }).then(json),
+  getSettingsSets: () => fetch('/api/settings-sets').then(json),
+  getRepoConformance: (id, presetId) =>
+    fetch(`/api/repos/${id}/settings-sets/${encodeURIComponent(presetId)}`).then(json),
 };

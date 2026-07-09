@@ -704,20 +704,56 @@ Contains these action groups, each separated by a `border-neutral-800` divider:
    with an `×`), and a text field (with a `datalist` of existing tags for
    autocomplete) + "Add" button to attach a new tag. Adding an existing tag is a
    no-op. When the menu was opened via the card's "＋ tag" affordance, this input
-   receives focus on open.
-5. **Ignore toggle** — a single full-width button reading "Ignore repo" /
+   receives focus on open. Renders even in the tag-only (bottom-sheet) mode;
+   every other group below is hidden in that mode.
+5. **Flags** — a `micro` label and a wrapped row of toggle buttons, one per
+   `FLAG_NAMES` entry (emoji + label from `FLAG_META`), active state
+   highlighted.
+6. **Ignore toggle** — a single full-width button reading "Ignore repo" /
    "Unignore repo" depending on current state.
-6. **Notices** — a `micro` label, a multi-line text field for a new notice, an
-   "Add" button (disabled while the field is empty), and a "View all (N)" link
-   that opens the Notices dialog scoped to this repo. `N` is the repo's notice
-   count.
 7. **GitHub actions** — "View on GitHub ↗", copy HTTPS/SSH clone URL, "List
    open PRs" (inline expandable list, see Notices-style row treatment), "New
    issue…" (inline create form), and "Browse issues" (opens the Issues dialog
    scoped to this repo — see Issues dialog).
-8. Backdrop scrim (`fixed inset-0 z-10`) closes the menu on outside click.
+8. **Settings sets** — a `micro` label "Settings sets", shown only when at
+   least one preset is configured (see Settings sets below the CardMenu
+   section). Fetched automatically on open (it's a local read, unlike the
+   GitHub actions above — no rate-limit cost to gate behind a click): a
+   `presetName` / `passCount/total` header row, the count pill tinted by band
+   (all-pass green, zero-pass rose, partial amber — the same danger/warning
+   tokens used elsewhere, plus the green already used for `badge-public`), and
+   a checklist of each check's label with a ✓/✕ mark.
+9. **Notices** — a `micro` label, a multi-line text field for a new notice, an
+   "Add" button (disabled while the field is empty), and a "View all (N)" link
+   that opens the Notices dialog scoped to this repo. `N` is the repo's notice
+   count.
+10. Backdrop scrim (`fixed inset-0 z-10`) closes the menu on outside click.
 
 Do not add new action groups without updating this document.
+
+### Settings sets
+
+Named policy presets that score a repo against a checklist, surfaced as a
+compact `x/y` conformance summary in the CardMenu (see above). Presets are
+defined in `server/settings-sets.json` — a JSON config file, not built-in code
+and not a plugin/eval system — so a preset can be added or edited without a
+deploy. `GET /api/settings-sets` lists presets (id/name/description/check
+count); `GET /api/repos/:id/settings-sets/:presetId` evaluates one.
+
+The shipped `hygiene` preset only checks fields already present on the synced
+repo object (description, license, topics, `has_issues`, `has_wiki`) — zero
+extra GitHub API calls. Checks that need real security-posture data (secret
+scanning, vulnerability alerts, Dependabot, branch protection) are deferred: a
+future preset needing that data should follow the existing
+`ENRICH_METADATA`-gated pattern (see `enrichRepos()` in `github.js`) rather
+than fetching it unconditionally, since it would cost meaningful rate-limit
+budget across every tracked repo.
+
+Each check has a `field` (a key on the repo object) and a `type` — one of
+`nonEmpty`, `nonEmptyArray`, `truthy`, `falsy` (see
+`server/lib/settingsSets.js`). This keeps presets a declarative JSON concern:
+extending what a preset can express means adding a new evaluator type, not
+executing arbitrary preset-authored code.
 
 ### Filter pills
 

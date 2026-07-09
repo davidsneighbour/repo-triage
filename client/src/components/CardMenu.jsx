@@ -5,7 +5,7 @@ import { useDialog } from '../lib/useDialog.js';
 import { useIsMobile } from '../lib/useIsMobile.js';
 import { cx, tagColor, PRIORITY_LEVELS, PRIORITY_META, FLAG_NAMES, FLAG_META } from '../lib/constants.js';
 
-export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = false, defaultInactivity, allTags = [], onSetChecked, onClearCheck, onSetPriority, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onAddTag, onRemoveTag, onAddFlag, onRemoveFlag, onGhPrs, onGhCreateIssue, onViewIssues, onClose }) {
+export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = false, defaultInactivity, allTags = [], onSetChecked, onClearCheck, onSetPriority, onSetInactivity, onSetIgnored, onAddNotice, onViewNotices, onAddTag, onRemoveTag, onAddFlag, onRemoveFlag, onGhPrs, onGhCreateIssue, onViewIssues, settingsSets = [], onGetConformance, onClose }) {
   const [days, setDays] = useState(repo.inactivity_days ?? '');
   const [notice, setNotice] = useState('');
   const [tag, setTag] = useState('');
@@ -16,6 +16,7 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
   const [issueTitle, setIssueTitle] = useState('');
   const [issueBody, setIssueBody] = useState('');
   const [issueDone, setIssueDone] = useState(null); // {url, number} on success
+  const [conformance, setConformance] = useState(null); // null | 'loading' | {result} | {error}
   const [pos, setPos] = useState(null);
   const tagInputRef = useRef(null);
   const dialogRef = useDialog(onClose);
@@ -28,6 +29,20 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
   useEffect(() => {
     if (autoFocusTag && tagInputRef.current) tagInputRef.current.focus();
   }, [autoFocusTag]);
+
+  // Conformance is a pure local read (no GitHub API cost), so it's fetched
+  // automatically on open rather than gated behind a click like the GitHub
+  // quick-actions above, which do spend GitHub rate-limit budget.
+  useEffect(() => {
+    if (tagOnly || !onGetConformance || settingsSets.length === 0) return;
+    let cancelled = false;
+    setConformance('loading');
+    onGetConformance(repo.id, settingsSets[0].id)
+      .then((result) => { if (!cancelled) setConformance({ result }); })
+      .catch(() => { if (!cancelled) setConformance({ error: true }); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repo.id, tagOnly, onGetConformance, settingsSets]);
 
   const submitTag = () => {
     const v = tag.trim();
@@ -450,6 +465,41 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
                   : <p className="px-1 text-[10px] text-neutral-600">Creating…</p>
             )}
           </div>
+        </div>
+        )}
+
+        {settingsSets.length > 0 && (
+        <div className="mt-2 border-t border-neutral-800 pt-2">
+          <p className="px-1 pb-1 text-[10px] uppercase tracking-widest text-neutral-500">Settings sets</p>
+          {conformance === 'loading' && <p className="px-1 text-[10px] text-neutral-600">checking…</p>}
+          {conformance?.error && <p role="alert" className="px-1 text-[10px] text-rose-400">could not evaluate</p>}
+          {conformance?.result && (() => {
+            const { presetName, checks, passCount, total } = conformance.result;
+            const band = passCount === total ? 'pass' : passCount === 0 ? 'fail' : 'partial';
+            const bandClass = {
+              pass: 'bg-[#052e16] text-[#6ee7b7]',
+              partial: 'bg-amber-500/10 text-amber-300',
+              fail: 'bg-rose-500/10 text-rose-300',
+            }[band];
+            return (
+              <div className="px-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-300">{presetName}</span>
+                  <span className={cx('rounded-sm px-1.5 py-0.5 text-[10px] font-semibold tabular-nums', bandClass)}>
+                    {passCount}/{total}
+                  </span>
+                </div>
+                <ul className="mt-1 space-y-0.5">
+                  {checks.map((c) => (
+                    <li key={c.id} className={cx('flex items-center gap-1 text-[10px]', c.pass ? 'text-neutral-400' : 'text-neutral-600')}>
+                      <span aria-hidden="true">{c.pass ? '✓' : '✕'}</span>
+                      {c.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
         </div>
         )}
 

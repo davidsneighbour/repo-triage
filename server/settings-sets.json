@@ -1,0 +1,16 @@
+{
+  "presets": [
+    {
+      "id": "hygiene",
+      "name": "Repo hygiene",
+      "description": "Basic repo hygiene signals available from the synced repo list — no extra GitHub API calls.",
+      "checks": [
+        { "id": "has_description", "label": "Has a description", "field": "description", "type": "nonEmpty" },
+        { "id": "has_license", "label": "Has a license", "field": "license", "type": "nonEmpty" },
+        { "id": "has_topics", "label": "Has topics", "field": "topics", "type": "nonEmptyArray" },
+        { "id": "issues_enabled", "label": "Issues enabled", "field": "has_issues", "type": "truthy" },
+        { "id": "wiki_disabled", "label": "Wiki disabled", "field": "has_wiki", "type": "falsy" }
+      ]
+    }
+  ]
+}

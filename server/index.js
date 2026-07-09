@@ -12,6 +12,7 @@ import tokensRouter from './routes/tokens.js';
 import webhookRouter from './routes/webhook.js';
 import undoRouter from './routes/undo.js';
 import issuesRouter from './routes/issues.js';
+import settingsSetsRouter from './routes/settingsSets.js';
 
 import { SYNC_ON_STARTUP, SYNC_AUTO, ISSUE_SYNC_INTERVAL_MINUTES_ENV, getEffectiveSyncIntervalMinutes } from './lib/settings.js';
 import { refreshRepos, queueRefresh, restartSyncInterval } from './lib/sync.js';
@@ -37,6 +38,7 @@ app.use('/api', tagRulesRouter);
 app.use('/api', tokensRouter);
 app.use('/api', undoRouter);
 app.use('/api', issuesRouter);
+app.use('/api', settingsSetsRouter);
 
 // ---- Static client (built by Vite) ----------------------------------------
 // Bootstrap-only: present a production build when one exists. Route tests import

@@ -140,6 +140,23 @@ describe('POST /api/repos/:id/issues/:number/flag', () => {
   });
 });
 
+describe('GET /api/issues', () => {
+  it('returns locally stored issues across repos with repo_full_name attached, without calling GitHub', async () => {
+    fetchRepoIssues.mockResolvedValue([
+      { number: 42, title: 'cross-repo candidate', state: 'open', labels: ['bug'], body: 'text', html_url: 'https://x/42', github_updated_at: '2026-07-05T00:00:00Z' },
+    ]);
+    await request(app).post(`/api/repos/${REPO.id}/issues/sync`);
+    fetchRepoIssues.mockClear();
+
+    const res = await request(app).get('/api/issues');
+    expect(res.status).toBe(200);
+    expect(fetchRepoIssues).not.toHaveBeenCalled();
+    const entry = res.body.issues.find((i) => i.number === 42);
+    expect(entry).toMatchObject({ title: 'cross-repo candidate', repo_id: REPO.id, repo_full_name: REPO.full_name, labels: ['bug'], flagged: false });
+  });
+
+});
+
 describe('POST /api/issues/sync', () => {
   it('syncs all enabled repos and reports warnings/lastRun', async () => {
     fetchRepoIssues.mockResolvedValue([]);

@@ -90,6 +90,22 @@ describe('sortIssues', () => {
     expect(sortIssues(issues, 'title', 'asc').map((i) => i.title)).toEqual(['apple', 'zebra']);
   });
 
+  it('sorts by repo_full_name', () => {
+    const issues = [
+      issue({ number: 1, repo_full_name: 'me/zebra' }),
+      issue({ number: 2, repo_full_name: 'me/apple' }),
+    ];
+    expect(sortIssues(issues, 'repo', 'asc').map((i) => i.number)).toEqual([2, 1]);
+  });
+
+  it('treats a missing repo_full_name as sorting first', () => {
+    const issues = [
+      issue({ number: 1, repo_full_name: null }),
+      issue({ number: 2, repo_full_name: 'me/apple' }),
+    ];
+    expect(sortIssues(issues, 'repo', 'asc').map((i) => i.number)).toEqual([1, 2]);
+  });
+
   it('sorts by updated timestamp', () => {
     const issues = [
       issue({ number: 1, github_updated_at: '2026-01-01T00:00:00Z' }),

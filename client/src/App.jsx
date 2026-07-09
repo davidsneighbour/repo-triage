@@ -14,6 +14,7 @@ import { Toast } from './components/Toast.jsx';
 import { HelpDialog } from './components/HelpDialog.jsx';
 import { NoticesDialog } from './components/NoticesDialog.jsx';
 import { IssuesDialog } from './components/IssuesDialog.jsx';
+import { IssuesOverviewDialog } from './components/IssuesOverviewDialog.jsx';
 import { ReportsDialog } from './components/ReportsDialog.jsx';
 import { SettingsDialog } from './components/SettingsDialog.jsx';
 import { StatusDialog } from './components/StatusDialog.jsx';
@@ -33,6 +34,7 @@ export default function App() {
   const IgnoredIcon = ICON.ignored;
   const NoticesIcon = ICON.notices;
   const ReportsIcon = ICON.reports;
+  const IssuesIcon = ICON.issues;
   const DensityIcon = ICON.density;
   const SortIcon = ICON.sort;
   const MoreIcon = ICON.more;
@@ -58,6 +60,7 @@ export default function App() {
   const [noticesScope, setNoticesScope] = useState(null);
   // Issues dialog scope: null (closed) | a repo id.
   const [issuesRepoId, setIssuesRepoId] = useState(null);
+  const [issuesOverviewOpen, setIssuesOverviewOpen] = useState(false);
   // Transient tag query: which tags to match and whether any/all.
   const [tagFilter, setTagFilter] = useState({ tags: [], mode: 'any' });
   // Independent priority filter: a list of selected levels (1|2|3, 0 = none).
@@ -832,6 +835,13 @@ export default function App() {
         <NoticesIcon className="h-3 w-3" aria-hidden="true" />
         notices
       </button>
+      <button
+        onClick={() => setIssuesOverviewOpen(true)}
+        className="flex items-center gap-1 rounded-md border border-neutral-700 px-2 py-1 text-[11px] text-neutral-300 hover:bg-neutral-800"
+      >
+        <IssuesIcon className="h-3 w-3" aria-hidden="true" />
+        issues
+      </button>
     </>
   );
 
@@ -1030,6 +1040,7 @@ export default function App() {
         />
       )}
       {issuesRepo && <IssuesDialog repo={issuesRepo} onClose={() => setIssuesRepoId(null)} />}
+      {issuesOverviewOpen && <IssuesOverviewDialog onClose={() => setIssuesOverviewOpen(false)} />}
       {toast && (
         <Toast
           message={toast.message}

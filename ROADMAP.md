@@ -7,27 +7,25 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-6 open issues: 3 **triage workflow** features, 2 **developer tooling** items,
-and 2 **issue/activity dashboard** features. Product decisions were made this
-round for the open clarification questions on #69, #68, #71, and #77 (see
-each issue's comments); those decisions are recorded below and no longer live
-in `TODO.md`. #70 (triage event logging) is closed - its data/API layer is
-done, but a UI mismatch was found and split into a new issue (#78) rather than
-reopening it. #71's dev overlay is implemented on branch
-`issue-71-dev-id-overlay` (commit `159d8b1`), satisfying its acceptance
-criteria as written, and is pending merge; a broader follow-up (#79) was filed
-for the deeper `data-id`/`data-element` attribute standardization decision
-made alongside it.
+3 open issues: 2 **developer tooling / dashboard follow-ups** and 1 **repo
+maintenance** item. This round closed **#68** (settings sets) and **#77**
+(cross-repo issue dashboard) - both were fully implemented and merged
+(commits explicitly say `Closes #68` / `Closes #77`) but the issues had been
+left open. #69 and #71, closed in a prior round, are confirmed merged on
+`main`. A new issue, **#80**, was filed for a markdown-lint glob problem that
+has been flagged as "worth its own follow-up issue" in the health indicators
+for several rounds without ever being tracked. #78 and #79 got context
+comments (see below) but no scope changes.
 
 ### Health indicators
 
 | Check | Status |
 | --- | --- |
-| Tests (all workspaces) | Pass: 751 tests (370 client + 323 server + 58 CLI) |
+| Tests (all workspaces) | Pass: 824 tests (417 client + 349 server + 58 CLI) |
 | `npm run test` | Pass: exits zero |
-| `npm audit --omit=dev` | Pass: 0 findings |
-| `npm audit` | Pass: 0 findings |
-| `npm run lint:markdown` | Not re-checked this round; last known state (pre-existing, unrelated to tracked source) was failing only because the `**/*.{md,mdx}` glob scans `node_modules` and generated `docs/api`/`CHANGELOG.md`. Worth its own follow-up issue to scope the glob; not blocking. |
+| `npm audit --omit=dev` | Pass: 0 vulnerabilities |
+| `npm audit` | Pass: 0 vulnerabilities |
+| `npm run lint:markdown` | **Failing**: 35,948 errors across 806 files. Root cause: the `**/*.{md,mdx}` glob is unanchored and walks into nested `node_modules`, `.agents/skills/**`, and other non-source paths that the shared config's `ignores` doesn't reach. Tracked as **#80** this round (previously noted but never filed). Not blocking `npm run test`/CI. |
 
 #### Audit notes
 
@@ -39,74 +37,45 @@ remain resolved; both issues stay closed.
 
 ## Open issues
 
-### Feature: triage workflow & repository metadata
-
-* **[#69] feat: manage tags from the filter tags menu**
-  [https://github.com/davidsneighbour/repo-triage/issues/69](https://github.com/davidsneighbour/repo-triage/issues/69)
-  Adds central create/rename/delete tag management outside individual repo cards.
-  Decided: deleting a tag clears `checked_at` on affected repos ("reset check
-  status"). Still open: whether deleting a tag should also remove notices, and
-  whether rename should update the active filter selection.
-
-* **[#68] feat: compare repositories against configurable settings sets**
-  [https://github.com/davidsneighbour/repo-triage/issues/68](https://github.com/davidsneighbour/repo-triage/issues/68)
-  Introduces named policy/check presets, such as security or feature profiles, and
-  a repo-details conformance summary. Decided: presets start as JSON/TOML config
-  (not built-in-only), designed with a plugin-like interface in mind for later;
-  missing GitHub metadata scores as an "unknown" yellow state (only red once
-  confirmed genuinely absent, not just a sync/permissions gap). Still open:
-  which checks ship in the first preset.
-
 ### Developer tooling
-
-* **[#71] feat: add a dev-only element identifier overlay**
-  [https://github.com/davidsneighbour/repo-triage/issues/71](https://github.com/davidsneighbour/repo-triage/issues/71)
-  Adds a development-only `[id]` overlay for AI-assisted UI debugging. Implemented
-  on branch `issue-71-dev-id-overlay` (commit `159d8b1`), meeting the issue's
-  acceptance criteria as written; pending merge. Decided: the deeper "standardize
-  component metadata attributes" question resolves to eventually adding a
-  dedicated `data-id`/`data-element` attribute - split into follow-up **#79**
-  since it's broader than this issue's shipped scope.
 
 * **[#79] feat: standardize a dev-only data-id/data-element attribute for overlay identifiers**
   [https://github.com/davidsneighbour/repo-triage/issues/79](https://github.com/davidsneighbour/repo-triage/issues/79)
-  Follow-up to #71: replace the overlay's class-name fallback with a purpose-built,
-  dev-only identifier attribute across components. Depends on #71 merging first.
+  Follow-up to #71 (merged): replace the overlay's class-name fallback with a
+  purpose-built, dev-only identifier attribute across components. #71 is
+  merged and closed, so this is now unblocked.
 
 ### Feature: issue & activity dashboards
-
-* **[#77] feat: cross-repo issue overview dashboard (local data only)**
-  [https://github.com/davidsneighbour/repo-triage/issues/77](https://github.com/davidsneighbour/repo-triage/issues/77)
-  Lists synced GitHub issues across all repos (not just per-repo) straight from
-  the local `repo_issue` table, with configurable columns; must not trigger any
-  GitHub sync itself. Decided: a new top-level view reached via a header
-  dropdown (not a dialog or tab), with room for #78's activity view alongside
-  it; flagged issues get a dedicated filter and sortable column.
 
 * **[#78] feat: dedicated non-modal event-log view**
   [https://github.com/davidsneighbour/repo-triage/issues/78](https://github.com/davidsneighbour/repo-triage/issues/78)
   Split from #70: the closed issue's data/API layer (`activity_log`,
-  `logActivity()`) is done, but the desired UI - a dedicated non-modal, sortable
-  table view - was never built; the shipped "Activity" tab lives inside
-  `NoticesDialog` instead. Open question: per-repo or cross-repo scope, and
-  whether it shares an entry point with #77.
+  `logActivity()`) is done, but the desired UI - a dedicated non-modal,
+  sortable table view - was never built; the shipped "Activity" tab lives
+  inside `NoticesDialog` instead. #77 shipped as its own standalone header
+  toolbar button (not folded into "reports", not shared with anything else),
+  which sets a precedent for this issue's entry-point question - see the
+  comment added this round.
+
+### Maintenance
+
+* **[#80] chore: scope npm run lint:markdown glob away from vendor/generated files**
+  [https://github.com/davidsneighbour/repo-triage/issues/80](https://github.com/davidsneighbour/repo-triage/issues/80)
+  The `lint:markdown` glob is unanchored and lints nested `node_modules`,
+  `.agents/skills/**`, and other non-source paths, producing ~36k noise
+  errors that bury any real signal. Self-contained config fix; no
+  dependencies.
 
 ---
 
 ## Suggested order of work
 
-1. **#71** - merge the already-implemented dev overlay branch (`issue-71-dev-id-overlay`).
-2. **#69** - implement central tag management now that the reset-status semantics are decided.
-3. **#77** - cross-repo issue dashboard; self-contained read-only view on top of already-synced data.
-4. **#78** - event-log view; natural pairing with #77 if they end up sharing an entry point.
-5. **#79** - standardize the dev-only identifier attribute once #71 is merged.
-6. **#68** - build the first settings-set preset now that format/scoring are decided.
+1. **#79** - standardize the dev-only identifier attribute; unblocked now that #71 is merged.
+2. **#78** - event-log view; can follow #77's standalone-header-button precedent for its entry point.
+3. **#80** - markdown-lint glob scope fix; small, self-contained, improves signal quality of an existing health check.
 
 ## Open clarification questions
 
-* **#69**: Should deleting a tag also remove notices or only tag associations?
-* **#69**: Should tag rename preserve existing filters by updating the active filter selection?
-* **#68**: Which checks should ship in the first preset?
-* **#77** / **#78**: Should the cross-repo issue dashboard (#77) and the event-log view (#78) share one "reports" dropdown entry point, or be separate menu items?
-* **#78**: Should the event-log view be per-repo (relocated out of the dialog) or cross-repo (all activity in one sortable table)?
+* **#78**: Should the event-log view be per-repo (relocated out of the dialog) or cross-repo (all activity in one sortable table)? (Entry-point question is now informed by #77's precedent - see issue comment.)
 * **#79**: Should the new attribute be applied to every component or only ones commonly needing AI-assisted debugging, and should it be hand-authored or generated via a build-time transform?
+* **#80**: Should `.agents/skills/**` content be linted at all, or excluded like `node_modules`?

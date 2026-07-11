@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useDialog } from '../lib/useDialog.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { cx } from '../lib/constants.js';
 
 export function SettingsDialog({ settings, defaults, tagRules = [], lastExport = null, onSave, onTagRuleSave, onTagRuleDelete, onClose }) {
@@ -61,6 +62,7 @@ export function SettingsDialog({ settings, defaults, tagRules = [], lastExport =
     <>
       <div className="fixed inset-0 z-30 bg-neutral-950/80" onClick={onClose} />
       <section
+        {...devId('SettingsDialog')}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"

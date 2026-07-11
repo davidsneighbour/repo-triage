@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { cx, ACCENT, ICON } from '../lib/constants.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { useDialog } from '../lib/useDialog.js';
 
 // Mobile-only day/bucket selector (see DESIGN.md → Mobile components → Day
@@ -15,7 +16,7 @@ export function DayPicker({ columns, activeKey, onSelect }) {
   const active = columns.find((c) => c.key === activeKey) || columns[0];
 
   return (
-    <div className="relative">
+    <div {...devId('DayPicker')} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

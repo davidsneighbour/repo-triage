@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { api } from '../api.js';
 import { useDialog } from '../lib/useDialog.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { cx, REPORT_LABELS } from '../lib/constants.js';
 
 export function ReportsDialog({ onClose }) {
@@ -57,6 +58,7 @@ export function ReportsDialog({ onClose }) {
     <>
       <div className="fixed inset-0 z-30 bg-neutral-950/80" onClick={onClose} />
       <section
+        {...devId('ReportsDialog')}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"

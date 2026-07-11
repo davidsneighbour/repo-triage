@@ -963,17 +963,28 @@ grepping `dist/assets/*.js` for its strings after a build.
   identifies itself.
 * **Identifier** — `getElementIdentifier()` (`lib/devIdOverlay.js`, pure and
   unit-tested) prefers, in order: the hovered element's own `id` (`#foo`); its
-  own first two class names (`tag.class-a.class-b`); a
+  dev-only `data-id` attribute (`[data-id="RepoCard"]`, see below); its own
+  first two class names (`tag.class-a.class-b`); a
   `data-slot`/`data-testid`/`data-component` attribute; finally the bare tag
   name. Deliberately checks the element itself only, never an ancestor — the
   whole app mounts under Vite's `<div id="root">`, so walking up to the
   "nearest" ancestor id resolves almost every element to `#root`, which
   identifies nothing useful (caught during manual verification, not left as a
-  theoretical concern). Deliberately data-driven, not a new tagging
-  convention — no component in this app currently sets those `data-*`
-  attributes, so today's output leans on class names; standardizing metadata
-  attributes is a separate future decision, not required for this tool to be
-  useful now.
+  theoretical concern).
+* **`data-id` attribute** (#79) — every component in `client/src/components/`
+  spreads `{...devId('ComponentName')}` (`lib/devIdOverlay.js`) onto its root
+  DOM node (or, for trigger+panel pairs like `CardMenu`/`TagFilter`, onto
+  both the toggle button and the portal panel — same component name on each,
+  since to a debugger they're "the same thing"). `devId(name)` returns
+  `{ 'data-id': name }` behind `import.meta.env.DEV` and `{}` otherwise, so
+  the attribute — and the component-name string passed to it — never reaches
+  the production bundle (confirmed empty via the same `dist/assets` grep
+  check used above for `DevIdOverlay.jsx` itself; Vite's build-time constant
+  folding removes the whole branch, not just the DOM output). Hand-authored
+  per component rather than generated via a build-time transform — a
+  generator would be disproportionate tooling for a dev-only debugging aid.
+  Applied to every component, not a curated subset, so there's no drift list
+  to keep in sync as components are added.
 * **Copy** — while active, a **click anywhere** is intercepted (capture-phase
   listener, `preventDefault`/`stopPropagation`, skipped for clicks inside the
   overlay itself) and copies that element's identifier via

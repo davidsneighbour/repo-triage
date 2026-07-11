@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { cx, ACCENT, ICON } from '../lib/constants.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { repoMatchesQuery, sortColumnRepos } from '../lib/board.js';
 import { RepoCard } from './RepoCard.jsx';
 
@@ -50,7 +51,7 @@ export function Column({ col, repos, onDropColumn, schedulable = true, mobile = 
   }, [someSelected]);
 
   return (
-    <div role="group" aria-label={`${col.title} column, ${repos.length} repositories`} className={cx('flex h-full flex-col', mobile ? 'w-full' : 'w-72 shrink-0')}>
+    <div {...devId('Column')} role="group" aria-label={`${col.title} column, ${repos.length} repositories`} className={cx('flex h-full flex-col', mobile ? 'w-full' : 'w-72 shrink-0')}>
       <div className={cx('mb-2 flex items-center justify-between rounded-lg border bg-neutral-900/40 px-3 py-2', acc.edge)}>
         <div className="flex min-w-0 items-center gap-2">
           <span className={cx('h-2 w-2 shrink-0 rounded-full', acc.dot)} />

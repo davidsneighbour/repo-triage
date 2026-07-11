@@ -1,4 +1,5 @@
 import { cx } from '../lib/constants.js';
+import { devId } from '../lib/devIdOverlay.js';
 
 export function Badge({ tone = 'neutral', children }) {
   const tones = {
@@ -9,5 +10,5 @@ export function Badge({ tone = 'neutral', children }) {
     violet: 'bg-violet-500/15 text-violet-300',
     rose: 'bg-rose-500/15 text-rose-300',
   };
-  return <span className={cx('rounded-sm px-1.5 py-0.5 text-[10px] font-medium', tones[tone])}>{children}</span>;
+  return <span {...devId('Badge')} className={cx('rounded-sm px-1.5 py-0.5 text-[10px] font-medium', tones[tone])}>{children}</span>;
 }

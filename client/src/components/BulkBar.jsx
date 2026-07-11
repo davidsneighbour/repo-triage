@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useIsMobile } from '../lib/useIsMobile.js';
 import { cx, PRIORITY_FILTER_OPTIONS } from '../lib/constants.js';
+import { devId } from '../lib/devIdOverlay.js';
 
 // Action bar shown while one or more repos are selected. Each action applies to
 // the whole selection (via App's bulkActions) and then clears it. On mobile it
@@ -30,6 +31,7 @@ export function BulkBar({ count, actions, columns = [], onClear }) {
 
   return (
     <div
+      {...devId('BulkBar')}
       role="region"
       aria-label="Bulk actions"
       className={cx(

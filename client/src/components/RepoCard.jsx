@@ -1,6 +1,7 @@
 import { memo, useRef, useState } from 'react';
 import { cx, ICON, ownerColor, tagColor, PRIORITY_META } from '../lib/constants.js';
 import { timeAgo } from '../lib/date.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { Badge } from './Badge.jsx';
 import { CardMenu } from './CardMenu.jsx';
 import { MoveSheet } from './MoveSheet.jsx';
@@ -108,6 +109,7 @@ function RepoCardImpl({ repo, column, menuOpenId, menuIntent, showOwner, density
 
   return (
     <div
+      {...devId('RepoCard')}
       draggable={schedulable}
       aria-grabbed={schedulable ? dragging : undefined}
       role="group"

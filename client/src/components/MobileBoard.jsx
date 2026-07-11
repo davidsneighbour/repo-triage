@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { devId } from '../lib/devIdOverlay.js';
 import { DayPicker } from './DayPicker.jsx';
 import { Column } from './Column.jsx';
 
@@ -31,7 +32,7 @@ export function MobileBoard({ columns, onDropColumn, ...cardProps }) {
   }));
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div {...devId('MobileBoard')} className="flex min-h-0 flex-1 flex-col gap-3">
       <DayPicker columns={pickerColumns} activeKey={active?.key} onSelect={setActiveKey} />
       {active ? (
         <div className="flex min-h-0 flex-1">

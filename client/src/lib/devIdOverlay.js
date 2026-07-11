@@ -4,17 +4,29 @@
 
 const COMPONENT_ATTRS = ['data-slot', 'data-testid', 'data-component'];
 
+// Dev-only, purpose-built identifier attribute (see #79) — spread onto a
+// component's root element via `{...devId('ComponentName')}`. Stripped from
+// production output by the `import.meta.env.DEV` check (same gating pattern
+// as DevIdOverlay.jsx itself), so it costs nothing at runtime once built.
+export function devId(name) {
+  return import.meta.env.DEV ? { 'data-id': name } : {};
+}
+
 // Builds a short, stable-ish selector-like identifier for an element, to
 // point an AI assistant (or a human) at it during local UI debugging.
-// Priority: the element's own id > its own class names > component metadata
-// attributes > bare tag name. Deliberately checks the element itself only,
-// not ancestors — the whole app mounts under Vite's `<div id="root">`, so
-// walking up to the "nearest" ancestor id would resolve almost every element
-// to `#root`, which identifies nothing useful.
+// Priority: the element's own id > its dev-only `data-id` (#79) > its own
+// class names > other component metadata attributes > bare tag name.
+// Deliberately checks the element itself only, not ancestors — the whole app
+// mounts under Vite's `<div id="root">`, so walking up to the "nearest"
+// ancestor id would resolve almost every element to `#root`, which
+// identifies nothing useful.
 export function getElementIdentifier(el) {
   if (!el || el.nodeType !== 1) return null;
 
   if (el.id) return `#${el.id}`;
+
+  const dataId = el.getAttribute?.('data-id');
+  if (dataId) return `[data-id="${dataId}"]`;
 
   const classes = typeof el.className === 'string' ? el.className.trim().split(/\s+/).filter(Boolean) : [];
   if (classes.length > 0) {

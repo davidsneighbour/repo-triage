@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialog } from '../lib/useDialog.js';
+import { devId } from '../lib/devIdOverlay.js';
 
 // Quick-pick presets that fill the field; the field itself remains the single
 // source of truth (see DESIGN.md → Mobile components → Move sheet).
@@ -26,6 +27,7 @@ export function MoveSheet({ repo, defaultInactivity = 7, onApply, onClose }) {
     <>
       <div className="fixed inset-0 z-30 bg-black/50" onClick={onClose} />
       <div
+        {...devId('MoveSheet')}
         ref={dialogRef}
         role="dialog"
         aria-label={`Reschedule ${repo.name}`}

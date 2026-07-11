@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { cx, ICON, ownerColor, tagColor, PRIORITY_META } from '../lib/constants.js';
 import { timeAgo } from '../lib/date.js';
 import { sortReposForList } from '../lib/board.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { CardMenu } from './CardMenu.jsx';
 
 const checkedLabel = (r) =>
@@ -15,7 +16,7 @@ const ListRow = memo(function ListRow({ repo, showOwner, fields, selected = fals
   const meta = PRIORITY_META[repo.priority];
 
   return (
-    <tr className={cx('border-b border-neutral-800/60 hover:bg-neutral-900/50', selected && 'bg-neutral-900/70')}>
+    <tr {...devId('ListRow')} className={cx('border-b border-neutral-800/60 hover:bg-neutral-900/50', selected && 'bg-neutral-900/70')}>
       {onToggleSelect && (
         <td className="px-2 py-1">
           <input
@@ -142,7 +143,7 @@ export function ListView({ repos, showOwner, fields = {}, onToggleSelect, onSele
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto">
+    <div {...devId('ListView')} className="min-h-0 flex-1 overflow-auto">
       <table className="w-full text-left text-[11px]">
         <thead className="sticky top-0 bg-neutral-950">
           <tr className="border-b border-neutral-800">

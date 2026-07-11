@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialog } from '../lib/useDialog.js';
 import { useIsMobile } from '../lib/useIsMobile.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { cx, PRIORITY_FILTER_OPTIONS } from '../lib/constants.js';
 
 function PriorityFilterPanel({ value, onChange, anchorRef, onClose }) {
@@ -31,6 +32,7 @@ function PriorityFilterPanel({ value, onChange, anchorRef, onClose }) {
     <>
       <div className={cx('fixed inset-0 z-10', isMobile && 'bg-black/50')} onClick={onClose} />
       <div
+        {...devId('PriorityFilter')}
         ref={dialogRef}
         role="dialog"
         aria-label="Filter by priority"
@@ -68,6 +70,7 @@ export function PriorityFilter({ value, onChange }) {
   return (
     <>
       <button
+        {...devId('PriorityFilter')}
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
         aria-label="Filter by priority"

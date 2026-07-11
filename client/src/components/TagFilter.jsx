@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useDialog } from '../lib/useDialog.js';
 import { useIsMobile } from '../lib/useIsMobile.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { cx, ICON, tagColor } from '../lib/constants.js';
 
 function RenameRow({ tag, onRename, onCancel }) {
@@ -146,6 +147,7 @@ function TagFilterPanel({ available, value, onChange, onDelete, onCreate, onRena
     <>
       <div className={cx('fixed inset-0 z-10', isMobile && 'bg-black/50')} onClick={onClose} />
       <div
+        {...devId('TagFilter')}
         ref={dialogRef}
         role="dialog"
         aria-label="Filter by tag"
@@ -249,6 +251,7 @@ export function TagFilter({ available, value, onChange, onDelete, onCreate, onRe
   return (
     <>
       <button
+        {...devId('TagFilter')}
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
         aria-label="Filter by tag"

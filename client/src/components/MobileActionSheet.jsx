@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useDialog } from '../lib/useDialog.js';
+import { devId } from '../lib/devIdOverlay.js';
 
 // Generic mobile bottom sheet used to hold the collapsed toolbar controls (see
 // DESIGN.md → Mobile components → Mobile toolbar & action sheet). Slides up from
@@ -12,6 +13,7 @@ export function MobileActionSheet({ title = 'Options', onClose, children }) {
     <>
       <div className="fixed inset-0 z-30 bg-black/50" onClick={onClose} />
       <div
+        {...devId('MobileActionSheet')}
         ref={dialogRef}
         role="dialog"
         aria-label={title}

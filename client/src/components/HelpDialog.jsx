@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useDialog } from '../lib/useDialog.js';
+import { devId } from '../lib/devIdOverlay.js';
 import helpMarkdown from '../help.md?raw';
 import helpDiagramSvg from '../help-diagram.svg?raw';
 
@@ -11,6 +12,7 @@ export function HelpDialog({ onClose }) {
     <>
       <div className="fixed inset-0 z-30 bg-neutral-950/80" onClick={onClose} />
       <section
+        {...devId('HelpDialog')}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"

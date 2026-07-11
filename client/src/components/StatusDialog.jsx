@@ -1,5 +1,6 @@
 import { Info, X } from 'lucide-react';
 import { useDialog } from '../lib/useDialog.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { cx } from '../lib/constants.js';
 import { timeAgo } from '../lib/date.js';
 
@@ -25,6 +26,7 @@ export function StatusDialog({ data, onClose }) {
     <>
       <div className="fixed inset-0 z-30 bg-neutral-950/80" onClick={onClose} />
       <section
+        {...devId('StatusDialog')}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"

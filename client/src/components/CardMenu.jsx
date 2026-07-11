@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useDialog } from '../lib/useDialog.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { useIsMobile } from '../lib/useIsMobile.js';
 import { cx, tagColor, PRIORITY_LEVELS, PRIORITY_META, FLAG_NAMES, FLAG_META } from '../lib/constants.js';
 
@@ -78,6 +79,7 @@ export function CardMenu({ repo, anchorRef, autoFocusTag = false, tagOnly = fals
     <>
       <div className={cx('fixed inset-0 z-10', isMobile && 'bg-black/50')} onClick={onClose} />
       <div
+        {...devId('CardMenu')}
         ref={dialogRef}
         role="dialog"
         aria-label={tagOnly ? `Tags for ${repo.name}` : `Settings for ${repo.name}`}

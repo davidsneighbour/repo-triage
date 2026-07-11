@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialog } from '../lib/useDialog.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { cx, FIELD_OPTIONS } from '../lib/constants.js';
 
 function FieldsMenuPanel({ fields, onToggle, anchorRef, onClose }) {
@@ -25,6 +26,7 @@ function FieldsMenuPanel({ fields, onToggle, anchorRef, onClose }) {
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} />
       <div
+        {...devId('FieldsMenu')}
         ref={dialogRef}
         role="dialog"
         aria-label="Card fields"
@@ -52,6 +54,7 @@ export function FieldsMenu({ fields, onToggle }) {
   return (
     <>
       <button
+        {...devId('FieldsMenu')}
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
         aria-label="Card fields"

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { RefreshCw, Star, X } from 'lucide-react';
 import { api } from '../api.js';
 import { useDialog } from '../lib/useDialog.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { cx, tagColor } from '../lib/constants.js';
 import { timeAgo } from '../lib/date.js';
 import { filterIssues, sortIssues } from '../lib/issues.js';
@@ -93,6 +94,7 @@ export function IssuesDialog({ repo, onClose }) {
     <>
       <div className="fixed inset-0 z-30 bg-neutral-950/80" onClick={onClose} />
       <section
+        {...devId('IssuesDialog')}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"

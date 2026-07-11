@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Trash2, X } from 'lucide-react';
 import { api } from '../api.js';
 import { useDialog } from '../lib/useDialog.js';
+import { devId } from '../lib/devIdOverlay.js';
 import { cx } from '../lib/constants.js';
 import { timeAgo } from '../lib/date.js';
 import { sortNotices } from '../lib/board.js';
@@ -87,6 +88,7 @@ export function NoticesDialog({ scope, repos, onClose, onScopeChange, onChanged,
     <>
       <div className="fixed inset-0 z-30 bg-neutral-950/80" onClick={onClose} />
       <section
+        {...devId('NoticesDialog')}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"

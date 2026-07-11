@@ -1246,6 +1246,28 @@ describe('GET /api/repos/:id/activity', () => {
   });
 });
 
+describe('GET /api/activity', () => {
+  it('returns an activity array', async () => {
+    const res = await request(app).get('/api/activity');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.activity)).toBe(true);
+  });
+
+  it('includes repo_id and full_name on each entry, across repos', async () => {
+    await request(app).post(`/api/repos/${REPO.id}/check`).send({ daysAgo: 3 });
+    const res = await request(app).get('/api/activity');
+    const entry = res.body.activity.find((e) => e.repo_id === REPO.id && e.action === 'check');
+    expect(entry).toBeDefined();
+    expect(entry.full_name).toBe(REPO.full_name);
+  });
+
+  it('entries are ordered newest-first', async () => {
+    const res = await request(app).get('/api/activity');
+    const ids = res.body.activity.map((e) => e.id);
+    expect(ids).toEqual([...ids].sort((a, b) => b - a));
+  });
+});
+
 describe('GET/POST /api/undo + POST/DELETE /api/undo/:id', () => {
   const ops = [{ type: 'setIgnored', repoId: REPO.id, fullName: REPO.full_name, ignored: false }];
 

@@ -6,7 +6,7 @@ import { getLastExport } from '../lib/reportSchedule.js';
 import { repoCache, cacheReady, syncing, lastFetch, lastError, findRepo } from '../lib/sync.js';
 import { buildPayload } from '../lib/payload.js';
 import { invalidatePayloadCache } from '../lib/payloadCache.js';
-import { logActivity } from '../lib/activity.js';
+import { logActivity, getAllActivity } from '../lib/activity.js';
 import { getEffectiveInactivityDays, getEffectiveOwners } from '../lib/settings.js';
 
 const router = Router();
@@ -177,6 +177,12 @@ router.get('/repos/:id/activity', (req, res) => {
   res.json({
     activity: rows.map((r) => ({ ...r, detail: r.detail ? JSON.parse(r.detail) : null })),
   });
+});
+
+// Cross-repo event log (#78): every tracked repo's activity in one feed,
+// most recent first. Read-only — never triggers a GitHub sync.
+router.get('/activity', (req, res) => {
+  res.json({ activity: getAllActivity() });
 });
 
 // ---- Bulk mutations --------------------------------------------------------

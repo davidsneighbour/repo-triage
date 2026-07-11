@@ -22,6 +22,14 @@ describe('api wrapper contract', () => {
         expect(fetchMock).toHaveBeenCalledWith('/api/issues');
     });
 
+    it('calls allActivity endpoint with GET', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ activity: [] }) });
+
+        await api.allActivity();
+
+        expect(fetchMock).toHaveBeenCalledWith('/api/activity');
+    });
+
     it('posts refresh endpoint', async () => {
         const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ json: async () => ({ ok: true }) });
 

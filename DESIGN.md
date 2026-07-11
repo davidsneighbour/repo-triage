@@ -1031,6 +1031,40 @@ have to open each repo's Issues dialog individually to see what's outstanding.
   (no full body / "View on GitHub" — that detail view is one click away via
   the per-repo dialog). Empty state: "no matching issues" in `text-faint`.
 
+### Event log view
+
+A cross-repo, **non-modal** view (#78) opened from its own toolbar **activity**
+button (`ICON.activity`, lucide `Activity` glyph) next to Reports/Notices/
+Issues. Split out of the per-repo Activity tab that shipped with #70 inside
+`NoticesDialog` — that tab still exists for the single-repo case, but there
+was no cross-repo, sortable, non-dialog surface for it until this issue.
+
+* **Not a dialog, deliberately** — unlike every other overlay component in
+  this app, `EventLogView.jsx` has no scrim/backdrop and no
+  `role="dialog"`/`aria-modal`; its root is `role="region"
+  aria-label="Event log"`. It still uses `useDialog()` for Escape-to-close and
+  focus handling (that hook is generic, not dialog-specific), and is
+  positioned identically to the modal overlays (`fixed inset-x-4 top-6`) so it
+  reads as part of the same visual family — but its `z-30` sits below the
+  modal dialogs' `z-40` panels, and there's no dimming layer blocking the rest
+  of the app underneath.
+* **Read-only, local-only** — reads exclusively from `GET /api/activity`
+  (`server/lib/activity.js` → `getAllActivity()`), which reads only the
+  `activity_log` table (capped at the 500 most recent rows across all repos).
+  Opening this view never triggers a GitHub sync or API call, matching the
+  same constraint as the issues overview dashboard.
+* **Table** — a real `<table>` (not the card-list style the issues overview
+  uses), matching `ListView.jsx`'s click-to-sort header pattern: **repo**,
+  **action** (rendered via the shared `activitySummary()`, extracted from
+  `NoticesDialog.jsx` into `lib/activitySummary.js` so both surfaces stay in
+  sync), and **timestamp** (relative via `timeAgo()`, full date on hover).
+  Clicking a header toggles sort direction on repeat clicks; defaults to
+  timestamp, newest-first. Cross-repo scope was chosen over per-repo (the
+  issue's two open questions) because a **repo** column only makes sense if
+  rows span repos, and the acceptance criteria required sorting by repo.
+* **Header** — title and a count line ("N events across all repos"), plus a
+  close button. Empty state: "no activity yet" in `text-faint`.
+
 ### Banners
 
 Full-width alerts in the board area (above the columns). Two variants:

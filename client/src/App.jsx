@@ -15,6 +15,7 @@ import { HelpDialog } from './components/HelpDialog.jsx';
 import { NoticesDialog } from './components/NoticesDialog.jsx';
 import { IssuesDialog } from './components/IssuesDialog.jsx';
 import { IssuesOverviewDialog } from './components/IssuesOverviewDialog.jsx';
+import { EventLogView } from './components/EventLogView.jsx';
 import { ReportsDialog } from './components/ReportsDialog.jsx';
 import { SettingsDialog } from './components/SettingsDialog.jsx';
 import { StatusDialog } from './components/StatusDialog.jsx';
@@ -36,6 +37,7 @@ export default function App() {
   const NoticesIcon = ICON.notices;
   const ReportsIcon = ICON.reports;
   const IssuesIcon = ICON.issues;
+  const ActivityIcon = ICON.activity;
   const DensityIcon = ICON.density;
   const SortIcon = ICON.sort;
   const MoreIcon = ICON.more;
@@ -62,6 +64,7 @@ export default function App() {
   // Issues dialog scope: null (closed) | a repo id.
   const [issuesRepoId, setIssuesRepoId] = useState(null);
   const [issuesOverviewOpen, setIssuesOverviewOpen] = useState(false);
+  const [eventLogOpen, setEventLogOpen] = useState(false);
   // Transient tag query: which tags to match and whether any/all.
   const [tagFilter, setTagFilter] = useState({ tags: [], mode: 'any' });
   // Independent priority filter: a list of selected levels (1|2|3, 0 = none).
@@ -869,6 +872,13 @@ export default function App() {
         <IssuesIcon className="h-3 w-3" aria-hidden="true" />
         issues
       </button>
+      <button
+        onClick={() => setEventLogOpen(true)}
+        className="flex items-center gap-1 rounded-md border border-neutral-700 px-2 py-1 text-[11px] text-neutral-300 hover:bg-neutral-800"
+      >
+        <ActivityIcon className="h-3 w-3" aria-hidden="true" />
+        activity
+      </button>
     </>
   );
 
@@ -1068,6 +1078,7 @@ export default function App() {
       )}
       {issuesRepo && <IssuesDialog repo={issuesRepo} onClose={() => setIssuesRepoId(null)} />}
       {issuesOverviewOpen && <IssuesOverviewDialog onClose={() => setIssuesOverviewOpen(false)} />}
+      {eventLogOpen && <EventLogView onClose={() => setEventLogOpen(false)} />}
       {toast && (
         <Toast
           message={toast.message}

@@ -131,6 +131,7 @@ export const api = {
   deleteTagRule: (tag) =>
     fetch(`/api/tag-rules/${encodeURIComponent(tag)}`, { method: 'DELETE' }).then(json),
   getActivity: (id) => fetch(`/api/repos/${id}/activity`).then(json),
+  allActivity: () => fetch('/api/activity').then(json),
   getUndoLog: () => fetch('/api/undo').then(json),
   createUndo: (label, ops) =>
     fetch('/api/undo', {

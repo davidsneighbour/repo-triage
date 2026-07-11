@@ -7,75 +7,44 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-3 open issues: 2 **developer tooling / dashboard follow-ups** and 1 **repo
-maintenance** item. This round closed **#68** (settings sets) and **#77**
-(cross-repo issue dashboard) - both were fully implemented and merged
-(commits explicitly say `Closes #68` / `Closes #77`) but the issues had been
-left open. #69 and #71, closed in a prior round, are confirmed merged on
-`main`. A new issue, **#80**, was filed for a markdown-lint glob problem that
-has been flagged as "worth its own follow-up issue" in the health indicators
-for several rounds without ever being tracked. #78 and #79 got context
-comments (see below) but no scope changes.
+**0 open issues.** This round closed out the previous cycle's full backlog:
+**#78** (event-log view), **#79** (dev-only data-id attribute), and **#80**
+(markdown-lint glob scope) are all confirmed merged on `main` (commits
+`12f231314c7b`, `fb5183cc7801`, `613244d2f0f6`). The `lint:markdown` health
+check, which was failing with ~36k noise errors for several rounds, now
+passes cleanly - #80's fix is verified working, not just merged.
+
+The one item that had been sitting in `/TODO.md` (a "priority" filter to
+collapse the board to a high-priority subset) turned out to already be
+implemented: `PriorityFilter` in the toolbar filters the board by priority
+level, is inclusive alongside own/forks/archived, and persists via
+`priorityFilter` in `/api/prefs`. Removed from `/TODO.md` as already done;
+no new issue needed.
+
+No new actionable work was identified this round.
 
 ### Health indicators
 
 | Check | Status |
 | --- | --- |
-| Tests (all workspaces) | Pass: 824 tests (417 client + 349 server + 58 CLI) |
+| Tests (all workspaces) | Pass: 841 tests (431 client + 352 server + 58 CLI) |
 | `npm run test` | Pass: exits zero |
 | `npm audit --omit=dev` | Pass: 0 vulnerabilities |
 | `npm audit` | Pass: 0 vulnerabilities |
-| `npm run lint:markdown` | **Failing**: 35,948 errors across 806 files. Root cause: the `**/*.{md,mdx}` glob is unanchored and walks into nested `node_modules`, `.agents/skills/**`, and other non-source paths that the shared config's `ignores` doesn't reach. Tracked as **#80** this round (previously noted but never filed). Not blocking `npm run test`/CI. |
-
-#### Audit notes
-
-`linkify-it`/`js-yaml`/`markdown-it` (previously tracked in #72) and the
-`esbuild` advisory via `clean-jsdoc-theme` (previously tracked in #73) both
-remain resolved; both issues stay closed.
+| `npm run lint:markdown` | Pass: 0 errors across 9 files (previously ~36k errors/806 files; fixed by #80) |
 
 ---
 
 ## Open issues
 
-### Developer tooling
-
-* **[#79] feat: standardize a dev-only data-id/data-element attribute for overlay identifiers**
-  [https://github.com/davidsneighbour/repo-triage/issues/79](https://github.com/davidsneighbour/repo-triage/issues/79)
-  Follow-up to #71 (merged): replace the overlay's class-name fallback with a
-  purpose-built, dev-only identifier attribute across components. #71 is
-  merged and closed, so this is now unblocked.
-
-### Feature: issue & activity dashboards
-
-* **[#78] feat: dedicated non-modal event-log view**
-  [https://github.com/davidsneighbour/repo-triage/issues/78](https://github.com/davidsneighbour/repo-triage/issues/78)
-  Split from #70: the closed issue's data/API layer (`activity_log`,
-  `logActivity()`) is done, but the desired UI - a dedicated non-modal,
-  sortable table view - was never built; the shipped "Activity" tab lives
-  inside `NoticesDialog` instead. #77 shipped as its own standalone header
-  toolbar button (not folded into "reports", not shared with anything else),
-  which sets a precedent for this issue's entry-point question - see the
-  comment added this round.
-
-### Maintenance
-
-* **[#80] chore: scope npm run lint:markdown glob away from vendor/generated files**
-  [https://github.com/davidsneighbour/repo-triage/issues/80](https://github.com/davidsneighbour/repo-triage/issues/80)
-  The `lint:markdown` glob is unanchored and lints nested `node_modules`,
-  `.agents/skills/**`, and other non-source paths, producing ~36k noise
-  errors that bury any real signal. Self-contained config fix; no
-  dependencies.
+None.
 
 ---
 
 ## Suggested order of work
 
-1. **#79** - standardize the dev-only identifier attribute; unblocked now that #71 is merged.
-2. **#78** - event-log view; can follow #77's standalone-header-button precedent for its entry point.
-3. **#80** - markdown-lint glob scope fix; small, self-contained, improves signal quality of an existing health check.
+None - backlog is clear. Next steps are user-driven: file new issues as new work is identified.
 
 ## Open clarification questions
 
-* **#78**: Should the event-log view be per-repo (relocated out of the dialog) or cross-repo (all activity in one sortable table)? (Entry-point question is now informed by #77's precedent - see issue comment.)
-* **#79**: Should the new attribute be applied to every component or only ones commonly needing AI-assisted debugging, and should it be hand-authored or generated via a build-time transform?
-* **#80**: Should `.agents/skills/**` content be linted at all, or excluded like `node_modules`?
+None.

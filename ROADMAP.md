@@ -7,21 +7,12 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-**0 open issues.** This round closed out the previous cycle's full backlog:
-**#78** (event-log view), **#79** (dev-only data-id attribute), and **#80**
-(markdown-lint glob scope) are all confirmed merged on `main` (commits
-`12f231314c7b`, `fb5183cc7801`, `613244d2f0f6`). The `lint:markdown` health
-check, which was failing with ~36k noise errors for several rounds, now
-passes cleanly - #80's fix is verified working, not just merged.
-
-The one item that had been sitting in `/TODO.md` (a "priority" filter to
-collapse the board to a high-priority subset) turned out to already be
-implemented: `PriorityFilter` in the toolbar filters the board by priority
-level, is inclusive alongside own/forks/archived, and persists via
-`priorityFilter` in `/api/prefs`. Removed from `/TODO.md` as already done;
-no new issue needed.
-
-No new actionable work was identified this round.
+**1 open issue.** The previous cycle's backlog (#78, #79, #80) is fully
+closed and merged. One new item came in via `/TODO.md` this round and was
+filed as **#81**: a double-click "solo" gesture for the own/forks/archived
+filter pills. It has two open clarification questions (mobile double-tap
+behavior, discoverability hint) that should be resolved before or during
+implementation.
 
 ### Health indicators
 
@@ -31,20 +22,30 @@ No new actionable work was identified this round.
 | `npm run test` | Pass: exits zero |
 | `npm audit --omit=dev` | Pass: 0 vulnerabilities |
 | `npm audit` | Pass: 0 vulnerabilities |
-| `npm run lint:markdown` | Pass: 0 errors across 9 files (previously ~36k errors/806 files; fixed by #80) |
+| `npm run lint:markdown` | Pass: 0 errors across 9 files |
 
 ---
 
 ## Open issues
 
-None.
+### UX
+
+* **[#81] feat: double-click own/forks/archived filter pills to solo them**
+  [https://github.com/davidsneighbour/repo-triage/issues/81](https://github.com/davidsneighbour/repo-triage/issues/81)
+  Single click keeps today's toggle behavior; double-click on a pill should
+  turn the other two filters off and this one on ("solo" the category) in
+  one gesture. Self-contained change to `filterPills` in `client/src/App.jsx`.
+  Blocked on nothing, but has open clarification questions about mobile
+  double-tap support and tooltip discoverability.
 
 ---
 
 ## Suggested order of work
 
-None - backlog is clear. Next steps are user-driven: file new issues as new work is identified.
+1. **#81** - resolve the mobile-gesture and discoverability questions, then implement.
 
 ## Open clarification questions
 
-None.
+* **#81**: Should the solo gesture also work via touch double-tap in the mobile
+  action sheet, or stay desktop-only (`onDoubleClick`)? Should the pill get a
+  tooltip hint since double-click isn't otherwise discoverable?

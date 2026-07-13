@@ -133,6 +133,27 @@ export default function App() {
     setFilters(defaultFilters);
   };
 
+  // "Solo" a single category: turn the other two off and this one on.
+  const soloFilter = (key) => {
+    const next = Object.fromEntries(Object.keys(defaultFilters).map((k) => [k, k === key]));
+    localStorage.setItem(FILTER_KEY, JSON.stringify(next));
+    setFilters(next);
+  };
+
+  // Double-tap detection for touch devices (mirrors onDoubleClick for mouse).
+  const lastPillTapRef = useRef({ key: null, time: 0 });
+  const DOUBLE_TAP_MS = 350;
+  const handlePillTouchEnd = (key) => {
+    const now = Date.now();
+    const last = lastPillTapRef.current;
+    if (last.key === key && now - last.time < DOUBLE_TAP_MS) {
+      lastPillTapRef.current = { key: null, time: 0 };
+      soloFilter(key);
+    } else {
+      lastPillTapRef.current = { key, time: now };
+    }
+  };
+
   const allShown = Object.values(filters).every(Boolean);
 
   // Card density (comfortable | compact), persisted.
@@ -743,6 +764,9 @@ export default function App() {
       ].map(({ key, label, icon: FilterIcon }) => (
         <label
           key={key}
+          title={`Double-click (or double-tap) to show only ${label}`}
+          onDoubleClick={() => soloFilter(key)}
+          onTouchEnd={() => handlePillTouchEnd(key)}
           className={cx(
             'flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-[11px] transition-colors select-none',
             filters[key] ? 'border-neutral-600 bg-neutral-800 text-neutral-200' : 'border-neutral-800 bg-transparent text-neutral-600'

@@ -80,4 +80,43 @@ describe('App filter persistence', () => {
     expect(screen.getByRole('checkbox', { name: 'forks' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'archived' })).toBeChecked();
   });
+
+  it('double-click solos a pill: turns the other two off and this one on', () => {
+    render(<App />);
+
+    const forksPill = screen.getByRole('checkbox', { name: 'forks' }).closest('label');
+    fireEvent.doubleClick(forksPill);
+
+    expect(screen.getByRole('checkbox', { name: 'own' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'forks' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'archived' })).not.toBeChecked();
+    expect(JSON.parse(window.localStorage.getItem('repo-triage-filters'))).toEqual({
+      showOwn: false,
+      showForks: true,
+      showArchived: false,
+    });
+  });
+
+  it('double-tap solos a pill on touch devices', () => {
+    render(<App />);
+
+    const archivedPill = screen.getByRole('checkbox', { name: 'archived' }).closest('label');
+    fireEvent.touchEnd(archivedPill);
+    fireEvent.touchEnd(archivedPill);
+
+    expect(screen.getByRole('checkbox', { name: 'own' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'forks' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'archived' })).toBeChecked();
+  });
+
+  it('does not solo on a single tap, only leaves the normal click behavior intact', () => {
+    render(<App />);
+
+    const ownPill = screen.getByRole('checkbox', { name: 'own' }).closest('label');
+    fireEvent.touchEnd(ownPill);
+
+    expect(screen.getByRole('checkbox', { name: 'own' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'forks' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'archived' })).toBeChecked();
+  });
 });

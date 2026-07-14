@@ -15,7 +15,13 @@ services:
       DEFAULT_INACTIVITY_DAYS: ${DEFAULT_INACTIVITY_DAYS:-7}
       PORT: 8787
       DATA_DIR: /data
+      # Optional local HTTPS (see CLAUDE.md "Local dev — HTTPS (mkcert)"):
+      #   1. npm run certs:generate   (host-side, requires mkcert)
+      #   2. HTTPS_ENABLED=true docker compose up --build
+      HTTPS_ENABLED: ${HTTPS_ENABLED:-false}
     volumes:
       # SQLite DB persists here on the host across container rebuilds
       - ./data:/data
+      # Only read when HTTPS_ENABLED=true; empty/missing is harmless otherwise.
+      - ./certs:/app/certs:ro
     restart: unless-stopped

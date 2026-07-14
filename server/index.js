@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import https from "node:https";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import express from "express";
@@ -25,6 +26,17 @@ import webhookRouter from "./routes/webhook.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || "0.0.0.0";
+
+// Local-dev-only HTTPS via locally-trusted certs (mkcert). Off by default —
+// existing plain-HTTP workflows are unaffected unless HTTPS_ENABLED is set.
+// See CLAUDE.md "Local dev — HTTPS (mkcert)".
+const HTTPS_ENABLED = /^(1|true)$/i.test(process.env.HTTPS_ENABLED || "");
+const HTTPS_CERT_FILE =
+  process.env.HTTPS_CERT_FILE ||
+  path.join(__dirname, "..", "certs", "dev-cert.pem");
+const HTTPS_KEY_FILE =
+  process.env.HTTPS_KEY_FILE ||
+  path.join(__dirname, "..", "certs", "dev-key.pem");
 
 const app = express();
 
@@ -56,33 +68,56 @@ if (fs.existsSync(publicDir)) {
   app.get(/.*/, (req, res) => res.sendFile(path.join(publicDir, "index.html")));
 }
 
-function startServer() {
-  app.listen(PORT, HOST, () => {
-    const displayHost =
-      HOST === "0.0.0.0" || HOST === "::" ? "localhost" : HOST;
-    console.log(`\n  Repo Triage Dashboard -> http://${displayHost}:${PORT}`);
-    if (HOST === "0.0.0.0" || HOST === "::") {
-      console.log(
-        `  Listening on all network interfaces, including http://<your-lan-ip>:${PORT}`,
-      );
-    }
-    console.log("");
+function onListening() {
+  const displayHost = HOST === "0.0.0.0" || HOST === "::" ? "localhost" : HOST;
+  const scheme = HTTPS_ENABLED ? "https" : "http";
+  console.log(
+    `\n  Repo Triage Dashboard -> ${scheme}://${displayHost}:${PORT}`,
+  );
+  if (HOST === "0.0.0.0" || HOST === "::") {
     console.log(
-      `  Sync on startup: ${SYNC_ON_STARTUP} | Auto-sync: ${SYNC_AUTO} every ${getEffectiveSyncIntervalMinutes()}m`,
+      `  Listening on all network interfaces, including ${scheme}://<your-lan-ip>:${PORT}`,
     );
+  }
+  console.log("");
+  console.log(
+    `  Sync on startup: ${SYNC_ON_STARTUP} | Auto-sync: ${SYNC_AUTO} every ${getEffectiveSyncIntervalMinutes()}m`,
+  );
 
-    if (SYNC_ON_STARTUP) {
-      queueRefresh();
-      console.log("  Background GitHub sync started.");
-    }
+  if (SYNC_ON_STARTUP) {
+    queueRefresh();
+    console.log("  Background GitHub sync started.");
+  }
 
-    if (SYNC_AUTO) {
-      restartSyncInterval(getEffectiveSyncIntervalMinutes());
-      // Issue sync runs on its own (coarser) interval — not on startup — to
-      // bound GitHub API cost across every tracked, opted-in repo.
-      restartIssueSyncInterval(ISSUE_SYNC_INTERVAL_MINUTES_ENV);
-    }
-  });
+  if (SYNC_AUTO) {
+    restartSyncInterval(getEffectiveSyncIntervalMinutes());
+    // Issue sync runs on its own (coarser) interval — not on startup — to
+    // bound GitHub API cost across every tracked, opted-in repo.
+    restartIssueSyncInterval(ISSUE_SYNC_INTERVAL_MINUTES_ENV);
+  }
+}
+
+function startServer() {
+  if (!HTTPS_ENABLED) {
+    app.listen(PORT, HOST, onListening);
+    return;
+  }
+  let cert;
+  let key;
+  try {
+    cert = fs.readFileSync(HTTPS_CERT_FILE);
+    key = fs.readFileSync(HTTPS_KEY_FILE);
+  } catch (e) {
+    console.error(
+      `HTTPS_ENABLED is set but the certificate could not be read: ${e.message}`,
+    );
+    console.error(
+      "Generate local certs first: npm run certs:generate (requires mkcert)",
+    );
+    process.exit(1);
+    return;
+  }
+  https.createServer({ cert, key }, app).listen(PORT, HOST, onListening);
 }
 
 // Only boot the HTTP server + sync loop when run directly (node index.js).

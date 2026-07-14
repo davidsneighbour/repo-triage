@@ -38,6 +38,7 @@
     "test:e2e:ui": "npm --prefix e2e run test:ui",
     "docker:up": "GITHUB_TOKEN=${GITHUB_TOKEN:-$(gh auth token 2>/dev/null)} docker compose up",
     "docker:build": "GITHUB_TOKEN=${GITHUB_TOKEN:-$(gh auth token 2>/dev/null)} docker compose up --build",
+    "certs:generate": "mkdir -p certs && mkcert -key-file certs/dev-key.pem -cert-file certs/dev-cert.pem localhost 127.0.0.1 ::1",
     "release": "release-it",
     "release:dry": "release-it --dry-run",
     "docs:api": "jsdoc -c jsdoc.config.json",

@@ -17,7 +17,8 @@
     "readme": "README.md",
     "package": "./package.json",
     "template": "node_modules/clean-jsdoc-theme/dist",
-    "extensions": ["js", "mjs"]
+    "extensions": ["js", "mjs"],
+    "basePath": "/repo-triage/"
   },
   "plugins": ["plugins/markdown"],
   "templates": {

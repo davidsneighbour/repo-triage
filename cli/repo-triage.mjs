@@ -11,7 +11,7 @@
  *   Run `repo-triage help` to list all commands.
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const VALUE_FLAGS = new Set([
@@ -288,6 +288,29 @@ async function callText(base, path) {
   return text;
 }
 
+// Raw-binary GET (the full-system backup is a gzip archive, not JSON).
+async function callBinary(base, path) {
+  let res;
+  try {
+    res = await fetch(`${base}${path}`);
+  } catch {
+    throw new Error(
+      `could not reach the repo.triage API at ${base}. Is the server running? (npm run server)`,
+    );
+  }
+  if (!res.ok) {
+    let msg = `API ${res.status} on GET ${path}`;
+    try {
+      const j = await res.json();
+      if (j.error) msg = j.error;
+    } catch {
+      /* not json */
+    }
+    throw new Error(msg);
+  }
+  return Buffer.from(await res.arrayBuffer());
+}
+
 async function withRepo(base, ident) {
   const { repos } = await getRepos(base);
   return resolveRepo(repos, ident);
@@ -327,6 +350,8 @@ Commands:
                               OS notification (osascript / notify-send).
   backup                      Print all local triage state as JSON (redirect it)
   restore  <file.json>        Replace all triage state from a backup file
+  backup-full <file.db.gz>    Save a compressed full-database export (every
+                              table, incl. settings/prefs; secrets excluded)
   help
 
 A repo is "owner/name", a bare "name" (unambiguous), or a name substring (fuzzy).
@@ -553,6 +578,14 @@ async function run(argv, out = console.log, { execFile = execFileSync } = {}) {
       out(
         `restored ${r.repo_state ?? 0} states, ${r.repo_notice ?? 0} notices, ${r.repo_tag ?? 0} tags`,
       );
+      return 0;
+    }
+    case "backup-full": {
+      const file = positionals[0];
+      if (!file) throw new Error("usage: backup-full <file.db.gz>");
+      const data = await callBinary(base, "/api/backup/full");
+      writeFileSync(file, data);
+      out(`saved full database export to ${file} (${data.length} bytes)`);
       return 0;
     }
     case "note": {

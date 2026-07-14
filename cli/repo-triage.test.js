@@ -194,11 +194,27 @@ describe("formatList", () => {
 
 function stubApi() {
   const calls = [];
-  const res = (body, status = 200) => ({
-    ok: status >= 200 && status < 300,
-    status,
-    text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
-  });
+  const res = (body, status = 200) => {
+    const isBinary = body instanceof Uint8Array;
+    const text = isBinary
+      ? ""
+      : typeof body === "string"
+        ? body
+        : JSON.stringify(body);
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      text: async () => text,
+      json: async () => (typeof body === "string" ? JSON.parse(body) : body),
+      arrayBuffer: async () =>
+        isBinary
+          ? body.buffer.slice(
+              body.byteOffset,
+              body.byteOffset + body.byteLength,
+            )
+          : new TextEncoder().encode(text).buffer,
+    };
+  };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url, init) => {
@@ -222,6 +238,8 @@ function stubApi() {
           ok: true,
           restored: { repo_state: 2, repo_notice: 1, repo_tag: 3 },
         });
+      if (url.endsWith("/api/backup/full"))
+        return res(Buffer.from("fake-gzip-bytes"));
       if (url.includes("/api/reports/")) {
         if (url.includes("format=json"))
           return res({
@@ -509,6 +527,75 @@ describe("run", () => {
     expect(post.body.repo_state).toEqual([{ repo_id: 1 }]);
     expect(out.mock.calls.at(-1)[0]).toMatch(
       /restored 2 states, 1 notices, 3 tags/,
+    );
+  });
+
+  it("backup-full downloads the gzip archive from /api/backup/full to a file", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const file = path.join(
+      os.tmpdir(),
+      `repo-triage-backup-full-${Date.now()}.db.gz`,
+    );
+
+    const calls = stubApi();
+    await run(["backup-full", file], out);
+
+    expect(calls.find((c) => c.url.endsWith("/api/backup/full"))).toBeTruthy();
+    expect(fs.readFileSync(file).toString()).toBe("fake-gzip-bytes");
+    expect(out.mock.calls.at(-1)[0]).toMatch(
+      /saved full database export to .*\.db\.gz \(15 bytes\)/,
+    );
+    fs.rmSync(file, { force: true });
+  });
+
+  it("backup-full requires a file argument", async () => {
+    stubApi();
+    await expect(run(["backup-full"], out)).rejects.toThrow(
+      /usage: backup-full/,
+    );
+  });
+
+  it("backup-full surfaces an unreachable server", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("network down");
+      }),
+    );
+    await expect(run(["backup-full", "out.db.gz"], out)).rejects.toThrow(
+      /could not reach the repo\.triage API/,
+    );
+  });
+
+  it("backup-full surfaces the server's JSON error message on failure", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: "full backup failed: disk full" }),
+      })),
+    );
+    await expect(run(["backup-full", "out.db.gz"], out)).rejects.toThrow(
+      /full backup failed: disk full/,
+    );
+  });
+
+  it("backup-full falls back to a generic message on a non-JSON error body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 502,
+        json: async () => {
+          throw new Error("not json");
+        },
+      })),
+    );
+    await expect(run(["backup-full", "out.db.gz"], out)).rejects.toThrow(
+      /API 502 on GET \/api\/backup\/full/,
     );
   });
 

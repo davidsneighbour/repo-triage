@@ -2,6 +2,8 @@ import { createHmac } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { Readable } from "node:stream";
+import zlib from "node:zlib";
 import Database from "better-sqlite3";
 import request from "supertest";
 import {
@@ -52,6 +54,7 @@ vi.mock("./github.js", () => ({
 
 const { fetchAllRepos } = await import("./github.js");
 const { app, refreshRepos } = await import("./index.js");
+const { default: db } = await import("./db.js");
 
 const REPO = {
   id: 101,
@@ -895,6 +898,66 @@ describe("backup & restore (runs last — mutates shared triage state)", () => {
   it("rejects a malformed backup with 400", async () => {
     const res = await request(app).post("/api/restore").send({ nope: true });
     expect(res.status).toBe(400);
+  });
+
+  it("streams a gzip-compressed full database export with tokens redacted", async () => {
+    const res = await request(app)
+      .get("/api/backup/full")
+      .buffer(true)
+      .parse((response, cb) => {
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(chunk));
+        response.on("end", () => cb(null, Buffer.concat(chunks)));
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toBe("application/gzip");
+    expect(res.headers["content-disposition"]).toMatch(
+      /attachment; filename="repo-triage-full-backup-.*\.db\.gz"/,
+    );
+
+    const dbBuffer = zlib.gunzipSync(res.body);
+    const snapshotPath = path.join(
+      tmpDir,
+      `verify-full-backup-${Date.now()}.db`,
+    );
+    fs.writeFileSync(snapshotPath, dbBuffer);
+    const snapshot = new Database(snapshotPath, { readonly: true });
+    try {
+      const state = snapshot.prepare("SELECT * FROM repo_state").all();
+      expect(state.length).toBeGreaterThan(0);
+      const tokenRows = snapshot.prepare("SELECT * FROM tokens").all();
+      expect(tokenRows).toEqual([]);
+    } finally {
+      snapshot.close();
+      fs.rmSync(snapshotPath, { force: true });
+    }
+  });
+
+  it("returns 500 when the full-database snapshot fails", async () => {
+    const spy = vi
+      .spyOn(db, "backup")
+      .mockRejectedValueOnce(new Error("disk full"));
+    const res = await request(app).get("/api/backup/full");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toMatch(/full backup failed/);
+    spy.mockRestore();
+  });
+
+  it("surfaces a stream error while sending the full-database snapshot", async () => {
+    const spy = vi.spyOn(fs, "createReadStream").mockImplementationOnce(() => {
+      const stream = new Readable({
+        read() {
+          /* no-op: error is emitted asynchronously below */
+        },
+      });
+      process.nextTick(() => stream.emit("error", new Error("read failed")));
+      return stream;
+    });
+    const res = await request(app).get("/api/backup/full");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toMatch(/full backup failed/);
+    spy.mockRestore();
   });
 
   it("rejects a restore with no request body (covers req.body || {} guard)", async () => {

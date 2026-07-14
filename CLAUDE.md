@@ -38,13 +38,40 @@ cd server && npm install && GITHUB_TOKEN=ghp_... npm run dev
 cd client && npm install && npm run dev
 ```
 
+### Local dev — HTTPS (mkcert)
+
+Off by default; existing plain-HTTP workflows are unaffected. To serve both
+the backend and the Vite dev server over HTTPS with locally-trusted certs:
+
+```bash
+# once per machine
+brew install mkcert   # or your OS's package manager
+mkcert -install
+
+# generate certs into ./certs (gitignored)
+npm run certs:generate
+
+# then run dev as usual, with HTTPS_ENABLED set
+HTTPS_ENABLED=true npm run dev
+```
+
+Both processes read `HTTPS_ENABLED`/`HTTPS_CERT_FILE`/`HTTPS_KEY_FILE`
+independently (the backend via `--env-file-if-exists=../.env`, Vite via
+`loadEnv()` pointed at the repo root) — set `HTTPS_ENABLED=true` in the root
+`.env` to cover both without exporting it in the shell. Defaults to
+`./certs/dev-cert.pem` / `./certs/dev-key.pem` if `HTTPS_CERT_FILE` /
+`HTTPS_KEY_FILE` aren't set. This is local-dev tooling only — it does not
+apply to the production GHCR image (`docker-compose.prod.yml`).
+
 ### Docker — local build
 
 ```bash
 docker compose --env-file .env up --build
 ```
 
-Open: [http://localhost:8787](http://localhost:8787)
+Open: [http://localhost:8787](http://localhost:8787) (or `https://` with
+`HTTPS_ENABLED=true` after `npm run certs:generate` — the compose file
+mounts `./certs` into the container read-only).
 
 ### Docker — production image from GHCR (end-user path)
 
@@ -94,6 +121,9 @@ set in each `vitest.config.js` and fail the run on regression.
 | `ENRICH_METADATA` | no | `false` | Run per-repo GraphQL enrichment after each sync (open PRs, latest release, last commit, CI status). Requires `gh` CLI to be logged in. Costs rate-limit budget. |
 | `PAGINATE_VIA_GH` | no | `false` | Route repo-list pagination through `gh api --paginate` instead of REST. Org/membership detection stays on REST. Rate-limit state is refreshed via one REST call after each gh sync. |
 | `ISSUE_SYNC_INTERVAL_MINUTES` | no | `10080` (7 days) | Periodic GitHub issue sync interval for tracked repos (opt-out per repo via `PUT /api/repos/:id/issue-sync`). Does not run on server startup — only on this interval or via on-demand/manual sync. |
+| `HTTPS_ENABLED` | no | `false` | Serve the backend (and, read independently by Vite, the frontend) over HTTPS using locally-trusted certs. Local-dev only. See **Local dev — HTTPS (mkcert)**. |
+| `HTTPS_CERT_FILE` | no | `./certs/dev-cert.pem` | Cert path used when `HTTPS_ENABLED=true` |
+| `HTTPS_KEY_FILE` | no | `./certs/dev-key.pem` | Key path used when `HTTPS_ENABLED=true` |
 
 ## Architecture
 

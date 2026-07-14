@@ -52,6 +52,8 @@ docker compose --env-file .env up --build
 | `SYNC_AUTO` | no | `true` | Enable periodic background sync |
 | `SYNC_INTERVAL_MINUTES` | no | `60` | Sync interval minutes (min 1) |
 | `DATA_DIR` | no | `/data` in Docker, `./data` fallback | SQLite data directory |
+| `HTTPS_ENABLED` | no | `false` | Serve over HTTPS using locally-trusted certs (`mkcert`). Local-dev only — see [Development](#development) |
+| `HTTPS_CERT_FILE` / `HTTPS_KEY_FILE` | no | `./certs/dev-cert.pem` / `./certs/dev-key.pem` | Cert/key paths used when `HTTPS_ENABLED=true` |
 
 ### GitHub token permissions
 
@@ -287,6 +289,20 @@ cd server && npm install && npm run dev
 # frontend
 cd client && npm install && npm run dev
 ```
+
+### HTTPS in local dev
+
+Off by default. To run both the backend and the Vite dev server over HTTPS
+with locally-trusted certs, install [mkcert](https://github.com/FiloSottile/mkcert),
+run `mkcert -install` once, then:
+
+```bash
+npm run certs:generate                 # writes ./certs/dev-{cert,key}.pem
+HTTPS_ENABLED=true npm run dev
+```
+
+Set `HTTPS_ENABLED=true` in the root `.env` to cover both processes without
+exporting it in the shell each time.
 
 ## CLI (`repo-triage`)
 

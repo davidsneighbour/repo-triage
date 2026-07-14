@@ -43,7 +43,11 @@
     "docs:api": "jsdoc -c jsdoc.config.json",
     "lint:markdown": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc \"**/*.{md,mdx}\"",
     "lint:markdown:fix": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc --fix \"**/*.{md,mdx}\"",
-    "lint:markdown:single": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc"
+    "lint:markdown:single": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc",
+    "lint:spelling": "cspell \"**/*.{md,mdx}\"",
+    "lint:workflows": "zizmor .github/workflows",
+    "lint:hook:commit": "lint-staged",
+    "hooks:update": "simple-git-hooks"
   },
   "devDependencies": {
     "@dnbhq/markdownlint-config": "0.2.7",
@@ -51,8 +55,14 @@
     "@release-it/conventional-changelog": "11.0.1",
     "clean-jsdoc-theme": "5.0.6",
     "concurrently": "10.0.3",
+    "cspell": "10.0.1",
     "jsdoc": "4.0.5",
-    "release-it": "20.2.0"
+    "lint-staged": "17.0.8",
+    "release-it": "20.2.0",
+    "simple-git-hooks": "2.13.1"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged"
   },
   "overrides": {
     "undici": ">=7.28.0",
@@ -85,5 +95,8 @@
       "client/src/help-diagram.svg",
       ".vscode/dictionary.txt"
     ]
+  },
+  "allowScripts": {
+    "simple-git-hooks@2.13.1": true
   }
 }

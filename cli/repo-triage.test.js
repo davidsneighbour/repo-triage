@@ -221,7 +221,11 @@ function stubApi() {
       calls.push({
         url,
         method: init?.method || "GET",
-        body: init?.body ? JSON.parse(init.body) : undefined,
+        body: Buffer.isBuffer(init?.body)
+          ? init.body
+          : init?.body
+            ? JSON.parse(init.body)
+            : undefined,
       });
       if (url.endsWith("/api/repos")) return res({ repos: REPOS });
       if (url.endsWith("/api/tags"))
@@ -240,6 +244,17 @@ function stubApi() {
         });
       if (url.endsWith("/api/backup/full"))
         return res(Buffer.from("fake-gzip-bytes"));
+      if (url.endsWith("/api/restore/full"))
+        return res({
+          ok: true,
+          checks: {
+            integrity: true,
+            migrated: true,
+            tables: { repo_state: 1 },
+          },
+          restartRequired: true,
+          previousDbBackup: "/data/dashboard.db.pre-restore-2026-07-14",
+        });
       if (url.includes("/api/reports/")) {
         if (url.includes("format=json"))
           return res({
@@ -555,6 +570,115 @@ describe("run", () => {
     await expect(run(["backup-full"], out)).rejects.toThrow(
       /usage: backup-full/,
     );
+  });
+
+  it("restore-full reads a file and POSTs it to /api/restore/full", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const file = path.join(
+      os.tmpdir(),
+      `repo-triage-restore-full-${Date.now()}.db.gz`,
+    );
+    fs.writeFileSync(file, Buffer.from("fake-gzip-bytes"));
+
+    const calls = stubApi();
+    await run(["restore-full", file], out);
+    fs.rmSync(file, { force: true });
+
+    const post = calls.find((c) => c.url.endsWith("/api/restore/full"));
+    expect(post).toMatchObject({ method: "POST" });
+    expect(Buffer.from(post.body).toString()).toBe("fake-gzip-bytes");
+    expect(out.mock.calls.at(-1)[0]).toMatch(
+      /installed full database export from .*; restart the server to use it \(previous database kept at \/data\/dashboard\.db\.pre-restore-2026-07-14\)/,
+    );
+  });
+
+  it("restore-full requires a file argument", async () => {
+    stubApi();
+    await expect(run(["restore-full"], out)).rejects.toThrow(
+      /usage: restore-full/,
+    );
+  });
+
+  it("restore-full surfaces an unreadable file", async () => {
+    stubApi();
+    await expect(
+      run(["restore-full", "/no/such/archive.db.gz"], out),
+    ).rejects.toThrow(/could not read archive/);
+  });
+
+  it("restore-full surfaces an unreachable server", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const file = path.join(
+      os.tmpdir(),
+      `repo-triage-restore-full-unreachable-${Date.now()}.db.gz`,
+    );
+    fs.writeFileSync(file, Buffer.from("fake-gzip-bytes"));
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("network down");
+      }),
+    );
+    await expect(run(["restore-full", file], out)).rejects.toThrow(
+      /could not reach the repo\.triage API/,
+    );
+    fs.rmSync(file, { force: true });
+  });
+
+  it("restore-full surfaces the server's JSON error message on failure", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const file = path.join(
+      os.tmpdir(),
+      `repo-triage-restore-full-bad-${Date.now()}.db.gz`,
+    );
+    fs.writeFileSync(file, Buffer.from("fake-gzip-bytes"));
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 400,
+        text: async () =>
+          JSON.stringify({
+            error: "full restore failed: not a valid gzip archive",
+          }),
+      })),
+    );
+    await expect(run(["restore-full", file], out)).rejects.toThrow(
+      /full restore failed: not a valid gzip archive/,
+    );
+    fs.rmSync(file, { force: true });
+  });
+
+  it("restore-full falls back to a generic message on a non-JSON error body", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const file = path.join(
+      os.tmpdir(),
+      `repo-triage-restore-full-502-${Date.now()}.db.gz`,
+    );
+    fs.writeFileSync(file, Buffer.from("fake-gzip-bytes"));
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 502,
+        text: async () => "",
+      })),
+    );
+    await expect(run(["restore-full", file], out)).rejects.toThrow(
+      /API 502 on POST \/api\/restore\/full/,
+    );
+    fs.rmSync(file, { force: true });
   });
 
   it("backup-full surfaces an unreachable server", async () => {

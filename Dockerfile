@@ -1,3 +1,5 @@
+# Chainguard's free tier only publishes rolling `latest`/`latest-dev` tags
+# (no pinned major-version tags); `latest-dev` currently resolves to Node 26.
 # ---- Stage 1: build the React client --------------------------------------
 FROM cgr.dev/chainguard/node:latest-dev AS client-build
 # Chainguard images default to nonroot; root is needed so COPY + npm install
@@ -26,7 +28,7 @@ RUN wget -qO /tmp/gh.tar.gz \
     mv /tmp/gh_${GH_VERSION}_linux_${TARGETARCH}/bin/gh /usr/local/bin/gh && \
     rm -rf /tmp/gh.tar.gz /tmp/gh_${GH_VERSION}_linux_${TARGETARCH}
 
-# better-sqlite3 ships a prebuilt glibc binary for Node 22+, so no build
+# better-sqlite3 ships a prebuilt glibc binary for Node 26+, so no build
 # tools (python3/make/gcc) are needed here — prebuild-install handles it.
 COPY server/package*.json ./
 RUN npm install --omit=dev

@@ -217,6 +217,7 @@ day). This sorts lexicographically and makes history auditable.
 | DELETE | `/api/tags/:tag` | Delete a tag from every repo that carries it |
 | GET | `/api/backup` | Export all triage state (repo_state/notice/tag) as JSON |
 | POST | `/api/restore` | Replace all triage state from a backup payload (transactional) |
+| GET | `/api/backup/full` | Stream a gzip-compressed, redacted snapshot of the whole SQLite DB (every table, incl. `settings`/`prefs`; `tokens` rows are stripped and the copy is VACUUMed before compression). Additive to `/api/backup`, not a replacement. |
 | POST | `/api/repos/:id/gh/open` | Open repo in browser via `gh repo view --web` |
 | GET | `/api/repos/:id/gh/prs` | List open PRs via `gh pr list` |
 | POST | `/api/repos/:id/gh/issue` | Create GitHub issue via `gh issue create`; body `{ title, body }` |

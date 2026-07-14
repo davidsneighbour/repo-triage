@@ -1,7 +1,10 @@
+import fs from "node:fs";
+import zlib from "node:zlib";
 import { Router } from "express";
 import db from "../db.js";
 import { authStatus, rateLimit, sourceStatus } from "../github.js";
 import { getAllActivity, logActivity } from "../lib/activity.js";
+import { createRedactedSnapshot } from "../lib/fullBackup.js";
 import { buildPayload } from "../lib/payload.js";
 import { invalidatePayloadCache } from "../lib/payloadCache.js";
 import { getLastExport } from "../lib/reportSchedule.js";
@@ -742,6 +745,45 @@ router.get("/backup", (req, res) => {
       .all(),
     tag_registry: db.prepare("SELECT tag, created_at FROM tag_registry").all(),
   });
+});
+
+// Full-system export: a gzip-compressed, redacted snapshot of the whole
+// SQLite database (every table, including settings/prefs — they already
+// live in this DB). Additive to /api/backup, not a replacement: the JSON
+// route above stays triage-state-only for lightweight round-tripping.
+router.get("/backup/full", async (req, res) => {
+  let snapshotPath;
+  try {
+    snapshotPath = await createRedactedSnapshot(db);
+  } catch (e) {
+    res
+      .status(500)
+      .json({ error: `full backup failed: ${String(e.message || e)}` });
+    return;
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const cleanup = () =>
+    fs.rm(snapshotPath, { force: true }, () => {
+      /* best-effort cleanup */
+    });
+  res.on("close", cleanup);
+  res.setHeader("Content-Type", "application/gzip");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="repo-triage-full-backup-${stamp}.db.gz"`,
+  );
+  const source = fs.createReadStream(snapshotPath);
+  source.on("error", (e) => {
+    if (!res.headersSent) {
+      res
+        .status(500)
+        .set("Content-Type", "application/json")
+        .json({ error: `full backup failed: ${String(e.message || e)}` });
+    } else {
+      res.destroy(e);
+    }
+  });
+  source.pipe(zlib.createGzip()).pipe(res);
 });
 
 router.post("/restore", (req, res) => {

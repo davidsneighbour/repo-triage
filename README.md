@@ -250,6 +250,9 @@ Stack: Express 5 + better-sqlite3 (`server/`), React 19 + Vite 8 + Tailwind v4
 | GET | `/api/reports` · `/api/reports/:kind` | Report kinds / a report (`?format=json\|md\|csv`) |
 | POST | `/api/reorder` | Persist column order |
 
+Generated API docs (JSDoc) are published at
+[davidsneighbour.github.io/repo-triage](https://davidsneighbour.github.io/repo-triage/).
+
 ## Release notes (prototype)
 
 The prototype is release-ready for local/self-hosted use with:

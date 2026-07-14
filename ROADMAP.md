@@ -7,63 +7,76 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-**2 open issues.** #81 (double-click/double-tap "solo" gesture for the
-own/forks/archived filter pills) is implemented, tested, and committed
-locally (`e571dc0aaa8c`) and has been closed; it will formally close on
-GitHub once that commit is pushed. Two new items came in via `/TODO.md`
-this round and were filed as **#82** (buttons wrapping text onto two lines
-at narrow widths) and **#83** (deploy `docs/api` to GitHub Pages on push).
+**0 open issues.** #81, #82, and #83 (all previously listed here) are
+closed and merged to `main`. Four rough notes from `/TODO.md` this round
+were split into individual actionable issues: **#84** (HTTPS for local dev
+and Docker), **#85** (link the published API docs site from README),
+**#86** (full compressed system export), and **#87** (matching import,
+which depends on #86's archive format).
 
 ### Health indicators
 
 | Check | Status |
 | --- | --- |
-| Tests (all workspaces) | Pass: 844 tests (434 client + 352 server + 58 CLI) |
+| Tests (all workspaces) | Pass: 847 tests (437 client + 352 server + 58 CLI) |
 | `npm run test` | Pass: exits zero |
 | `npm audit --omit=dev` | Pass: 0 vulnerabilities |
 | `npm audit` | Pass: 0 vulnerabilities |
-| `npm run lint:markdown` | Pass: 0 errors across 9 files |
+| `npm run lint:markdown` | Pass: 0 errors across 10 files |
 
 ---
 
 ## Open issues
 
-### UX
+### Dev environment
 
-* **[#82] ux: toolbar/action buttons wrap text onto two lines at narrow widths**
-  [https://github.com/davidsneighbour/repo-triage/issues/82](https://github.com/davidsneighbour/repo-triage/issues/82)
-  Some button labels break across two lines at narrow viewport widths
-  instead of staying on one line; toolbar rows should wrap whole buttons
-  onto new rows, or specific low-priority actions should collapse into an
-  existing dropdown pattern (`CardMenu`/`FieldsMenu`). Needs a
-  clarification on exactly which control(s) were seen wrapping before a
-  precise fix can be scoped.
+* **[#84] feat: HTTPS support for local dev and Docker servers**
+  [https://github.com/davidsneighbour/repo-triage/issues/84](https://github.com/davidsneighbour/repo-triage/issues/84)
+  Neither `npm run dev` nor the Docker Compose path serves over HTTPS
+  today. Needs a decision on certificate strategy (mkcert, self-signed, or
+  a reverse proxy in front of the container) before implementation.
 
-### CI / docs
+### Docs
 
-* **[#83] ci: deploy docs/api to GitHub Pages on push**
-  [https://github.com/davidsneighbour/repo-triage/issues/83](https://github.com/davidsneighbour/repo-triage/issues/83)
-  `docs/api` (jsdoc + clean-jsdoc-theme output, git-ignored) currently has
-  no publishing path. Add a workflow modeled loosely on
-  `.github/workflows/docker-publish.yml` that runs `npm run docs:api` and
-  deploys the output via GitHub Pages Actions deployment. Requires a
-  one-time repo settings change (Pages source → GitHub Actions) alongside
-  the workflow.
+* **[#85] docs: link the published API docs site from README**
+  [https://github.com/davidsneighbour/repo-triage/issues/85](https://github.com/davidsneighbour/repo-triage/issues/85)
+  Small, unambiguous addition - `docs/api` is already live on GitHub Pages
+  (deployed by the workflow added for #83); README just needs a link to
+  it. No open questions, easiest pickup in this batch.
+
+### Backup / restore
+
+* **[#86] feat: full system export (compressed archive of database, config, etc.)**
+  [https://github.com/davidsneighbour/repo-triage/issues/86](https://github.com/davidsneighbour/repo-triage/issues/86)
+  Broader than the existing `/api/backup` (which only covers
+  `repo_state`/`repo_notice`/`repo_tag` as JSON). Needs a decision on
+  whether this extends or sits alongside the existing backup endpoint, and
+  what "config" should include.
+* **[#87] feat: full system import from compressed export, with consistency check**
+  [https://github.com/davidsneighbour/repo-triage/issues/87](https://github.com/davidsneighbour/repo-triage/issues/87)
+  Depends on #86's archive format. Needs a decision on cross-schema-version
+  import behavior and what the post-import consistency check should
+  assert.
 
 ---
 
 ## Suggested order of work
 
-1. **#82** - resolve the clarification question (which control(s) wrap),
-   then implement; likely CSS-only.
-2. **#83** - decide on trigger scope (push to `main` vs. release tags),
-   then add the workflow and enable Pages-via-Actions in repo settings.
+1. **#85** - no open questions, smallest scope; do first.
+2. **#86** - resolve archive-format/scope questions, then implement the
+   export side.
+3. **#87** - build on #86's format once it lands.
+4. **#84** - independent of the others; pick up whenever the cert-strategy
+   question is resolved.
 
 ## Open clarification questions
 
-* **#82**: Which specific button(s)/pill(s) were seen wrapping - desktop
-  toolbar, mobile action sheet, card menu, or BulkBar? Which controls
-  should degrade into a dropdown, and reusing which existing pattern?
-* **#83**: Should the deploy run on every push to `main`, only on `v*`
-  release tags, or on a separate schedule/manual trigger? Should PR
-  branches get a preview deploy, or is production-only sufficient?
+* **#84**: mkcert vs. self-signed vs. reverse-proxy TLS termination? HTTPS
+  as new default or opt-in? Local-dev-only, or also the production GHCR
+  image?
+* **#86**: Extend `/api/backup`'s JSON shape or replace it? Export
+  triggerable from CLI, web UI, or both? Does "config" mean DB-backed
+  settings only, or also relevant env vars (excluding secrets)?
+* **#87**: Replace or sit alongside `POST /api/restore`? Support
+  cross-schema-version import via `runMigrations()`, or hard-reject
+  mismatches? What exactly should the consistency check assert?

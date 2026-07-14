@@ -145,7 +145,7 @@ export function resolveToken() {
  * token with no owner preference (used for the viewer-login probe and for
  * the no-owners repo fetch).
  *
- * @returns {(owner: string|null) => { token: string|null, source: 'db'|'env'|'gh'|null }}
+ * @returns {function((string|null)): {token: (string|null), source: ('db'|'env'|'gh'|null)}}
  */
 export function buildResolveOwnerToken() {
   const fallback = resolveToken();

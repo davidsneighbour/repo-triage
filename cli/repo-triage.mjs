@@ -304,7 +304,7 @@ function sendNotify(title, message, execFile = execFileSync) {
  *
  * @param {string} base - API base URL
  * @param {Set<number>} previousIds - Repo IDs that were in Today on the prior poll
- * @param {{ notify?: boolean, execFile?: Function, call?: Function }} opts
+ * @param {{ notify: boolean=, execFile: Function=, call: Function= }} opts
  * @returns {Promise<{ newlyDue: object[], todayIds: Set<number> }>}
  */
 export async function watchOnce(base, previousIds, opts = {}) {

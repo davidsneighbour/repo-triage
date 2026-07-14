@@ -270,3 +270,14 @@ day). This sorts lexicographically and makes history auditable.
 * Tailwind class names are static strings (no dynamic construction).
 * Keep the test suites green; add/adjust tests alongside behaviour changes.
 * Do not cache GitHub repo list to disk.
+
+## Git workflow
+
+* Never merge a feature/issue branch back into `main` with a merge commit
+  (no `git merge --no-ff`). It clutters `git log` with "Merge branch
+  'issue-N-slug'" noise.
+* Instead, integrate with `git rebase` (preferred when the branch's commits
+  each carry their own meaningful body text worth preserving in history) or
+  squash the branch into a single commit (when the intermediate commits are
+  just noise/WIP with nothing worth keeping individually). Either way,
+  `main` ends up with linear history and no merge commits.

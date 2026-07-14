@@ -1,4 +1,0 @@
-interface:
-  display_name: "DNB Project State Report"
-  short_description: "Report project changes and next actions."
-  default_prompt: "Use $dnb-project-state-report to refresh this repository and report what changed since yesterday."

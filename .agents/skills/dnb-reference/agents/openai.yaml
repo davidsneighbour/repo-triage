@@ -1,4 +1,0 @@
-interface:
-  display_name: "DNB Reference"
-  short_description: "Add source references to AI asset front matter."
-  default_prompt: "Add this URL as a front matter reference to the selected AI file."

@@ -916,7 +916,7 @@ export default function App() {
       </div>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-900 px-5 py-3">
         <h1 className="text-base font-semibold tracking-tight text-neutral-100">repo.triage</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 [&_button]:whitespace-nowrap">
           <button
             onClick={() => setStatusOpen(true)}
             className={cx(
@@ -980,8 +980,8 @@ export default function App() {
           </button>
         ) : (
           <>
-            <div className="flex items-center gap-1 border-l border-neutral-800 pl-3">{filterPills}</div>
-            <div className="flex items-center gap-2 border-l border-neutral-800 pl-3">{optionControls}</div>
+            <div className="flex flex-wrap items-center gap-1 border-l border-neutral-800 pl-3 [&_button]:whitespace-nowrap [&_label]:whitespace-nowrap">{filterPills}</div>
+            <div className="flex flex-wrap items-center gap-2 border-l border-neutral-800 pl-3 [&_button]:whitespace-nowrap [&_label]:whitespace-nowrap">{optionControls}</div>
           </>
         )}
       </div>
@@ -990,8 +990,8 @@ export default function App() {
         <MobileActionSheet title="Filters & options" onClose={() => setActionsOpen(false)}>
           {/* Bump relocated controls to the ≥44px mobile touch target (DESIGN.md
               → Touch targets) without altering the shared desktop fragments. */}
-          <div className="flex flex-wrap items-center gap-2 [&_button]:min-h-11 [&_label]:min-h-11 [&_select]:min-h-11">{filterPills}</div>
-          <div className="flex flex-wrap items-center gap-2 border-t border-neutral-800 pt-3 [&_button]:min-h-11 [&_label]:min-h-11 [&_select]:min-h-11">{optionControls}</div>
+          <div className="flex flex-wrap items-center gap-2 [&_button]:min-h-11 [&_label]:min-h-11 [&_select]:min-h-11 [&_button]:whitespace-nowrap [&_label]:whitespace-nowrap">{filterPills}</div>
+          <div className="flex flex-wrap items-center gap-2 border-t border-neutral-800 pt-3 [&_button]:min-h-11 [&_label]:min-h-11 [&_select]:min-h-11 [&_button]:whitespace-nowrap [&_label]:whitespace-nowrap">{optionControls}</div>
         </MobileActionSheet>
       )}
 

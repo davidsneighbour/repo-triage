@@ -243,6 +243,7 @@ Stack: Express 5 + better-sqlite3 (`server/`), React 19 + Vite 8 + Tailwind v4
 | GET | `/api/backup` | Export all triage state (state/notices/tags) as JSON |
 | POST | `/api/restore` | Replace all triage state from a backup (transactional) |
 | GET | `/api/backup/full` | Download a gzip-compressed snapshot of the whole database (every table, incl. settings/prefs; secrets excluded) |
+| POST | `/api/restore/full` | Validate + install a `/api/backup/full` archive (body: raw gzip). Requires a server restart to take effect |
 | POST | `/api/repos/:id/ignore` | `{ ignored }` hide/show a repo |
 | GET/POST/DELETE | `/api/repos/:id/notices` | List / add / (delete via `/api/notices/:id`) notes |
 | GET | `/api/notices` | All notices, sortable |
@@ -306,6 +307,7 @@ npm run cli -- report stale --days 365             # markdown report
 npm run cli -- backup > triage-backup.json         # export all triage state
 npm run cli -- restore triage-backup.json          # re-import it
 npm run cli -- backup-full triage-full.db.gz       # full DB export (compressed)
+npm run cli -- restore-full triage-full.db.gz      # validate + install it (restart to use)
 npm run cli -- report owners --format csv > o.csv   # export csv
 ```
 

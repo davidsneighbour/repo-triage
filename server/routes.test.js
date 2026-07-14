@@ -52,9 +52,24 @@ vi.mock("./github.js", () => ({
       : [],
 }));
 
+// installFullBackup renames the live DB file on disk (see lib/fullRestore.js),
+// which would break later tests in this file that reopen a fresh connection
+// at the live path (e.g. the undo-log corrupt-JSON test). Keep the real
+// validation logic but stub out only the destructive install step so the
+// /api/restore/full route's success path can still be exercised safely.
+vi.mock("./lib/fullRestore.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    installFullBackup: vi.fn(() => "/data/dashboard.db.pre-restore-mocked"),
+  };
+});
+
 const { fetchAllRepos } = await import("./github.js");
 const { app, refreshRepos } = await import("./index.js");
 const { default: db } = await import("./db.js");
+const { installFullBackup } = await import("./lib/fullRestore.js");
+const { runMigrations } = await import("./lib/migrations.js");
 
 const REPO = {
   id: 101,
@@ -963,6 +978,64 @@ describe("backup & restore (runs last — mutates shared triage state)", () => {
   it("rejects a restore with no request body (covers req.body || {} guard)", async () => {
     const res = await request(app).post("/api/restore");
     expect(res.status).toBe(400);
+  });
+
+  // Only the validation-failure paths are exercised here: a successful
+  // /api/restore/full renames the live DB file on disk (see
+  // lib/fullRestore.js), which would break later tests in this file that
+  // reopen a fresh connection at the same path (e.g. the undo-log corrupt-
+  // JSON test). The success path is covered in isolation in
+  // fullRestore.test.js instead.
+  it("rejects a full restore with an empty body", async () => {
+    const res = await request(app)
+      .post("/api/restore/full")
+      .set("Content-Type", "application/gzip")
+      .send(Buffer.alloc(0));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/non-empty application\/gzip archive/);
+  });
+
+  it("rejects a full restore with invalid gzip data", async () => {
+    const res = await request(app)
+      .post("/api/restore/full")
+      .set("Content-Type", "application/gzip")
+      .send(Buffer.from("not a gzip archive"));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(
+      /full restore failed: not a valid gzip archive/,
+    );
+  });
+
+  it("validates and installs a full restore archive (install step stubbed)", async () => {
+    const candidateDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "repo-triage-restore-candidate-"),
+    );
+    const candidatePath = path.join(candidateDir, "candidate.db");
+    const candidate = new Database(candidatePath);
+    runMigrations(candidate);
+    candidate
+      .prepare(
+        "INSERT INTO repo_state (repo_id, full_name, position, updated_at) VALUES (999, 'me/candidate', 0, datetime('now'))",
+      )
+      .run();
+    candidate.close();
+    const archive = zlib.gzipSync(fs.readFileSync(candidatePath));
+    fs.rmSync(candidateDir, { recursive: true, force: true });
+
+    const res = await request(app)
+      .post("/api/restore/full")
+      .set("Content-Type", "application/gzip")
+      .send(archive);
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.restartRequired).toBe(true);
+    expect(res.body.checks.integrity).toBe(true);
+    expect(res.body.checks.tables.repo_state).toBe(1);
+    expect(res.body.previousDbBackup).toBe(
+      "/data/dashboard.db.pre-restore-mocked",
+    );
+    expect(installFullBackup).toHaveBeenCalledWith(expect.any(String), db.name);
   });
 
   it("skips invalid rows and applies defaults/normalisation on restore", async () => {

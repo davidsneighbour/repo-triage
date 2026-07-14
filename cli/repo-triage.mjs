@@ -264,6 +264,27 @@ async function call(base, method, path, body) {
 
 const getRepos = (base) => call(base, "GET", "/api/repos");
 
+// Raw-binary POST (the full-system restore body is a gzip archive, not JSON).
+async function callBinaryPost(base, path, buffer) {
+  let res;
+  try {
+    res = await fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/gzip" },
+      body: buffer,
+    });
+  } catch {
+    throw new Error(
+      `could not reach the repo.triage API at ${base}. Is the server running? (npm run server)`,
+    );
+  }
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : {};
+  if (!res.ok)
+    throw new Error(data.error || `API ${res.status} on POST ${path}`);
+  return data;
+}
+
 // Raw-text GET (reports can come back as markdown/csv, not JSON).
 async function callText(base, path) {
   let res;
@@ -352,6 +373,8 @@ Commands:
   restore  <file.json>        Replace all triage state from a backup file
   backup-full <file.db.gz>    Save a compressed full-database export (every
                               table, incl. settings/prefs; secrets excluded)
+  restore-full <file.db.gz>   Validate + install a full-database export.
+                              Requires a server restart to take effect.
   help
 
 A repo is "owner/name", a bare "name" (unambiguous), or a name substring (fuzzy).
@@ -586,6 +609,22 @@ async function run(argv, out = console.log, { execFile = execFileSync } = {}) {
       const data = await callBinary(base, "/api/backup/full");
       writeFileSync(file, data);
       out(`saved full database export to ${file} (${data.length} bytes)`);
+      return 0;
+    }
+    case "restore-full": {
+      const file = positionals[0];
+      if (!file) throw new Error("usage: restore-full <file.db.gz>");
+      let buffer;
+      try {
+        buffer = readFileSync(file);
+      } catch (e) {
+        throw new Error(`could not read archive "${file}": ${e.message}`);
+      }
+      const data = await callBinaryPost(base, "/api/restore/full", buffer);
+      out(
+        `installed full database export from ${file}; restart the server to use it ` +
+          `(previous database kept at ${data.previousDbBackup})`,
+      );
       return 0;
     }
     case "note": {

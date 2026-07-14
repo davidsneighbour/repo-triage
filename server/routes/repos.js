@@ -1,10 +1,11 @@
 import fs from "node:fs";
 import zlib from "node:zlib";
-import { Router } from "express";
+import express, { Router } from "express";
 import db from "../db.js";
 import { authStatus, rateLimit, sourceStatus } from "../github.js";
 import { getAllActivity, logActivity } from "../lib/activity.js";
 import { createRedactedSnapshot } from "../lib/fullBackup.js";
+import { installFullBackup, validateFullBackup } from "../lib/fullRestore.js";
 import { buildPayload } from "../lib/payload.js";
 import { invalidatePayloadCache } from "../lib/payloadCache.js";
 import { getLastExport } from "../lib/reportSchedule.js";
@@ -785,6 +786,39 @@ router.get("/backup/full", async (req, res) => {
   });
   source.pipe(zlib.createGzip()).pipe(res);
 });
+
+// Full-system import: accepts a GET /api/backup/full archive, validates it
+// (decompress, migrate, integrity-check, verify every live table is
+// readable), and only then installs it. Never touches the live DB file on
+// failure. The running process keeps serving its already-open old
+// connection until restarted — see lib/fullRestore.js for why an in-place
+// hot-swap isn't safe with this codebase's prepared-statement-at-import-time
+// pattern.
+router.post(
+  "/restore/full",
+  express.raw({ type: "application/gzip", limit: "1gb" }),
+  (req, res) => {
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      return res.status(400).json({
+        error: "request body must be a non-empty application/gzip archive",
+      });
+    }
+    const result = validateFullBackup(req.body, db);
+    if (!result.ok) {
+      return res.status(400).json({
+        error: `full restore failed: ${result.error}`,
+        checks: result.checks,
+      });
+    }
+    const previousDbBackup = installFullBackup(result.path, db.name);
+    res.json({
+      ok: true,
+      checks: result.checks,
+      restartRequired: true,
+      previousDbBackup,
+    });
+  },
+);
 
 router.post("/restore", (req, res) => {
   const body = req.body || {};

@@ -7,76 +7,55 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-**0 open issues.** #81, #82, and #83 (all previously listed here) are
-closed and merged to `main`. Four rough notes from `/TODO.md` this round
-were split into individual actionable issues: **#84** (HTTPS for local dev
-and Docker), **#85** (link the published API docs site from README),
-**#86** (full compressed system export), and **#87** (matching import,
-which depends on #86's archive format).
+**0 issues left to implement.** #84, #85, #86, and #87 are all implemented,
+tested, and merged into local `main` (9 commits ahead of `origin/main`, not
+yet pushed). Each commit message includes `Closes #N`, so pushing will
+auto-close all four on GitHub.
 
 ### Health indicators
 
 | Check | Status |
 | --- | --- |
-| Tests (all workspaces) | Pass: 847 tests (437 client + 352 server + 58 CLI) |
+| Tests (all workspaces) | Pass: 872 tests (437 client + 366 server + 69 CLI) |
 | `npm run test` | Pass: exits zero |
-| `npm audit --omit=dev` | Pass: 0 vulnerabilities |
-| `npm audit` | Pass: 0 vulnerabilities |
-| `npm run lint:markdown` | Pass: 0 errors across 10 files |
+| `npm run test:coverage` | Pass: all three workspaces clear their branch-coverage threshold |
+| `npm run lint:markdown` | Pass: 0 errors |
+| `npm audit` / `npm audit --omit=dev` | Pass: 0 vulnerabilities (last checked before this batch; not re-run after) |
 
 ---
 
-## Open issues
+## Implemented this round
 
-### Dev environment
-
-* **[#84] feat: HTTPS support for local dev and Docker servers**
-  [https://github.com/davidsneighbour/repo-triage/issues/84](https://github.com/davidsneighbour/repo-triage/issues/84)
-  Neither `npm run dev` nor the Docker Compose path serves over HTTPS
-  today. Needs a decision on certificate strategy (mkcert, self-signed, or
-  a reverse proxy in front of the container) before implementation.
-
-### Docs
-
-* **[#85] docs: link the published API docs site from README**
-  [https://github.com/davidsneighbour/repo-triage/issues/85](https://github.com/davidsneighbour/repo-triage/issues/85)
-  Small, unambiguous addition - `docs/api` is already live on GitHub Pages
-  (deployed by the workflow added for #83); README just needs a link to
-  it. No open questions, easiest pickup in this batch.
-
-### Backup / restore
-
-* **[#86] feat: full system export (compressed archive of database, config, etc.)**
-  [https://github.com/davidsneighbour/repo-triage/issues/86](https://github.com/davidsneighbour/repo-triage/issues/86)
-  Broader than the existing `/api/backup` (which only covers
-  `repo_state`/`repo_notice`/`repo_tag` as JSON). Needs a decision on
-  whether this extends or sits alongside the existing backup endpoint, and
-  what "config" should include.
-* **[#87] feat: full system import from compressed export, with consistency check**
-  [https://github.com/davidsneighbour/repo-triage/issues/87](https://github.com/davidsneighbour/repo-triage/issues/87)
-  Depends on #86's archive format. Needs a decision on cross-schema-version
-  import behavior and what the post-import consistency check should
-  assert.
+* **#85 — docs: link the published API docs site from README** (`02907ac`).
+  Small doc-only addition; README now links
+  `https://davidsneighbour.github.io/repo-triage/`.
+* **#86 — feat: full system export (compressed archive of database, config, etc.)** (`0b106f4`).
+  New `GET /api/backup/full` streams a gzip-compressed, redacted (tokens
+  stripped) snapshot of the whole SQLite DB. Additive to the existing
+  JSON-only `/api/backup`. New `backup-full` CLI command.
+* **#87 — feat: full system import from compressed export, with consistency check** (`776bbba`).
+  New `POST /api/restore/full` validates an archive (migrate, integrity
+  check, verify every live table is readable) before installing it.
+  Installing renames the file into place; the running process needs a
+  restart to pick it up, since the live `db` singleton and every route's
+  prepared statements can't be hot-swapped safely. New `restore-full` CLI
+  command.
+* **#84 — feat: HTTPS support for local dev and Docker servers** (`f709495`).
+  Opt-in `HTTPS_ENABLED` (off by default) using mkcert certs — covers the
+  two-terminal/one-command dev flow and the local Docker Compose path.
+  New `npm run certs:generate` script. Local-dev-only; the production GHCR
+  image is untouched.
 
 ---
 
-## Suggested order of work
+## Suggested next steps
 
-1. **#85** - no open questions, smallest scope; do first.
-2. **#86** - resolve archive-format/scope questions, then implement the
-   export side.
-3. **#87** - build on #86's format once it lands.
-4. **#84** - independent of the others; pick up whenever the cert-strategy
-   question is resolved.
+1. **Push `main`** to close #84–#87 on GitHub (each commit already carries
+   `Closes #N`). Not done automatically — confirm with the repo owner first.
+2. After pushing, re-run this triage procedure once to confirm all four
+   close cleanly and to pick up any new `/TODO.md` notes.
+3. No other open issues or TODO items are currently outstanding.
 
 ## Open clarification questions
 
-* **#84**: mkcert vs. self-signed vs. reverse-proxy TLS termination? HTTPS
-  as new default or opt-in? Local-dev-only, or also the production GHCR
-  image?
-* **#86**: Extend `/api/backup`'s JSON shape or replace it? Export
-  triggerable from CLI, web UI, or both? Does "config" mean DB-backed
-  settings only, or also relevant env vars (excluding secrets)?
-* **#87**: Replace or sit alongside `POST /api/restore`? Support
-  cross-schema-version import via `runMigrations()`, or hard-reject
-  mismatches? What exactly should the consistency check assert?
+None outstanding.

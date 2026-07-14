@@ -1,10 +1,10 @@
 {
-    "recommendations": [
-        "anthropic.claude-code",
-        "streetsidesoftware.code-spell-checker",
-        "wayou.vscode-todo-highlight",
-        "aaron-bond.better-comments",
-        "google.wireit",
-        "fanaticpythoner.better-todo-tree"
-    ]
+  "recommendations": [
+    "anthropic.claude-code",
+    "streetsidesoftware.code-spell-checker",
+    "wayou.vscode-todo-highlight",
+    "aaron-bond.better-comments",
+    "google.wireit",
+    "fanaticpythoner.better-todo-tree"
+  ]
 }

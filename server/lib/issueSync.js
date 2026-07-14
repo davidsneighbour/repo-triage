@@ -8,9 +8,13 @@
  * single-repo refresh (`POST /api/repos/:id/issues/sync`), and a manual
  * refresh-all (`POST /api/issues/sync`).
  */
-import db from '../db.js';
-import { buildResolveOwnerToken, fetchRepoIssues, rateLimit } from '../github.js';
-import { repoCache } from './sync.js';
+import db from "../db.js";
+import {
+  buildResolveOwnerToken,
+  fetchRepoIssues,
+  rateLimit,
+} from "../github.js";
+import { repoCache } from "./sync.js";
 
 /**
  * Per-run diagnostics for issue syncing, surfaced via `POST /api/issues/sync`.
@@ -40,14 +44,22 @@ const upsertIssueStmt = db.prepare(`
     synced_at         = excluded.synced_at
 `);
 
-const getIssueSyncEnabledStmt = db.prepare('SELECT issue_sync_enabled FROM repo_state WHERE repo_id = ?');
+const getIssueSyncEnabledStmt = db.prepare(
+  "SELECT issue_sync_enabled FROM repo_state WHERE repo_id = ?",
+);
 const setIssueSyncEnabledStmt = db.prepare(`
   INSERT INTO repo_state (repo_id, issue_sync_enabled, updated_at) VALUES (?, ?, ?)
   ON CONFLICT(repo_id) DO UPDATE SET issue_sync_enabled = excluded.issue_sync_enabled, updated_at = excluded.updated_at
 `);
-const getStoredIssuesStmt = db.prepare('SELECT * FROM repo_issue WHERE repo_id = ? ORDER BY number DESC');
-const getAllStoredIssuesStmt = db.prepare('SELECT * FROM repo_issue ORDER BY github_updated_at DESC');
-const setIssueFlaggedStmt = db.prepare('UPDATE repo_issue SET flagged = ? WHERE repo_id = ? AND number = ?');
+const getStoredIssuesStmt = db.prepare(
+  "SELECT * FROM repo_issue WHERE repo_id = ? ORDER BY number DESC",
+);
+const getAllStoredIssuesStmt = db.prepare(
+  "SELECT * FROM repo_issue ORDER BY github_updated_at DESC",
+);
+const setIssueFlaggedStmt = db.prepare(
+  "UPDATE repo_issue SET flagged = ? WHERE repo_id = ? AND number = ?",
+);
 
 /**
  * Whether issue sync is enabled for `repoId`. Opt-out: enabled unless a
@@ -58,7 +70,9 @@ const setIssueFlaggedStmt = db.prepare('UPDATE repo_issue SET flagged = ? WHERE 
  */
 export function isIssueSyncEnabled(repoId) {
   const row = getIssueSyncEnabledStmt.get(repoId);
-  return row?.issue_sync_enabled == null ? true : Boolean(row.issue_sync_enabled);
+  return row?.issue_sync_enabled == null
+    ? true
+    : Boolean(row.issue_sync_enabled);
 }
 
 /**
@@ -68,7 +82,11 @@ export function isIssueSyncEnabled(repoId) {
  * @param {boolean} enabled
  */
 export function setIssueSyncEnabled(repoId, enabled) {
-  setIssueSyncEnabledStmt.run(repoId, enabled ? 1 : 0, new Date().toISOString());
+  setIssueSyncEnabledStmt.run(
+    repoId,
+    enabled ? 1 : 0,
+    new Date().toISOString(),
+  );
 }
 
 /**
@@ -80,7 +98,7 @@ export function setIssueSyncEnabled(repoId, enabled) {
 export function getStoredIssues(repoId) {
   return getStoredIssuesStmt.all(repoId).map((row) => ({
     ...row,
-    labels: JSON.parse(row.labels || '[]'),
+    labels: JSON.parse(row.labels || "[]"),
     flagged: Boolean(row.flagged),
   }));
 }
@@ -94,7 +112,7 @@ export function getStoredIssues(repoId) {
 export function getAllStoredIssues() {
   return getAllStoredIssuesStmt.all().map((row) => ({
     ...row,
-    labels: JSON.parse(row.labels || '[]'),
+    labels: JSON.parse(row.labels || "[]"),
     flagged: Boolean(row.flagged),
   }));
 }
@@ -124,11 +142,16 @@ export function setIssueFlagged(repoId, number, flagged) {
  * @param {(owner: string|null) => { token: string|null, source: string|null }} [resolveOwnerToken]
  * @returns {Promise<{ ok: boolean, count: number }>}
  */
-export async function syncRepoIssues(repo, resolveOwnerToken = buildResolveOwnerToken()) {
-  const owner = repo.full_name.split('/')[0];
+export async function syncRepoIssues(
+  repo,
+  resolveOwnerToken = buildResolveOwnerToken(),
+) {
+  const owner = repo.full_name.split("/")[0];
   const { token } = resolveOwnerToken(owner);
   if (!token) {
-    issueSyncStatus.warnings.push(`No token available for "${repo.full_name}" — issue sync skipped.`);
+    issueSyncStatus.warnings.push(
+      `No token available for "${repo.full_name}" — issue sync skipped.`,
+    );
     return { ok: false, count: 0 };
   }
 
@@ -169,9 +192,12 @@ export async function syncAllRepoIssues() {
 
   for (const repo of repoCache) {
     if (!isIssueSyncEnabled(repo.id)) continue;
-    if (rateLimit.remaining !== null && rateLimit.remaining < RATE_LIMIT_FLOOR) {
+    if (
+      rateLimit.remaining !== null &&
+      rateLimit.remaining < RATE_LIMIT_FLOOR
+    ) {
       issueSyncStatus.warnings.push(
-        `Stopped issue sync early — GitHub API rate limit budget low (remaining ${rateLimit.remaining}).`
+        `Stopped issue sync early — GitHub API rate limit budget low (remaining ${rateLimit.remaining}).`,
       );
       break;
     }
@@ -179,7 +205,9 @@ export async function syncAllRepoIssues() {
       const result = await syncRepoIssues(repo, resolveOwnerToken);
       results.push({ repo: repo.full_name, ...result });
     } catch (e) {
-      issueSyncStatus.warnings.push(`Could not sync issues for "${repo.full_name}": ${e.message}`);
+      issueSyncStatus.warnings.push(
+        `Could not sync issues for "${repo.full_name}": ${e.message}`,
+      );
       results.push({ repo: repo.full_name, ok: false, count: 0 });
     }
   }
@@ -202,8 +230,13 @@ export function restartIssueSyncInterval(minutes) {
   /* v8 ignore next */
   if (!minutes || minutes < 1) return;
   /* v8 ignore next */
-  issueSyncIntervalHandle = setInterval(() => {
-    /* v8 ignore next */
-    syncAllRepoIssues().catch((e) => console.warn(`  [issue-sync] failed: ${e.message}`));
-  }, minutes * 60 * 1000);
+  issueSyncIntervalHandle = setInterval(
+    () => {
+      /* v8 ignore next */
+      syncAllRepoIssues().catch((e) =>
+        console.warn(`  [issue-sync] failed: ${e.message}`),
+      );
+    },
+    minutes * 60 * 1000,
+  );
 }

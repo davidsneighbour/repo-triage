@@ -1,94 +1,101 @@
-import { Router } from 'express';
-import db from '../db.js';
-import { parseOwners } from '../github.js';
+import { Router } from "express";
+import db from "../db.js";
+import { parseOwners } from "../github.js";
+import { parseCron } from "../lib/cron.js";
+import { invalidatePayloadCache } from "../lib/payloadCache.js";
+import { getScheduleConfig, setScheduleConfig } from "../lib/reportSchedule.js";
 import {
-  getSetting, settingUpsertStmt,
-  getEffectiveInactivityDays, getEffectiveSyncIntervalMinutes, getEffectiveOwners,
-  DEFAULT_INACTIVITY_DAYS_ENV, SYNC_INTERVAL_MINUTES_ENV,
   ALLOWED_SETTING_KEYS,
-} from '../lib/settings.js';
-import { queueRefresh, restartSyncInterval } from '../lib/sync.js';
-import { invalidatePayloadCache } from '../lib/payloadCache.js';
-import { getScheduleConfig, setScheduleConfig } from '../lib/reportSchedule.js';
-import { parseCron } from '../lib/cron.js';
+  DEFAULT_INACTIVITY_DAYS_ENV,
+  getEffectiveInactivityDays,
+  getEffectiveOwners,
+  getEffectiveSyncIntervalMinutes,
+  getSetting,
+  SYNC_INTERVAL_MINUTES_ENV,
+  settingUpsertStmt,
+} from "../lib/settings.js";
+import { queueRefresh, restartSyncInterval } from "../lib/sync.js";
 
 const router = Router();
 
 // ---- App settings ----------------------------------------------------------
-router.get('/settings', (req, res) => {
+router.get("/settings", (req, res) => {
   res.json({
     settings: {
       defaultInactivityDays: getEffectiveInactivityDays(),
       syncIntervalMinutes: getEffectiveSyncIntervalMinutes(),
-      githubOwners: getEffectiveOwners().join(', '),
+      githubOwners: getEffectiveOwners().join(", "),
       reportSchedule: getScheduleConfig(),
     },
     defaults: {
       defaultInactivityDays: DEFAULT_INACTIVITY_DAYS_ENV,
       syncIntervalMinutes: SYNC_INTERVAL_MINUTES_ENV,
-      githubOwners: parseOwners(process.env.GITHUB_OWNERS).join(', '),
+      githubOwners: parseOwners(process.env.GITHUB_OWNERS).join(", "),
       reportSchedule: null,
     },
   });
 });
 
-router.put('/settings', (req, res) => {
+router.put("/settings", (req, res) => {
   const body = req.body || {};
   const errors = [];
 
-  if ('defaultInactivityDays' in body) {
+  if ("defaultInactivityDays" in body) {
     const v = Number(body.defaultInactivityDays);
     if (!Number.isFinite(v) || v < 1 || v > 365) {
-      errors.push('defaultInactivityDays must be an integer between 1 and 365');
+      errors.push("defaultInactivityDays must be an integer between 1 and 365");
     }
   }
-  if ('syncIntervalMinutes' in body) {
+  if ("syncIntervalMinutes" in body) {
     const v = Number(body.syncIntervalMinutes);
     if (!Number.isFinite(v) || v < 1 || v > 1440) {
-      errors.push('syncIntervalMinutes must be an integer between 1 and 1440');
+      errors.push("syncIntervalMinutes must be an integer between 1 and 1440");
     }
   }
-  if ('reportSchedule' in body && body.reportSchedule !== null) {
+  if ("reportSchedule" in body && body.reportSchedule !== null) {
     const rs = body.reportSchedule;
-    if (typeof rs !== 'object') {
-      errors.push('reportSchedule must be an object or null');
+    if (typeof rs !== "object") {
+      errors.push("reportSchedule must be an object or null");
     } else {
-      if (!rs.cron || typeof rs.cron !== 'string') {
-        errors.push('reportSchedule.cron must be a non-empty string');
+      if (!rs.cron || typeof rs.cron !== "string") {
+        errors.push("reportSchedule.cron must be a non-empty string");
       } else {
-        try { parseCron(rs.cron); } catch (e) {
+        try {
+          parseCron(rs.cron);
+        } catch (e) {
           errors.push(`reportSchedule.cron: ${e.message}`);
         }
       }
-      if (!rs.outputPath || typeof rs.outputPath !== 'string') {
-        errors.push('reportSchedule.outputPath must be a non-empty string');
+      if (!rs.outputPath || typeof rs.outputPath !== "string") {
+        errors.push("reportSchedule.outputPath must be a non-empty string");
       }
     }
   }
   if (errors.length) return res.status(400).json({ errors });
 
   const now = new Date().toISOString();
-  const prevOwners = getEffectiveOwners().join(',');
+  const prevOwners = getEffectiveOwners().join(",");
 
   for (const key of ALLOWED_SETTING_KEYS) {
     if (!(key in body)) continue;
     let dbKey;
-    if (key === 'defaultInactivityDays') dbKey = 'default_inactivity_days';
-    else if (key === 'syncIntervalMinutes') dbKey = 'sync_interval_minutes';
-    else dbKey = 'github_owners';
-    settingUpsertStmt.run(dbKey, String(body[key] ?? ''), now);
+    if (key === "defaultInactivityDays") dbKey = "default_inactivity_days";
+    else if (key === "syncIntervalMinutes") dbKey = "sync_interval_minutes";
+    else dbKey = "github_owners";
+    settingUpsertStmt.run(dbKey, String(body[key] ?? ""), now);
   }
 
-  if ('reportSchedule' in body) {
+  if ("reportSchedule" in body) {
     setScheduleConfig(body.reportSchedule); // null clears the schedule
   }
 
-  if ('syncIntervalMinutes' in body) {
+  if ("syncIntervalMinutes" in body) {
     restartSyncInterval(getEffectiveSyncIntervalMinutes());
   }
 
-  const ownersChanged = 'githubOwners' in body &&
-    parseOwners(body.githubOwners).join(',') !== prevOwners;
+  const ownersChanged =
+    "githubOwners" in body &&
+    parseOwners(body.githubOwners).join(",") !== prevOwners;
   if (ownersChanged) queueRefresh();
 
   invalidatePayloadCache();
@@ -99,7 +106,7 @@ router.put('/settings', (req, res) => {
 // Stores view/display prefs (density, sort, view, groupBy, fields, filters,
 // showIgnored) as a single JSON blob. Read once on client mount to hydrate
 // prefs across sessions/devices; written back on every change.
-const PREFS_KEY = 'board';
+const PREFS_KEY = "board";
 const getPrefsStmt = db.prepare(`SELECT value FROM prefs WHERE key = ?`);
 const putPrefsStmt = db.prepare(`
   INSERT INTO prefs (key, value, updated_at)
@@ -108,9 +115,19 @@ const putPrefsStmt = db.prepare(`
     value = excluded.value,
     updated_at = excluded.updated_at
 `);
-const ALLOWED_PREF_KEYS = new Set(['density', 'sort', 'view', 'groupBy', 'fields', 'filters', 'showIgnored', 'tagFilter', 'priorityFilter']);
+const ALLOWED_PREF_KEYS = new Set([
+  "density",
+  "sort",
+  "view",
+  "groupBy",
+  "fields",
+  "filters",
+  "showIgnored",
+  "tagFilter",
+  "priorityFilter",
+]);
 
-router.get('/prefs', (req, res) => {
+router.get("/prefs", (req, res) => {
   const row = getPrefsStmt.get(PREFS_KEY);
   if (!row) return res.json({ prefs: null });
   try {
@@ -120,7 +137,7 @@ router.get('/prefs', (req, res) => {
   }
 });
 
-router.put('/prefs', (req, res) => {
+router.put("/prefs", (req, res) => {
   const body = req.body || {};
   const prefs = {};
   for (const k of ALLOWED_PREF_KEYS) {

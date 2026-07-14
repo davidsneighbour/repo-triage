@@ -1,23 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
-import { api } from '../api.js';
-import { useDialog } from '../lib/useDialog.js';
-import { devId } from '../lib/devIdOverlay.js';
-import { cx } from '../lib/constants.js';
-import { timeAgo } from '../lib/date.js';
-import { activitySummary } from '../lib/activitySummary.js';
+import { X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { api } from "../api.js";
+import { activitySummary } from "../lib/activitySummary.js";
+import { cx } from "../lib/constants.js";
+import { timeAgo } from "../lib/date.js";
+import { devId } from "../lib/devIdOverlay.js";
+import { useDialog } from "../lib/useDialog.js";
 
-const SORT_KEYS = { repo: 'full_name', action: 'action', timestamp: 'created_at' };
+const SORT_KEYS = {
+  repo: "full_name",
+  action: "action",
+  timestamp: "created_at",
+};
 
 function sortActivity(rows, col, dir) {
   const key = SORT_KEYS[col];
   const sorted = [...rows].sort((a, b) => {
-    const av = a[key] ?? '';
-    const bv = b[key] ?? '';
+    const av = a[key] ?? "";
+    const bv = b[key] ?? "";
     return av < bv ? -1 : av > bv ? 1 : 0;
   });
-  return dir === 'desc' ? sorted.reverse() : sorted;
+  return dir === "desc" ? sorted.reverse() : sorted;
 }
 
 // Cross-repo, non-modal event log (#78): every tracked repo's triage
@@ -27,8 +31,8 @@ function sortActivity(rows, col, dir) {
 export function EventLogView({ onClose }) {
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sortCol, setSortCol] = useState('timestamp');
-  const [sortDir, setSortDir] = useState('desc');
+  const [sortCol, setSortCol] = useState("timestamp");
+  const [sortDir, setSortDir] = useState("desc");
   const viewRef = useDialog(onClose);
 
   const reload = useCallback(async () => {
@@ -47,22 +51,29 @@ export function EventLogView({ onClose }) {
 
   const onSort = (col) => {
     if (col === sortCol) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortCol(col);
-      setSortDir(col === 'timestamp' ? 'desc' : 'asc');
+      setSortDir(col === "timestamp" ? "desc" : "asc");
     }
   };
 
-  const sorted = useMemo(() => sortActivity(activity, sortCol, sortDir), [activity, sortCol, sortDir]);
+  const sorted = useMemo(
+    () => sortActivity(activity, sortCol, sortDir),
+    [activity, sortCol, sortDir],
+  );
 
-  const arrow = (col) => (col === sortCol ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '');
+  const arrow = (col) =>
+    col === sortCol ? (sortDir === "asc" ? " ↑" : " ↓") : "";
   const Th = ({ col, label, className }) => (
-    <th className={cx('px-2 py-1.5 font-medium', className)}>
+    <th className={cx("px-2 py-1.5 font-medium", className)}>
       <button
         onClick={() => onSort(col)}
         aria-label={`Sort by ${label}`}
-        className={cx('hover:text-neutral-200', col === sortCol ? 'text-neutral-200' : 'text-neutral-500')}
+        className={cx(
+          "hover:text-neutral-200",
+          col === sortCol ? "text-neutral-200" : "text-neutral-500",
+        )}
       >
         {label}
         {arrow(col)}
@@ -72,7 +83,7 @@ export function EventLogView({ onClose }) {
 
   return createPortal(
     <section
-      {...devId('EventLogView')}
+      {...devId("EventLogView")}
       ref={viewRef}
       role="region"
       aria-label="Event log"
@@ -83,7 +94,8 @@ export function EventLogView({ onClose }) {
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-neutral-100">Event log</h2>
           <p className="truncate text-[11px] text-neutral-500">
-            {activity.length} event{activity.length === 1 ? '' : 's'} across all repos
+            {activity.length} event{activity.length === 1 ? "" : "s"} across all
+            repos
           </p>
         </div>
         <button
@@ -97,9 +109,13 @@ export function EventLogView({ onClose }) {
 
       <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
         {loading ? (
-          <p className="py-6 text-center text-xs text-neutral-600">loading...</p>
+          <p className="py-6 text-center text-xs text-neutral-600">
+            loading...
+          </p>
         ) : sorted.length === 0 ? (
-          <p className="py-6 text-center text-xs text-neutral-700">no activity yet</p>
+          <p className="py-6 text-center text-xs text-neutral-700">
+            no activity yet
+          </p>
         ) : (
           <table className="w-full text-left text-[11px]">
             <thead className="sticky top-0 bg-neutral-900">
@@ -111,9 +127,16 @@ export function EventLogView({ onClose }) {
             </thead>
             <tbody>
               {sorted.map((entry) => (
-                <tr key={entry.id} className="border-b border-neutral-800/60 hover:bg-neutral-950/50">
-                  <td className="truncate px-2 py-1.5 text-neutral-300">{entry.full_name || `repo ${entry.repo_id}`}</td>
-                  <td className="px-2 py-1.5 text-neutral-200">{activitySummary(entry)}</td>
+                <tr
+                  key={entry.id}
+                  className="border-b border-neutral-800/60 hover:bg-neutral-950/50"
+                >
+                  <td className="truncate px-2 py-1.5 text-neutral-300">
+                    {entry.full_name || `repo ${entry.repo_id}`}
+                  </td>
+                  <td className="px-2 py-1.5 text-neutral-200">
+                    {activitySummary(entry)}
+                  </td>
                   <td
                     className="px-2 py-1.5 text-right tabular-nums text-neutral-500"
                     title={new Date(entry.created_at).toLocaleString()}
@@ -127,6 +150,6 @@ export function EventLogView({ onClose }) {
         )}
       </div>
     </section>,
-    document.body
+    document.body,
   );
 }

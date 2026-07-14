@@ -45,11 +45,15 @@
     "lint:markdown:fix": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc --fix \"**/*.{md,mdx}\"",
     "lint:markdown:single": "markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc",
     "lint:spelling": "cspell \"**/*.{md,mdx}\"",
+    "lint:code": "biome check",
+    "lint:code:fix": "biome check --write",
     "lint:workflows": "zizmor .github/workflows",
     "lint:hook:commit": "lint-staged",
     "hooks:update": "simple-git-hooks"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.3",
+    "@dnbhq/biome-config": "0.2.3",
     "@dnbhq/markdownlint-config": "0.2.7",
     "@dnbhq/release-config": "1.1.0",
     "@release-it/conventional-changelog": "11.0.1",

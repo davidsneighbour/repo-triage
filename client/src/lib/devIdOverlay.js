@@ -2,14 +2,14 @@
 // from the component so identifier generation is trivially unit-testable
 // (see board.js/issues.js for the same pattern used elsewhere).
 
-const COMPONENT_ATTRS = ['data-slot', 'data-testid', 'data-component'];
+const COMPONENT_ATTRS = ["data-slot", "data-testid", "data-component"];
 
 // Dev-only, purpose-built identifier attribute (see #79) — spread onto a
 // component's root element via `{...devId('ComponentName')}`. Stripped from
 // production output by the `import.meta.env.DEV` check (same gating pattern
 // as DevIdOverlay.jsx itself), so it costs nothing at runtime once built.
 export function devId(name) {
-  return import.meta.env.DEV ? { 'data-id': name } : {};
+  return import.meta.env.DEV ? { "data-id": name } : {};
 }
 
 // Builds a short, stable-ish selector-like identifier for an element, to
@@ -25,12 +25,15 @@ export function getElementIdentifier(el) {
 
   if (el.id) return `#${el.id}`;
 
-  const dataId = el.getAttribute?.('data-id');
+  const dataId = el.getAttribute?.("data-id");
   if (dataId) return `[data-id="${dataId}"]`;
 
-  const classes = typeof el.className === 'string' ? el.className.trim().split(/\s+/).filter(Boolean) : [];
+  const classes =
+    typeof el.className === "string"
+      ? el.className.trim().split(/\s+/).filter(Boolean)
+      : [];
   if (classes.length > 0) {
-    return `${el.tagName.toLowerCase()}.${classes.slice(0, 2).join('.')}`;
+    return `${el.tagName.toLowerCase()}.${classes.slice(0, 2).join(".")}`;
   }
 
   for (const attr of COMPONENT_ATTRS) {
@@ -45,5 +48,10 @@ export function getElementIdentifier(el) {
 export function isEditableTarget(target) {
   if (!target) return false;
   const tag = target.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || Boolean(target.isContentEditable);
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    Boolean(target.isContentEditable)
+  );
 }

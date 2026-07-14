@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { devId } from '../lib/devIdOverlay.js';
-import { DayPicker } from './DayPicker.jsx';
-import { Column } from './Column.jsx';
+import { useEffect, useState } from "react";
+import { devId } from "../lib/devIdOverlay.js";
+import { Column } from "./Column.jsx";
+import { DayPicker } from "./DayPicker.jsx";
 
 // Mobile board (see DESIGN.md → Layout → Responsive / mobile). Renders exactly
 // one full-width day/bucket column at a time; the visible one is chosen from the
@@ -32,8 +32,15 @@ export function MobileBoard({ columns, onDropColumn, ...cardProps }) {
   }));
 
   return (
-    <div {...devId('MobileBoard')} className="flex min-h-0 flex-1 flex-col gap-3">
-      <DayPicker columns={pickerColumns} activeKey={active?.key} onSelect={setActiveKey} />
+    <div
+      {...devId("MobileBoard")}
+      className="flex min-h-0 flex-1 flex-col gap-3"
+    >
+      <DayPicker
+        columns={pickerColumns}
+        activeKey={active?.key}
+        onSelect={setActiveKey}
+      />
       {active ? (
         <div className="flex min-h-0 flex-1">
           <Column
@@ -46,7 +53,9 @@ export function MobileBoard({ columns, onDropColumn, ...cardProps }) {
           />
         </div>
       ) : (
-        <div className="grid flex-1 place-items-center text-center text-xs text-neutral-700">no repositories to show</div>
+        <div className="grid flex-1 place-items-center text-center text-xs text-neutral-700">
+          no repositories to show
+        </div>
       )}
     </div>
   );

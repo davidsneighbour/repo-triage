@@ -18,9 +18,9 @@
  * @returns {number} Integer day index — larger values are later days.
  */
 export function boardDayIndex(ms, rolloverHour = 0) {
-    const shifted = ms - rolloverHour * 3600000;
-    const d = new Date(shifted);
-    return Math.floor((shifted - d.getTimezoneOffset() * 60000) / 86400000);
+  const shifted = ms - rolloverHour * 3600000;
+  const d = new Date(shifted);
+  return Math.floor((shifted - d.getTimezoneOffset() * 60000) / 86400000);
 }
 
 /**
@@ -42,54 +42,73 @@ export function boardDayIndex(ms, rolloverHour = 0) {
  * @param {number} [rolloverHour=0] - Hour (0–23) at which the board rolls over to a new day.
  * @returns {{ column: string, checkedAgeDays: number|null, boardOffset: number, dueInDays: number, needsCheckToday: boolean }}
  */
-export function effectiveState(state, defaultInactivityDays = 7, nowMs = Date.now(), rolloverHour = 0) {
-    const repoDays = Math.max(0, Number(state.inactivity_days ?? defaultInactivityDays) || 0);
-    const maxFutureOffset = Math.max(0, defaultInactivityDays - 1);
-    const nowDay = boardDayIndex(nowMs, rolloverHour);
+export function effectiveState(
+  state,
+  defaultInactivityDays = 7,
+  nowMs = Date.now(),
+  rolloverHour = 0,
+) {
+  const repoDays = Math.max(
+    0,
+    Number(state.inactivity_days ?? defaultInactivityDays) || 0,
+  );
+  const maxFutureOffset = Math.max(0, defaultInactivityDays - 1);
+  const nowDay = boardDayIndex(nowMs, rolloverHour);
 
-    // "Checked Nd ago" reflects when the repo was ACTUALLY reviewed, which is
-    // independent of priority_set_at — that anchor is back-dated to position a
-    // card in a future column, so it must not drive the checked-age display.
-    const checkedAgeDays = state.checked_at
-        ? Math.max(0, nowDay - boardDayIndex(new Date(state.checked_at).getTime(), rolloverHour))
-        : null;
+  // "Checked Nd ago" reflects when the repo was ACTUALLY reviewed, which is
+  // independent of priority_set_at — that anchor is back-dated to position a
+  // card in a future column, so it must not drive the checked-age display.
+  const checkedAgeDays = state.checked_at
+    ? Math.max(
+        0,
+        nowDay -
+          boardDayIndex(new Date(state.checked_at).getTime(), rolloverHour),
+      )
+    : null;
 
-    // An active snooze overrides the normal interval math. Once the snooze date
-    // elapses (daysUntilSnooze <= 0) it falls through to regular scheduling.
-    if (state.snooze_until) {
-        const snoozeDay = boardDayIndex(new Date(state.snooze_until).getTime(), rolloverHour);
-        const daysUntilSnooze = snoozeDay - nowDay;
-        if (daysUntilSnooze > 0) {
-            const boardOffset = Math.min(maxFutureOffset, daysUntilSnooze);
-            return {
-                column: `day-${boardOffset}`,
-                checkedAgeDays,
-                boardOffset,
-                dueInDays: daysUntilSnooze,
-                needsCheckToday: false,
-            };
-        }
-    }
-
-    if (!state.priority_set_at) {
-        return {
-            column: 'unchecked',
-            checkedAgeDays,
-            boardOffset: 0,
-            dueInDays: 0,
-            needsCheckToday: true,
-        };
-    }
-
-    const wholeDays = Math.max(0, nowDay - boardDayIndex(new Date(state.priority_set_at).getTime(), rolloverHour));
-    const rawOffset = repoDays - wholeDays;
-    const boardOffset = Math.max(0, Math.min(maxFutureOffset, rawOffset));
-
-    return {
+  // An active snooze overrides the normal interval math. Once the snooze date
+  // elapses (daysUntilSnooze <= 0) it falls through to regular scheduling.
+  if (state.snooze_until) {
+    const snoozeDay = boardDayIndex(
+      new Date(state.snooze_until).getTime(),
+      rolloverHour,
+    );
+    const daysUntilSnooze = snoozeDay - nowDay;
+    if (daysUntilSnooze > 0) {
+      const boardOffset = Math.min(maxFutureOffset, daysUntilSnooze);
+      return {
         column: `day-${boardOffset}`,
         checkedAgeDays,
         boardOffset,
-        dueInDays: Math.max(0, rawOffset),
-        needsCheckToday: rawOffset <= 0,
+        dueInDays: daysUntilSnooze,
+        needsCheckToday: false,
+      };
+    }
+  }
+
+  if (!state.priority_set_at) {
+    return {
+      column: "unchecked",
+      checkedAgeDays,
+      boardOffset: 0,
+      dueInDays: 0,
+      needsCheckToday: true,
     };
+  }
+
+  const wholeDays = Math.max(
+    0,
+    nowDay -
+      boardDayIndex(new Date(state.priority_set_at).getTime(), rolloverHour),
+  );
+  const rawOffset = repoDays - wholeDays;
+  const boardOffset = Math.max(0, Math.min(maxFutureOffset, rawOffset));
+
+  return {
+    column: `day-${boardOffset}`,
+    checkedAgeDays,
+    boardOffset,
+    dueInDays: Math.max(0, rawOffset),
+    needsCheckToday: rawOffset <= 0,
+  };
 }

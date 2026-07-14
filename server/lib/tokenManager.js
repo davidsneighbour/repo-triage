@@ -1,4 +1,4 @@
-import { decryptToken } from './tokenCrypto.js';
+import { decryptToken } from "./tokenCrypto.js";
 
 let _db = null;
 let _passphrase = null;
@@ -32,7 +32,7 @@ export function isReady() {
  * @param {import('better-sqlite3').Database} db
  */
 export function hasStoredTokens(db) {
-  return (db.prepare('SELECT COUNT(*) AS n FROM tokens').get()?.n ?? 0) > 0;
+  return (db.prepare("SELECT COUNT(*) AS n FROM tokens").get()?.n ?? 0) > 0;
 }
 
 /**
@@ -46,17 +46,25 @@ export function hasStoredTokens(db) {
  */
 export function resolveTokenForOwner(owner) {
   if (!_db || !_passphrase) return null;
-  const ownerLc = (owner || '').toLowerCase();
-  const rows = _db.prepare('SELECT * FROM tokens ORDER BY id').all();
+  const ownerLc = (owner || "").toLowerCase();
+  const rows = _db.prepare("SELECT * FROM tokens ORDER BY id").all();
   for (const row of rows) {
     const owners = row.owners
-      ? row.owners.split(',').map((o) => o.trim().toLowerCase()).filter(Boolean)
+      ? row.owners
+          .split(",")
+          .map((o) => o.trim().toLowerCase())
+          .filter(Boolean)
       : [];
     // Empty owners → wildcard (covers any owner).
     if (owners.length === 0 || owners.includes(ownerLc)) {
       try {
         return decryptToken(
-          { encrypted: row.token_encrypted, iv: row.iv, authTag: row.auth_tag, salt: row.salt },
+          {
+            encrypted: row.token_encrypted,
+            iv: row.iv,
+            authTag: row.auth_tag,
+            salt: row.salt,
+          },
           _passphrase,
         );
       } catch {

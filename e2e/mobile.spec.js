@@ -12,8 +12,8 @@
  * All /api/* routes are intercepted — no backend server needed.
  */
 
-import { test, expect } from '@playwright/test';
-import { mockApi } from './helpers.js';
+import { expect, test } from "@playwright/test";
+import { mockApi } from "./helpers.js";
 
 // Pixel 5-style viewport: 390 × 844 with touch enabled.
 test.use({
@@ -37,54 +37,66 @@ async function longPress(page, locator) {
   await page.mouse.up();
 }
 
-test.describe('mobile layout', () => {
-  test('renders single-column board with DayPicker', async ({ page }) => {
+test.describe("mobile layout", () => {
+  test("renders single-column board with DayPicker", async ({ page }) => {
     await mockApi(page);
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     // DayPicker button is visible
-    const picker = page.getByRole('button', { name: /Choose day/ });
+    const picker = page.getByRole("button", { name: /Choose day/ });
     await expect(picker).toBeVisible();
 
     // Today column visible with alpha-repo (Today / day-0)
-    await expect(page.getByRole('group', { name: /Repository board/ })).toBeVisible();
-    await expect(page.getByRole('group', { name: /alpha-repo/ })).toBeVisible();
+    await expect(
+      page.getByRole("group", { name: /Repository board/ }),
+    ).toBeVisible();
+    await expect(page.getByRole("group", { name: /alpha-repo/ })).toBeVisible();
 
     // beta-repo (day-1) and gamma-repo (day-2) are not displayed in the active column
-    await expect(page.getByRole('group', { name: /beta-repo/ })).not.toBeVisible();
-    await expect(page.getByRole('group', { name: /gamma-repo/ })).not.toBeVisible();
+    await expect(
+      page.getByRole("group", { name: /beta-repo/ }),
+    ).not.toBeVisible();
+    await expect(
+      page.getByRole("group", { name: /gamma-repo/ }),
+    ).not.toBeVisible();
   });
 
-  test('DayPicker opens a column selector and switches the active column', async ({ page }) => {
+  test("DayPicker opens a column selector and switches the active column", async ({
+    page,
+  }) => {
     await mockApi(page);
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     // Open DayPicker dropdown
-    await page.getByRole('button', { name: /Choose day/ }).tap();
+    await page.getByRole("button", { name: /Choose day/ }).tap();
 
-    const dialog = page.getByRole('dialog', { name: 'Choose day' });
+    const dialog = page.getByRole("dialog", { name: "Choose day" });
     await expect(dialog).toBeVisible();
 
     // Columns are listed with their repo counts
-    await expect(dialog.getByRole('button', { name: /Today/ })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: /Tomorrow/ })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: /Today/ })).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: /Tomorrow/ }),
+    ).toBeVisible();
 
     // Select "Tomorrow" → beta-repo (day-1) becomes visible
-    await dialog.getByRole('button', { name: /Tomorrow/ }).tap();
+    await dialog.getByRole("button", { name: /Tomorrow/ }).tap();
     await expect(dialog).not.toBeVisible();
-    await expect(page.getByRole('group', { name: /beta-repo/ })).toBeVisible();
-    await expect(page.getByRole('group', { name: /alpha-repo/ })).not.toBeVisible();
+    await expect(page.getByRole("group", { name: /beta-repo/ })).toBeVisible();
+    await expect(
+      page.getByRole("group", { name: /alpha-repo/ }),
+    ).not.toBeVisible();
   });
 
-  test('DayPicker closes on backdrop tap', async ({ page }) => {
+  test("DayPicker closes on backdrop tap", async ({ page }) => {
     await mockApi(page);
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
-    await page.getByRole('button', { name: /Choose day/ }).tap();
-    const dialog = page.getByRole('dialog', { name: 'Choose day' });
+    await page.getByRole("button", { name: /Choose day/ }).tap();
+    const dialog = page.getByRole("dialog", { name: "Choose day" });
     await expect(dialog).toBeVisible();
 
     // Tap the backdrop (fixed full-screen overlay behind the dialog)
@@ -92,59 +104,65 @@ test.describe('mobile layout', () => {
     await expect(dialog).not.toBeVisible();
   });
 
-  test('long-press on a card opens the MoveSheet', async ({ page }) => {
+  test("long-press on a card opens the MoveSheet", async ({ page }) => {
     await mockApi(page);
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
-    const card = page.getByRole('group', { name: /alpha-repo/ });
+    const card = page.getByRole("group", { name: /alpha-repo/ });
     await expect(card).toBeVisible();
 
     await longPress(page, card);
 
     // MoveSheet bottom-sheet appears
-    const sheet = page.getByRole('dialog', { name: /Reschedule alpha-repo/ });
+    const sheet = page.getByRole("dialog", { name: /Reschedule alpha-repo/ });
     await expect(sheet).toBeVisible();
   });
 
-  test('MoveSheet preset buttons change the day input value', async ({ page }) => {
+  test("MoveSheet preset buttons change the day input value", async ({
+    page,
+  }) => {
     await mockApi(page);
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
-    const card = page.getByRole('group', { name: /alpha-repo/ });
+    const card = page.getByRole("group", { name: /alpha-repo/ });
     await longPress(page, card);
 
-    const sheet = page.getByRole('dialog', { name: /Reschedule alpha-repo/ });
+    const sheet = page.getByRole("dialog", { name: /Reschedule alpha-repo/ });
     await expect(sheet).toBeVisible();
 
     // Default value is the effective inactivity days (7 from the mock)
-    const input = sheet.getByRole('spinbutton', { name: 'Mark done for (days)' });
-    await expect(input).toHaveValue('7');
+    const input = sheet.getByRole("spinbutton", {
+      name: "Mark done for (days)",
+    });
+    await expect(input).toHaveValue("7");
 
     // Tap the 7-day preset
-    await sheet.getByRole('button', { name: '7d' }).tap();
-    await expect(input).toHaveValue('7');
+    await sheet.getByRole("button", { name: "7d" }).tap();
+    await expect(input).toHaveValue("7");
 
     // Tap the 1-day preset
-    await sheet.getByRole('button', { name: '1d' }).tap();
-    await expect(input).toHaveValue('1');
+    await sheet.getByRole("button", { name: "1d" }).tap();
+    await expect(input).toHaveValue("1");
   });
 
-  test('MoveSheet "Mark done" submits snooze and closes the sheet', async ({ page }) => {
+  test('MoveSheet "Mark done" submits snooze and closes the sheet', async ({
+    page,
+  }) => {
     const state = await mockApi(page);
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
-    const card = page.getByRole('group', { name: /alpha-repo/ });
+    const card = page.getByRole("group", { name: /alpha-repo/ });
     await longPress(page, card);
 
-    const sheet = page.getByRole('dialog', { name: /Reschedule alpha-repo/ });
+    const sheet = page.getByRole("dialog", { name: /Reschedule alpha-repo/ });
     await expect(sheet).toBeVisible();
 
     // Change to 7 days via preset then submit
-    await sheet.getByRole('button', { name: '7d' }).tap();
-    await sheet.getByRole('button', { name: 'Mark done' }).tap();
+    await sheet.getByRole("button", { name: "7d" }).tap();
+    await sheet.getByRole("button", { name: "Mark done" }).tap();
 
     // Sheet closes
     await expect(sheet).not.toBeVisible();
@@ -156,56 +174,65 @@ test.describe('mobile layout', () => {
 
   test('MoveSheet "Cancel" closes without mutating state', async ({ page }) => {
     const state = await mockApi(page);
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
-    const card = page.getByRole('group', { name: /alpha-repo/ });
+    const card = page.getByRole("group", { name: /alpha-repo/ });
     await longPress(page, card);
 
-    const sheet = page.getByRole('dialog', { name: /Reschedule alpha-repo/ });
+    const sheet = page.getByRole("dialog", { name: /Reschedule alpha-repo/ });
     await expect(sheet).toBeVisible();
 
-    await sheet.getByRole('button', { name: 'Cancel' }).tap();
+    await sheet.getByRole("button", { name: "Cancel" }).tap();
     await expect(sheet).not.toBeVisible();
 
     // State unchanged
-    expect(state.repos.find((r) => r.id === 1).column).toBe('day-0');
+    expect(state.repos.find((r) => r.id === 1).column).toBe("day-0");
   });
 
-  test('"More filters and options" button opens the MobileActionSheet', async ({ page }) => {
+  test('"More filters and options" button opens the MobileActionSheet', async ({
+    page,
+  }) => {
     await mockApi(page);
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
-    const moreBtn = page.getByRole('button', { name: 'More filters and options' });
+    const moreBtn = page.getByRole("button", {
+      name: "More filters and options",
+    });
     await expect(moreBtn).toBeVisible();
     await moreBtn.tap();
 
-    const sheet = page.getByRole('dialog', { name: 'Filters & options' });
+    const sheet = page.getByRole("dialog", { name: "Filters & options" });
     await expect(sheet).toBeVisible();
 
     // Close via the X button
-    await sheet.getByRole('button', { name: 'Close options' }).tap();
+    await sheet.getByRole("button", { name: "Close options" }).tap();
     await expect(sheet).not.toBeVisible();
   });
 
-  test('key touch targets meet the 44 px minimum height', async ({ page }) => {
+  test("key touch targets meet the 44 px minimum height", async ({ page }) => {
     await mockApi(page);
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     const minH = 44;
     const targets = [
-      page.getByRole('button', { name: /Choose day/ }),
-      page.getByRole('button', { name: 'More filters and options' }),
+      page.getByRole("button", { name: /Choose day/ }),
+      page.getByRole("button", { name: "More filters and options" }),
       // Settings gear for alpha-repo
-      page.getByRole('group', { name: /alpha-repo/ }).getByRole('button', { name: 'Open repository settings' }),
+      page
+        .getByRole("group", { name: /alpha-repo/ })
+        .getByRole("button", { name: "Open repository settings" }),
     ];
 
     for (const t of targets) {
       await expect(t).toBeVisible();
       const box = await t.boundingBox();
-      expect(box.height, `${await t.getAttribute('aria-label')} height`).toBeGreaterThanOrEqual(minH);
+      expect(
+        box.height,
+        `${await t.getAttribute("aria-label")} height`,
+      ).toBeGreaterThanOrEqual(minH);
     }
   });
 });

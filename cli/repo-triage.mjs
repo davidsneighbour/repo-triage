@@ -10,11 +10,21 @@
  *
  *   Run `repo-triage help` to list all commands.
  */
-import { execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
-import { readFileSync } from 'node:fs';
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
-const VALUE_FLAGS = new Set(['api', 'days', 'interval', 'owner', 'tag', 'language', 'lang', 'format', 'all-matching']);
+const VALUE_FLAGS = new Set([
+  "api",
+  "days",
+  "interval",
+  "owner",
+  "tag",
+  "language",
+  "lang",
+  "format",
+  "all-matching",
+]);
 
 // ---- pure helpers (unit-tested) -------------------------------------------
 
@@ -34,13 +44,17 @@ export function parseArgs(argv) {
   const flags = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a.startsWith('--')) {
-      const eq = a.indexOf('=');
+    if (a.startsWith("--")) {
+      const eq = a.indexOf("=");
       if (eq !== -1) {
         flags[a.slice(2, eq)] = a.slice(eq + 1);
       } else {
         const key = a.slice(2);
-        if (VALUE_FLAGS.has(key) && i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
+        if (
+          VALUE_FLAGS.has(key) &&
+          i + 1 < argv.length &&
+          !argv[i + 1].startsWith("--")
+        ) {
           flags[key] = argv[++i];
         } else {
           flags[key] = true;
@@ -62,8 +76,9 @@ export function parseArgs(argv) {
  * @returns {string} Base URL with no trailing slash.
  */
 export function apiBase(flags = {}) {
-  if (typeof flags.api === 'string') return flags.api.replace(/\/$/, '');
-  if (process.env.REPO_TRIAGE_API) return process.env.REPO_TRIAGE_API.replace(/\/$/, '');
+  if (typeof flags.api === "string") return flags.api.replace(/\/$/, "");
+  if (process.env.REPO_TRIAGE_API)
+    return process.env.REPO_TRIAGE_API.replace(/\/$/, "");
   return `http://localhost:${process.env.PORT || 8787}`;
 }
 
@@ -79,14 +94,24 @@ export function apiBase(flags = {}) {
  * @throws {Error} If `ident` is empty, matches nothing, or is ambiguous.
  */
 export function resolveRepo(repos, ident) {
-  const needle = String(ident || '').trim().toLowerCase();
-  if (!needle) throw new Error('a repo (owner/name or name) is required');
-  let matches = repos.filter((r) => (r.full_name || '').toLowerCase() === needle);
-  if (matches.length === 0) matches = repos.filter((r) => (r.name || '').toLowerCase() === needle);
-  if (matches.length === 0) matches = repos.filter((r) => (r.name || '').toLowerCase().includes(needle));
+  const needle = String(ident || "")
+    .trim()
+    .toLowerCase();
+  if (!needle) throw new Error("a repo (owner/name or name) is required");
+  let matches = repos.filter(
+    (r) => (r.full_name || "").toLowerCase() === needle,
+  );
+  if (matches.length === 0)
+    matches = repos.filter((r) => (r.name || "").toLowerCase() === needle);
+  if (matches.length === 0)
+    matches = repos.filter((r) =>
+      (r.name || "").toLowerCase().includes(needle),
+    );
   if (matches.length === 0) throw new Error(`no repo matching "${ident}"`);
   if (matches.length > 1) {
-    throw new Error(`"${ident}" is ambiguous — use owner/name. Matches: ${matches.map((r) => r.full_name).join(', ')}`);
+    throw new Error(
+      `"${ident}" is ambiguous — use owner/name. Matches: ${matches.map((r) => r.full_name).join(", ")}`,
+    );
   }
   return matches[0];
 }
@@ -105,14 +130,21 @@ export function resolveRepo(repos, ident) {
  * @throws {Error} If the pattern matches nothing or `ident` resolves to nothing.
  */
 export function resolveRepos(repos, ident, opts = {}) {
-  const pattern = opts['all-matching'];
+  const pattern = opts["all-matching"];
   if (pattern) {
     const re = new RegExp(
-      '^' + String(pattern).replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$',
-      'i'
+      "^" +
+        String(pattern)
+          .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+          .replace(/\*/g, ".*") +
+        "$",
+      "i",
     );
-    const filtered = repos.filter((r) => re.test(r.full_name || '') || re.test(r.name || ''));
-    if (filtered.length === 0) throw new Error(`no repos matching "${pattern}"`);
+    const filtered = repos.filter(
+      (r) => re.test(r.full_name || "") || re.test(r.name || ""),
+    );
+    if (filtered.length === 0)
+      throw new Error(`no repos matching "${pattern}"`);
     return filtered;
   }
   return [resolveRepo(repos, ident)];
@@ -137,22 +169,31 @@ export function filterReposCli(repos, opts = {}) {
   return repos.filter((r) => {
     if (r.ignored && !opts.all && !opts.ignored) return false;
     if (opts.ignored && !r.ignored) return false;
-    if (opts.owner && (r.owner || '').toLowerCase() !== String(opts.owner).toLowerCase()) return false;
-    if (language && (r.language || '').toLowerCase() !== String(language).toLowerCase()) return false;
-    if (opts.tag && !(r.tags || []).includes(String(opts.tag).toLowerCase())) return false;
+    if (
+      opts.owner &&
+      (r.owner || "").toLowerCase() !== String(opts.owner).toLowerCase()
+    )
+      return false;
+    if (
+      language &&
+      (r.language || "").toLowerCase() !== String(language).toLowerCase()
+    )
+      return false;
+    if (opts.tag && !(r.tags || []).includes(String(opts.tag).toLowerCase()))
+      return false;
     if (opts.due && !r.needsCheckToday) return false;
     if (opts.priority !== undefined) {
       // --priority accepts a comma list of levels; "none" matches an unset one.
       const wanted = String(opts.priority)
-        .split(',')
-        .map((p) => (p.trim().toLowerCase() === 'none' ? 0 : Number(p.trim())));
+        .split(",")
+        .map((p) => (p.trim().toLowerCase() === "none" ? 0 : Number(p.trim())));
       if (!wanted.includes(r.priority ?? 0)) return false;
     }
     return true;
   });
 }
 
-const dueLabel = (r) => (r.needsCheckToday ? 'today' : `in ${r.dueInDays}d`);
+const dueLabel = (r) => (r.needsCheckToday ? "today" : `in ${r.dueInDays}d`);
 
 /**
  * Formats a repo list as either a compact aligned table or a JSON string.
@@ -178,20 +219,24 @@ export function formatList(repos, { json = false } = {}) {
         stargazers_count: r.stargazers_count ?? 0,
       })),
       null,
-      2
+      2,
     );
   }
-  if (repos.length === 0) return 'no repositories match.';
+  if (repos.length === 0) return "no repositories match.";
   const rows = repos.map((r) => [
     r.full_name || r.name || String(r.id),
     dueLabel(r),
-    (r.tags || []).map((t) => `#${t}`).join(' ') || '-',
-    r.ignored ? 'ignored' : '',
+    (r.tags || []).map((t) => `#${t}`).join(" ") || "-",
+    r.ignored ? "ignored" : "",
   ]);
-  const widths = [0, 1, 2].map((c) => Math.max(...rows.map((row) => row[c].length)));
+  const widths = [0, 1, 2].map((c) =>
+    Math.max(...rows.map((row) => row[c].length)),
+  );
   return rows
-    .map((row) => `${row[0].padEnd(widths[0])}  ${row[1].padEnd(widths[1])}  ${row[2].padEnd(widths[2])}  ${row[3]}`.trimEnd())
-    .join('\n');
+    .map((row) =>
+      `${row[0].padEnd(widths[0])}  ${row[1].padEnd(widths[1])}  ${row[2].padEnd(widths[2])}  ${row[3]}`.trimEnd(),
+    )
+    .join("\n");
 }
 
 // ---- HTTP -----------------------------------------------------------------
@@ -201,19 +246,23 @@ async function call(base, method, path, body) {
   try {
     res = await fetch(`${base}${path}`, {
       method,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers:
+        body === undefined ? undefined : { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new Error(`could not reach the repo.triage API at ${base}. Is the server running? (npm run server)`);
+    throw new Error(
+      `could not reach the repo.triage API at ${base}. Is the server running? (npm run server)`,
+    );
   }
   const text = await res.text();
   const data = text ? JSON.parse(text) : {};
-  if (!res.ok) throw new Error(data.error || `API ${res.status} on ${method} ${path}`);
+  if (!res.ok)
+    throw new Error(data.error || `API ${res.status} on ${method} ${path}`);
   return data;
 }
 
-const getRepos = (base) => call(base, 'GET', '/api/repos');
+const getRepos = (base) => call(base, "GET", "/api/repos");
 
 // Raw-text GET (reports can come back as markdown/csv, not JSON).
 async function callText(base, path) {
@@ -221,7 +270,9 @@ async function callText(base, path) {
   try {
     res = await fetch(`${base}${path}`);
   } catch {
-    throw new Error(`could not reach the repo.triage API at ${base}. Is the server running? (npm run server)`);
+    throw new Error(
+      `could not reach the repo.triage API at ${base}. Is the server running? (npm run server)`,
+    );
   }
   const text = await res.text();
   if (!res.ok) {
@@ -287,16 +338,24 @@ The server must be running; override its URL with --api or REPO_TRIAGE_API.`;
 // Fire an OS desktop notification if a suitable tool is available.
 function sendNotify(title, message, execFile = execFileSync) {
   try {
-    if (process.platform === 'darwin') {
+    if (process.platform === "darwin") {
       const script = `display notification "${message.replace(/"/g, '\\"')}" with title "${title.replace(/"/g, '\\"')}"`;
-      execFile('osascript', ['-e', script], { stdio: 'ignore', timeout: 3000 });
-    } else if (process.platform === 'linux') {
-      execFile('notify-send', [title, message], { stdio: 'ignore', timeout: 3000 });
-    } else if (process.platform === 'win32') {
+      execFile("osascript", ["-e", script], { stdio: "ignore", timeout: 3000 });
+    } else if (process.platform === "linux") {
+      execFile("notify-send", [title, message], {
+        stdio: "ignore",
+        timeout: 3000,
+      });
+    } else if (process.platform === "win32") {
       const ps = `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('${message.replace(/'/g, "''")}','${title.replace(/'/g, "''")}')`;
-      execFile('powershell', ['-Command', ps], { stdio: 'ignore', timeout: 5000 });
+      execFile("powershell", ["-Command", ps], {
+        stdio: "ignore",
+        timeout: 5000,
+      });
     }
-  } catch { /* notification failure is non-fatal */ }
+  } catch {
+    /* notification failure is non-fatal */
+  }
 }
 
 /**
@@ -310,12 +369,16 @@ function sendNotify(title, message, execFile = execFileSync) {
 export async function watchOnce(base, previousIds, opts = {}) {
   const { notify = false, execFile: ef = execFileSync, call: callFn } = opts;
   const callImpl = callFn ?? call;
-  const { repos } = await callImpl(base, 'GET', '/api/repos');
-  const today = repos.filter((r) => r.column === 'day-0' && !r.ignored);
+  const { repos } = await callImpl(base, "GET", "/api/repos");
+  const today = repos.filter((r) => r.column === "day-0" && !r.ignored);
   const todayIds = new Set(today.map((r) => r.id));
   const newlyDue = today.filter((r) => !previousIds.has(r.id));
   if (notify && newlyDue.length > 0) {
-    sendNotify('Repo Triage', `${newlyDue.length} repo${newlyDue.length > 1 ? 's' : ''} due for review`, ef);
+    sendNotify(
+      "Repo Triage",
+      `${newlyDue.length} repo${newlyDue.length > 1 ? "s" : ""} due for review`,
+      ef,
+    );
   }
   return { newlyDue, todayIds };
 }
@@ -326,156 +389,213 @@ async function run(argv, out = console.log, { execFile = execFileSync } = {}) {
   const { command, positionals, flags } = parseArgs(argv);
   const base = apiBase(flags);
 
-  if (!command || command === 'help' || flags.help) {
+  if (!command || command === "help" || flags.help) {
     out(HELP);
     return 0;
   }
 
   switch (command) {
-    case 'list': {
+    case "list": {
       const { repos } = await getRepos(base);
       out(formatList(filterReposCli(repos, flags), flags));
       return 0;
     }
-    case 'tags': {
-      const { tags } = await call(base, 'GET', '/api/tags');
-      out(flags.json ? JSON.stringify(tags, null, 2) : tags.map((t) => `${String(t.count).padStart(4)}  #${t.tag}`).join('\n') || 'no tags yet.');
+    case "tags": {
+      const { tags } = await call(base, "GET", "/api/tags");
+      out(
+        flags.json
+          ? JSON.stringify(tags, null, 2)
+          : tags
+              .map((t) => `${String(t.count).padStart(4)}  #${t.tag}`)
+              .join("\n") || "no tags yet.",
+      );
       return 0;
     }
-    case 'open': {
+    case "open": {
       const repos = await withRepos(base, positionals[0], flags);
       for (const repo of repos) {
-        execFile('gh', ['repo', 'view', '--web', repo.full_name], { stdio: 'inherit' });
+        execFile("gh", ["repo", "view", "--web", repo.full_name], {
+          stdio: "inherit",
+        });
         out(`opened ${repo.full_name}`);
       }
       return 0;
     }
-    case 'ignore':
-    case 'unignore': {
+    case "ignore":
+    case "unignore": {
       const repos = await withRepos(base, positionals[0], flags);
       for (const repo of repos) {
-        await call(base, 'POST', `/api/repos/${repo.id}/ignore`, { ignored: command === 'ignore' });
+        await call(base, "POST", `/api/repos/${repo.id}/ignore`, {
+          ignored: command === "ignore",
+        });
         out(`${command}d ${repo.full_name}`);
       }
       return 0;
     }
-    case 'check': {
+    case "check": {
       const repos = await withRepos(base, positionals[0], flags);
       const days = flags.days === undefined ? 0 : Number(flags.days);
-      if (!Number.isFinite(days) || days < 0) throw new Error('--days must be a non-negative number');
+      if (!Number.isFinite(days) || days < 0)
+        throw new Error("--days must be a non-negative number");
       for (const repo of repos) {
-        await call(base, 'POST', `/api/repos/${repo.id}/check`, { daysAgo: days });
+        await call(base, "POST", `/api/repos/${repo.id}/check`, {
+          daysAgo: days,
+        });
         out(`checked ${repo.full_name} (${days}d ago)`);
       }
       return 0;
     }
-    case 'clear': {
+    case "clear": {
       const repos = await withRepos(base, positionals[0], flags);
       for (const repo of repos) {
-        await call(base, 'POST', `/api/repos/${repo.id}/clear`);
+        await call(base, "POST", `/api/repos/${repo.id}/clear`);
         out(`cleared check date for ${repo.full_name}`);
       }
       return 0;
     }
-    case 'priority': {
+    case "priority": {
       const repos = await withRepos(base, positionals[0], flags);
       const raw = positionals[1];
-      const priority = raw === 'none' || raw === 'clear' || raw === undefined ? null : Number(raw);
+      const priority =
+        raw === "none" || raw === "clear" || raw === undefined
+          ? null
+          : Number(raw);
       if (priority !== null && ![1, 2, 3].includes(priority)) {
-        throw new Error('usage: priority <repo> <1|2|3|none>');
+        throw new Error("usage: priority <repo> <1|2|3|none>");
       }
       for (const repo of repos) {
-        await call(base, 'POST', `/api/repos/${repo.id}/priority`, { priority });
-        out(`set priority for ${repo.full_name} to ${priority === null ? 'none' : `P${priority}`}`);
+        await call(base, "POST", `/api/repos/${repo.id}/priority`, {
+          priority,
+        });
+        out(
+          `set priority for ${repo.full_name} to ${priority === null ? "none" : `P${priority}`}`,
+        );
       }
       return 0;
     }
-    case 'interval': {
+    case "interval": {
       const repo = await withRepo(base, positionals[0]);
       const raw = positionals[1];
-      const days = raw === 'default' || raw === undefined ? null : Number(raw);
-      if (days !== null && (!Number.isFinite(days) || days < 0)) throw new Error('interval days must be a non-negative number or "default"');
-      await call(base, 'POST', `/api/repos/${repo.id}/inactivity`, { days });
-      out(`set review interval for ${repo.full_name} to ${days === null ? 'default' : `${days}d`}`);
+      const days = raw === "default" || raw === undefined ? null : Number(raw);
+      if (days !== null && (!Number.isFinite(days) || days < 0))
+        throw new Error(
+          'interval days must be a non-negative number or "default"',
+        );
+      await call(base, "POST", `/api/repos/${repo.id}/inactivity`, { days });
+      out(
+        `set review interval for ${repo.full_name} to ${days === null ? "default" : `${days}d`}`,
+      );
       return 0;
     }
-    case 'tag': {
+    case "tag": {
       const sub = positionals[0];
       const repo = await withRepo(base, positionals[1]);
       const tags = positionals.slice(2);
-      if (tags.length === 0) throw new Error('at least one tag is required');
-      if (sub === 'add') {
-        for (const t of tags) await call(base, 'POST', `/api/repos/${repo.id}/tags`, { tag: t });
-        out(`tagged ${repo.full_name}: ${tags.map((t) => `#${t.toLowerCase()}`).join(' ')}`);
-      } else if (sub === 'rm' || sub === 'remove') {
-        for (const t of tags) await call(base, 'DELETE', `/api/repos/${repo.id}/tags/${encodeURIComponent(t.toLowerCase())}`);
-        out(`untagged ${repo.full_name}: ${tags.map((t) => `#${t.toLowerCase()}`).join(' ')}`);
+      if (tags.length === 0) throw new Error("at least one tag is required");
+      if (sub === "add") {
+        for (const t of tags)
+          await call(base, "POST", `/api/repos/${repo.id}/tags`, { tag: t });
+        out(
+          `tagged ${repo.full_name}: ${tags.map((t) => `#${t.toLowerCase()}`).join(" ")}`,
+        );
+      } else if (sub === "rm" || sub === "remove") {
+        for (const t of tags)
+          await call(
+            base,
+            "DELETE",
+            `/api/repos/${repo.id}/tags/${encodeURIComponent(t.toLowerCase())}`,
+          );
+        out(
+          `untagged ${repo.full_name}: ${tags.map((t) => `#${t.toLowerCase()}`).join(" ")}`,
+        );
       } else {
-        throw new Error('usage: tag add|rm <repo> <tag...>');
+        throw new Error("usage: tag add|rm <repo> <tag...>");
       }
       return 0;
     }
-    case 'report': {
+    case "report": {
       const kind = positionals[0];
-      if (!kind) throw new Error('usage: report <kind> [--format md|csv|json] [--days N]');
-      const format = flags.format || (flags.json ? 'json' : 'md');
+      if (!kind)
+        throw new Error(
+          "usage: report <kind> [--format md|csv|json] [--days N]",
+        );
+      const format = flags.format || (flags.json ? "json" : "md");
       const qs = new URLSearchParams({ format });
-      if (flags.days !== undefined) qs.set('days', String(flags.days));
-      const text = await callText(base, `/api/reports/${encodeURIComponent(kind)}?${qs}`);
-      out(format === 'json' ? JSON.stringify(JSON.parse(text), null, 2) : text.replace(/\n$/, ''));
+      if (flags.days !== undefined) qs.set("days", String(flags.days));
+      const text = await callText(
+        base,
+        `/api/reports/${encodeURIComponent(kind)}?${qs}`,
+      );
+      out(
+        format === "json"
+          ? JSON.stringify(JSON.parse(text), null, 2)
+          : text.replace(/\n$/, ""),
+      );
       return 0;
     }
-    case 'backup': {
+    case "backup": {
       // Print the full triage-state backup to stdout (redirect to a file).
-      const data = await call(base, 'GET', '/api/backup');
+      const data = await call(base, "GET", "/api/backup");
       out(JSON.stringify(data, null, 2));
       return 0;
     }
-    case 'restore': {
+    case "restore": {
       const file = positionals[0];
-      if (!file) throw new Error('usage: restore <file.json>');
+      if (!file) throw new Error("usage: restore <file.json>");
       let payload;
       try {
-        payload = JSON.parse(readFileSync(file, 'utf8'));
+        payload = JSON.parse(readFileSync(file, "utf8"));
       } catch (e) {
         throw new Error(`could not read backup file "${file}": ${e.message}`);
       }
-      const res = await call(base, 'POST', '/api/restore', payload);
+      const res = await call(base, "POST", "/api/restore", payload);
       const r = res.restored || {};
-      out(`restored ${r.repo_state ?? 0} states, ${r.repo_notice ?? 0} notices, ${r.repo_tag ?? 0} tags`);
+      out(
+        `restored ${r.repo_state ?? 0} states, ${r.repo_notice ?? 0} notices, ${r.repo_tag ?? 0} tags`,
+      );
       return 0;
     }
-    case 'note': {
-      if (positionals[0] !== 'add') throw new Error('usage: note add <repo> <text...>');
+    case "note": {
+      if (positionals[0] !== "add")
+        throw new Error("usage: note add <repo> <text...>");
       const repo = await withRepo(base, positionals[1]);
-      const body = positionals.slice(2).join(' ').trim();
-      if (!body) throw new Error('note text is required');
-      await call(base, 'POST', `/api/repos/${repo.id}/notices`, { body });
+      const body = positionals.slice(2).join(" ").trim();
+      if (!body) throw new Error("note text is required");
+      await call(base, "POST", `/api/repos/${repo.id}/notices`, { body });
       out(`added note to ${repo.full_name}`);
       return 0;
     }
-    case 'watch': {
+    case "watch": {
       const intervalSecs = Number(flags.interval ?? 60);
       if (!Number.isFinite(intervalSecs) || intervalSecs < 1) {
-        throw new Error('--interval must be a positive number of seconds');
+        throw new Error("--interval must be a positive number of seconds");
       }
       const notify = Boolean(flags.notify);
-      out(`Watching for newly-due repos every ${intervalSecs}s (Ctrl+C to stop)...`);
+      out(
+        `Watching for newly-due repos every ${intervalSecs}s (Ctrl+C to stop)...`,
+      );
       // Establish baseline without printing anything.
-      let { todayIds } = await watchOnce(base, new Set(), { notify: false, execFile });
+      let { todayIds } = await watchOnce(base, new Set(), {
+        notify: false,
+        execFile,
+      });
       /* v8 ignore start */
       setInterval(async () => {
         try {
           const result = await watchOnce(base, todayIds, { notify, execFile });
           for (const r of result.newlyDue) {
-            out(`[${new Date().toISOString().slice(0, 19)}] due: ${r.full_name}`);
+            out(
+              `[${new Date().toISOString().slice(0, 19)}] due: ${r.full_name}`,
+            );
           }
           todayIds = result.todayIds;
         } catch (e) {
           out(`[poll error] ${e.message}`);
         }
       }, intervalSecs * 1000);
-      await new Promise(() => {}); // run until Ctrl+C
+      await new Promise(() => {
+        /* never resolves; run until Ctrl+C */
+      });
       /* v8 ignore stop */
       return 0;
     }
@@ -489,14 +609,15 @@ export { run, sendNotify };
 // ---- entrypoint -----------------------------------------------------------
 // Bootstrap-only: exercised when run as a binary, not when imported by tests.
 /* v8 ignore start */
-const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isMain =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   run(process.argv.slice(2)).then(
     (code) => process.exit(code || 0),
     (err) => {
       console.error(`error: ${err.message}`);
       process.exit(1);
-    }
+    },
   );
 }
 /* v8 ignore stop */

@@ -1,8 +1,8 @@
-import db from '../db.js';
-import { fetchAllRepos, enrichRepos, resolveToken } from '../github.js';
-import { ENRICH_METADATA, SYNC_AUTO, getEffectiveOwners } from './settings.js';
-import { invalidatePayloadCache } from './payloadCache.js';
-import { checkReportSchedule } from './reportSchedule.js';
+import db from "../db.js";
+import { enrichRepos, fetchAllRepos, resolveToken } from "../github.js";
+import { invalidatePayloadCache } from "./payloadCache.js";
+import { checkReportSchedule } from "./reportSchedule.js";
+import { ENRICH_METADATA, getEffectiveOwners, SYNC_AUTO } from "./settings.js";
 
 export let repoCache = [];
 export let enrichCache = new Map();
@@ -27,7 +27,7 @@ export async function refreshRepos() {
     invalidatePayloadCache();
 
     const insert = db.prepare(
-      `INSERT OR IGNORE INTO repo_state (repo_id, full_name, updated_at) VALUES (?, ?, ?)`
+      `INSERT OR IGNORE INTO repo_state (repo_id, full_name, updated_at) VALUES (?, ?, ?)`,
     );
     const now = new Date().toISOString();
     const tx = db.transaction((repos) => {
@@ -46,10 +46,14 @@ export async function refreshRepos() {
   if (ENRICH_METADATA) {
     const snap = repoCache;
     const { token } = resolveToken();
-    enrichRepos(snap, token).then((map) => {
-      enrichCache = map;
-      invalidatePayloadCache();
-    }).catch(() => {});
+    enrichRepos(snap, token)
+      .then((map) => {
+        enrichCache = map;
+        invalidatePayloadCache();
+      })
+      .catch(() => {
+        /* no-op */
+      });
   }
 
   return repoCache;
@@ -72,8 +76,12 @@ export function restartSyncInterval(minutes) {
   /* v8 ignore next */
   if (!SYNC_AUTO || minutes < 1) return;
   /* v8 ignore next */
-  syncIntervalHandle = setInterval(() => {
-    /* v8 ignore next */
-    if (queueRefresh()) console.log('  [auto-sync] Background GitHub sync started.');
-  }, minutes * 60 * 1000);
+  syncIntervalHandle = setInterval(
+    () => {
+      /* v8 ignore next */
+      if (queueRefresh())
+        console.log("  [auto-sync] Background GitHub sync started.");
+    },
+    minutes * 60 * 1000,
+  );
 }

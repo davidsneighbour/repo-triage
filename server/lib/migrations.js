@@ -24,7 +24,7 @@
 export const MIGRATIONS = [
   {
     version: 2026062001,
-    description: 'initial schema: all tables, indexes, and column back-fills',
+    description: "initial schema: all tables, indexes, and column back-fills",
     up(db) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS repo_state (
@@ -42,15 +42,20 @@ export const MIGRATIONS = [
       `);
 
       // Back-fill columns that were added after the original release.
-      const cols = db.prepare('PRAGMA table_info(repo_state)').all().map((c) => c.name);
-      if (!cols.includes('ignored')) {
+      const cols = db
+        .prepare("PRAGMA table_info(repo_state)")
+        .all()
+        .map((c) => c.name);
+      if (!cols.includes("ignored")) {
         db.exec(`ALTER TABLE repo_state ADD COLUMN ignored INTEGER DEFAULT 0`);
       }
-      if (!cols.includes('checked_at')) {
+      if (!cols.includes("checked_at")) {
         db.exec(`ALTER TABLE repo_state ADD COLUMN checked_at TEXT`);
-        db.exec(`UPDATE repo_state SET checked_at = priority_set_at WHERE checked_at IS NULL AND priority_set_at IS NOT NULL`);
+        db.exec(
+          `UPDATE repo_state SET checked_at = priority_set_at WHERE checked_at IS NULL AND priority_set_at IS NOT NULL`,
+        );
       }
-      if (!cols.includes('snooze_until')) {
+      if (!cols.includes("snooze_until")) {
         db.exec(`ALTER TABLE repo_state ADD COLUMN snooze_until TEXT`);
       }
 
@@ -124,7 +129,8 @@ export const MIGRATIONS = [
   },
   {
     version: 2026062301,
-    description: 'add tokens table for encrypted per-owner GitHub token storage',
+    description:
+      "add tokens table for encrypted per-owner GitHub token storage",
     up(db) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS tokens (
@@ -143,7 +149,7 @@ export const MIGRATIONS = [
   },
   {
     version: 2026070601,
-    description: 'add repo_issue table and per-repo issue-sync opt-out column',
+    description: "add repo_issue table and per-repo issue-sync opt-out column",
     up(db) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS repo_issue (
@@ -162,25 +168,37 @@ export const MIGRATIONS = [
       `);
 
       // Issue sync is opt-out (enabled by default) — see repo_state.issue_sync_enabled.
-      const cols = db.prepare('PRAGMA table_info(repo_state)').all().map((c) => c.name);
-      if (!cols.includes('issue_sync_enabled')) {
-        db.exec(`ALTER TABLE repo_state ADD COLUMN issue_sync_enabled INTEGER DEFAULT 1`);
+      const cols = db
+        .prepare("PRAGMA table_info(repo_state)")
+        .all()
+        .map((c) => c.name);
+      if (!cols.includes("issue_sync_enabled")) {
+        db.exec(
+          `ALTER TABLE repo_state ADD COLUMN issue_sync_enabled INTEGER DEFAULT 1`,
+        );
       }
     },
   },
   {
     version: 2026070602,
-    description: 'add local flagged column to repo_issue for issue-level priority marking',
+    description:
+      "add local flagged column to repo_issue for issue-level priority marking",
     up(db) {
-      const cols = db.prepare('PRAGMA table_info(repo_issue)').all().map((c) => c.name);
-      if (!cols.includes('flagged')) {
-        db.exec(`ALTER TABLE repo_issue ADD COLUMN flagged INTEGER NOT NULL DEFAULT 0`);
+      const cols = db
+        .prepare("PRAGMA table_info(repo_issue)")
+        .all()
+        .map((c) => c.name);
+      if (!cols.includes("flagged")) {
+        db.exec(
+          `ALTER TABLE repo_issue ADD COLUMN flagged INTEGER NOT NULL DEFAULT 0`,
+        );
       }
     },
   },
   {
     version: 2026070901,
-    description: 'add tag_registry table so tags can exist independent of repo_tag usage',
+    description:
+      "add tag_registry table so tags can exist independent of repo_tag usage",
     up(db) {
       db.exec(`
         CREATE TABLE IF NOT EXISTS tag_registry (
@@ -194,7 +212,9 @@ export const MIGRATIONS = [
       // Guarded because some upgrade paths (and isolated migration tests)
       // may not have repo_tag yet.
       const hasRepoTag = db
-        .prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'repo_tag'`)
+        .prepare(
+          `SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'repo_tag'`,
+        )
         .get();
       if (hasRepoTag) {
         db.exec(`
@@ -217,7 +237,7 @@ export const MIGRATIONS = [
  * @param {typeof MIGRATIONS} migrations - Overridable for tests.
  */
 export function runMigrations(db, migrations = MIGRATIONS) {
-  const current = db.pragma('user_version', { simple: true });
+  const current = db.pragma("user_version", { simple: true });
   const pending = migrations
     .filter((m) => m.version > current)
     .sort((a, b) => a.version - b.version);
@@ -229,7 +249,9 @@ export function runMigrations(db, migrations = MIGRATIONS) {
         db.exec(`PRAGMA user_version = ${m.version}`);
       })();
     } catch (e) {
-      throw new Error(`migration ${m.version} (${m.description}) failed — ${e.message}`);
+      throw new Error(
+        `migration ${m.version} (${m.description}) failed — ${e.message}`,
+      );
     }
   }
 }

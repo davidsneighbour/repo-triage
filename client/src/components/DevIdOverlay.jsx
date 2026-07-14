@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { tinykeys } from 'tinykeys';
-import { cx } from '../lib/constants.js';
-import { getElementIdentifier, isEditableTarget } from '../lib/devIdOverlay.js';
+import { useEffect, useRef, useState } from "react";
+import { tinykeys } from "tinykeys";
+import { cx } from "../lib/constants.js";
+import { getElementIdentifier, isEditableTarget } from "../lib/devIdOverlay.js";
 
-const STORAGE_KEY = 'repo-triage-dev-id-overlay';
+const STORAGE_KEY = "repo-triage-dev-id-overlay";
 
 // Dev-only element identifier overlay: toggled on, hovering any element shows
 // a small tooltip with a selector-like identifier for it (see
@@ -13,7 +13,7 @@ const STORAGE_KEY = 'repo-triage-dev-id-overlay';
 export function DevIdOverlay() {
   const [active, setActive] = useState(() => {
     try {
-      return localStorage.getItem(STORAGE_KEY) === 'true';
+      return localStorage.getItem(STORAGE_KEY) === "true";
     } catch {
       return false;
     }
@@ -40,7 +40,7 @@ export function DevIdOverlay() {
   // Global shortcut — ignored while typing in a form field.
   useEffect(() => {
     const unsubscribe = tinykeys(window, {
-      'Control+Shift+I': (event) => {
+      "Control+Shift+I": (event) => {
         if (isEditableTarget(event.target)) return;
         event.preventDefault();
         toggle();
@@ -87,11 +87,11 @@ export function DevIdOverlay() {
       });
     };
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('click', onClick, true);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("click", onClick, true);
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('click', onClick, true);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("click", onClick, true);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
@@ -107,8 +107,10 @@ export function DevIdOverlay() {
         aria-label="Toggle element identifier overlay"
         title="Toggle element identifier overlay (Ctrl+Shift+I)"
         className={cx(
-          'fixed bottom-4 right-4 z-50 rounded-md border px-2 py-1 font-mono text-[11px] transition-colors',
-          active ? 'border-neutral-600 bg-neutral-800 text-neutral-200' : 'border-neutral-700 bg-neutral-900 text-neutral-500 hover:text-neutral-300'
+          "fixed bottom-4 right-4 z-50 rounded-md border px-2 py-1 font-mono text-[11px] transition-colors",
+          active
+            ? "border-neutral-600 bg-neutral-800 text-neutral-200"
+            : "border-neutral-700 bg-neutral-900 text-neutral-500 hover:text-neutral-300",
         )}
       >
         [id]

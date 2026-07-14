@@ -1,23 +1,67 @@
-import { Activity, ArrowDownUp, Archive, BarChart3, CalendarDays, CircleDot, CircleHelp, EyeOff, GitFork, GitPullRequest, Info, LayoutGrid, List, MoreHorizontal, RefreshCw, Rows2, Search, Settings2, Star, StickyNote, Tag, User } from 'lucide-react';
+import {
+  Activity,
+  Archive,
+  ArrowDownUp,
+  BarChart3,
+  CalendarDays,
+  CircleDot,
+  CircleHelp,
+  EyeOff,
+  GitFork,
+  GitPullRequest,
+  Info,
+  LayoutGrid,
+  List,
+  MoreHorizontal,
+  RefreshCw,
+  Rows2,
+  Search,
+  Settings2,
+  Star,
+  StickyNote,
+  Tag,
+  User,
+} from "lucide-react";
 
 // Tiny className joiner used throughout the UI.
-export const cx = (...a) => a.filter(Boolean).join(' ');
+export const cx = (...a) => a.filter(Boolean).join(" ");
 
 // Per-column accent tones for the day-schedule board.
 export const ACCENT = {
-  neutral: { dot: 'bg-neutral-500', head: 'text-neutral-300', edge: 'border-neutral-800' },
-  rose: { dot: 'bg-rose-500', head: 'text-rose-300', edge: 'border-rose-500/30' },
-  amber: { dot: 'bg-amber-500', head: 'text-amber-300', edge: 'border-amber-500/30' },
-  sky: { dot: 'bg-sky-500', head: 'text-sky-300', edge: 'border-sky-500/30' },
+  neutral: {
+    dot: "bg-neutral-500",
+    head: "text-neutral-300",
+    edge: "border-neutral-800",
+  },
+  rose: {
+    dot: "bg-rose-500",
+    head: "text-rose-300",
+    edge: "border-rose-500/30",
+  },
+  amber: {
+    dot: "bg-amber-500",
+    head: "text-amber-300",
+    edge: "border-amber-500/30",
+  },
+  sky: { dot: "bg-sky-500", head: "text-sky-300", edge: "border-sky-500/30" },
 };
 
 // Categorical owner-identity palette (see DESIGN.md → Colors → Owner palette).
 // Muted hues kept clear of the semantic ramps (rose/amber/sky/emerald/violet).
 // Applied via inline style because the owner set is dynamic/unbounded.
-const OWNER_PALETTE = ['#2dd4bf', '#818cf8', '#e879f9', '#fb923c', '#a3e635', '#22d3ee', '#f472b6', '#5eead4'];
+const OWNER_PALETTE = [
+  "#2dd4bf",
+  "#818cf8",
+  "#e879f9",
+  "#fb923c",
+  "#a3e635",
+  "#22d3ee",
+  "#f472b6",
+  "#5eead4",
+];
 
 export function ownerColor(login) {
-  const s = String(login || '');
+  const s = String(login || "");
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return OWNER_PALETTE[h % OWNER_PALETTE.length];
@@ -27,7 +71,7 @@ export function ownerColor(login) {
 // a same-named owner don't land on the same colour (they're told apart by the
 // `#` prefix + owner stripe, but distinct hues reduce accidental association).
 export function tagColor(tag) {
-  const s = String(tag || '');
+  const s = String(tag || "");
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
   return OWNER_PALETTE[h % OWNER_PALETTE.length];
@@ -38,15 +82,30 @@ export function tagColor(tag) {
 // here are deliberate semantic accents, not the categorical owner/tag palette.
 export const PRIORITY_LEVELS = [1, 2, 3];
 export const PRIORITY_META = {
-  1: { label: 'P1', title: 'Priority 1 (high)', dot: '#f87171', chip: 'bg-rose-500/15 text-rose-200' },
-  2: { label: 'P2', title: 'Priority 2 (medium)', dot: '#fbbf24', chip: 'bg-amber-500/15 text-amber-200' },
-  3: { label: 'P3', title: 'Priority 3 (low)', dot: '#60a5fa', chip: 'bg-sky-500/15 text-sky-200' },
+  1: {
+    label: "P1",
+    title: "Priority 1 (high)",
+    dot: "#f87171",
+    chip: "bg-rose-500/15 text-rose-200",
+  },
+  2: {
+    label: "P2",
+    title: "Priority 2 (medium)",
+    dot: "#fbbf24",
+    chip: "bg-amber-500/15 text-amber-200",
+  },
+  3: {
+    label: "P3",
+    title: "Priority 3 (low)",
+    dot: "#60a5fa",
+    chip: "bg-sky-500/15 text-sky-200",
+  },
 };
 
 // The four priority filter options: P1/P2/P3 plus "no priority" (level 0).
 export const PRIORITY_FILTER_OPTIONS = [
   ...PRIORITY_LEVELS.map((level) => ({ level, ...PRIORITY_META[level] })),
-  { level: 0, label: 'None', title: 'No priority', dot: '#52525b' },
+  { level: 0, label: "None", title: "No priority", dot: "#52525b" },
 ];
 
 export const ICON = {
@@ -77,52 +136,54 @@ export const ICON = {
 
 // Labels for the within-column sort selector (keys come from board.js SORT_KEYS).
 export const SORT_LABELS = {
-  manual: 'Manual order',
-  name: 'Name',
-  pushed: 'Recently pushed',
-  stars: 'Stars',
-  due: 'Due soonest',
+  manual: "Manual order",
+  name: "Name",
+  pushed: "Recently pushed",
+  stars: "Stars",
+  due: "Due soonest",
 };
 
 // Labels for the board group-by selector (keys come from board.js GROUP_BY_KEYS).
 export const GROUP_BY_LABELS = {
-  day: 'Day schedule',
-  owner: 'Owner',
-  tag: 'Tag',
-  language: 'Language',
+  day: "Day schedule",
+  owner: "Owner",
+  tag: "Tag",
+  language: "Language",
 };
 
 // Toggleable card fields (all shown by default).
 export const FIELD_OPTIONS = [
-  { key: 'language', label: 'Language' },
-  { key: 'pushed', label: 'Pushed date' },
-  { key: 'stars', label: 'Stars' },
-  { key: 'issues', label: 'Open issues' },
-  { key: 'forks', label: 'Forks' },
-  { key: 'notice', label: 'Notice preview' },
+  { key: "language", label: "Language" },
+  { key: "pushed", label: "Pushed date" },
+  { key: "stars", label: "Stars" },
+  { key: "issues", label: "Open issues" },
+  { key: "forks", label: "Forks" },
+  { key: "notice", label: "Notice preview" },
   // Enriched fields — only populated when ENRICH_METADATA=true on the server.
-  { key: 'open_prs', label: 'Open PRs' },
-  { key: 'latest_release', label: 'Latest release' },
-  { key: 'last_commit', label: 'Last commit' },
-  { key: 'ci_status', label: 'CI status' },
+  { key: "open_prs", label: "Open PRs" },
+  { key: "latest_release", label: "Latest release" },
+  { key: "last_commit", label: "Last commit" },
+  { key: "ci_status", label: "CI status" },
 ];
-export const DEFAULT_FIELDS = Object.fromEntries(FIELD_OPTIONS.map((f) => [f.key, true]));
+export const DEFAULT_FIELDS = Object.fromEntries(
+  FIELD_OPTIONS.map((f) => [f.key, true]),
+);
 
 // Well-known boolean flags surfaced as toggle buttons in the card menu.
-export const FLAG_NAMES = ['pinned', 'muted', 'needs-decision'];
+export const FLAG_NAMES = ["pinned", "muted", "needs-decision"];
 export const FLAG_META = {
-  pinned: { label: 'Pinned', emoji: '📌' },
-  muted: { label: 'Muted', emoji: '🔇' },
-  'needs-decision': { label: 'Needs decision', emoji: '❓' },
+  pinned: { label: "Pinned", emoji: "📌" },
+  muted: { label: "Muted", emoji: "🔇" },
+  "needs-decision": { label: "Needs decision", emoji: "❓" },
 };
 
 export const REPORT_LABELS = {
-  summary: 'summary',
-  due: 'due today',
-  'never-reviewed': 'never reviewed',
-  stale: 'stale',
-  owners: 'owners',
-  languages: 'languages',
-  archived: 'archived',
-  active: 'open issues',
+  summary: "summary",
+  due: "due today",
+  "never-reviewed": "never reviewed",
+  stale: "stale",
+  owners: "owners",
+  languages: "languages",
+  archived: "archived",
+  active: "open issues",
 };

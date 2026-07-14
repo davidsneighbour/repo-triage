@@ -12,15 +12,15 @@
 //   npm install --no-save @mermaid-js/mermaid-cli
 //   npm run build:help-diagram
 //
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const srcDir = path.resolve(here, '..', 'src');
-const helpMd = path.join(srcDir, 'help.md');
-const outSvg = path.join(srcDir, 'help-diagram.svg');
+const srcDir = path.resolve(here, "..", "src");
+const helpMd = path.join(srcDir, "help.md");
+const outSvg = path.join(srcDir, "help-diagram.svg");
 
 function extractMermaid(markdown) {
   const match = markdown.match(/```mermaid\s*\n([\s\S]*?)```/);
@@ -28,34 +28,40 @@ function extractMermaid(markdown) {
 }
 
 async function main() {
-  const markdown = await readFile(helpMd, 'utf8');
+  const markdown = await readFile(helpMd, "utf8");
   const diagram = extractMermaid(markdown);
   if (!diagram) {
-    console.warn('[help-diagram] No ```mermaid block found in help.md — nothing to render.');
+    console.warn(
+      "[help-diagram] No ```mermaid block found in help.md — nothing to render.",
+    );
     return;
   }
 
   let run;
   try {
-    ({ run } = await import('@mermaid-js/mermaid-cli'));
+    ({ run } = await import("@mermaid-js/mermaid-cli"));
   } catch {
     console.warn(
-      '[help-diagram] @mermaid-js/mermaid-cli not installed — keeping the committed src/help-diagram.svg.\n' +
-        '               Run `npm install --no-save @mermaid-js/mermaid-cli && npm run build:help-diagram` to regenerate.'
+      "[help-diagram] @mermaid-js/mermaid-cli not installed — keeping the committed src/help-diagram.svg.\n" +
+        "               Run `npm install --no-save @mermaid-js/mermaid-cli && npm run build:help-diagram` to regenerate.",
     );
     return;
   }
 
-  const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'help-diagram-'));
-  const inputPath = path.join(tmpDir, 'diagram.mmd');
+  const tmpDir = await mkdtemp(path.join(os.tmpdir(), "help-diagram-"));
+  const inputPath = path.join(tmpDir, "diagram.mmd");
   try {
-    await writeFile(inputPath, `${diagram}\n`, 'utf8');
+    await writeFile(inputPath, `${diagram}\n`, "utf8");
     await run(inputPath, outSvg, {
       quiet: true,
-      puppeteerConfig: { args: ['--no-sandbox', '--disable-setuid-sandbox'] },
+      puppeteerConfig: { args: ["--no-sandbox", "--disable-setuid-sandbox"] },
       parseMMDOptions: {
-        backgroundColor: 'transparent',
-        mermaidConfig: { theme: 'dark', securityLevel: 'strict', flowchart: { useMaxWidth: true } },
+        backgroundColor: "transparent",
+        mermaidConfig: {
+          theme: "dark",
+          securityLevel: "strict",
+          flowchart: { useMaxWidth: true },
+        },
       },
     });
     console.log(`[help-diagram] Rendered src/help-diagram.svg from help.md.`);

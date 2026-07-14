@@ -39,15 +39,8 @@
     },
     // no inline HTML elements, except for the allowed ones. in tables only the explicit allowed ones
     "MD033": {
-      "allowed_elements": [
-        "lite-youtube",
-        "color-grid",
-        "date-diff",
-        "kbd"
-      ],
-      "table_allowed_elements": [
-        "kbd"
-      ]
+      "allowed_elements": ["lite-youtube", "color-grid", "date-diff", "kbd"],
+      "table_allowed_elements": ["kbd"]
     },
     // use consistent rule markers (`---`)
     "MD035": {
@@ -83,12 +76,7 @@
     },
     // generic link texts are prohibited
     "MD059": {
-      "prohibited_texts": [
-        "click here",
-        "here",
-        "link",
-        "more"
-      ]
+      "prohibited_texts": ["click here", "here", "link", "more"]
     },
     // table style must be compact (single spaces around cell content)
     "MD060": {
@@ -99,10 +87,7 @@
     "GH001": true,
     // links should not contain generic text ('click here', 'read more', etc.)
     "GH002": {
-      "additional_banned_texts": [
-        "Something",
-        "Click here"
-      ]
+      "additional_banned_texts": ["Something", "Click here"]
     },
     // no empty alt texts for images
     "GH003": true,
@@ -138,12 +123,7 @@
       // words to ignore when applying letter case.
       //
       // string[] (default: [])
-      "ignore": [
-        "JavaScript",
-        "Code",
-        "Copilot",
-        "License"
-      ]
+      "ignore": ["JavaScript", "Code", "Copilot", "License"]
     }
   },
   // #80: the lint:markdown* scripts pass an unanchored "**/*.{md,mdx}" glob,

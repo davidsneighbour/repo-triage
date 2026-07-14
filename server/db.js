@@ -4,25 +4,29 @@
  * journalling, and runs any pending schema migrations before exporting the
  * handle. Schema history lives in `server/lib/migrations.js`.
  */
-import Database from 'better-sqlite3';
-import path from 'node:path';
-import fs from 'node:fs';
-import { runMigrations } from './lib/migrations.js';
-import { init as initTokenManager, hasStoredTokens } from './lib/tokenManager.js';
+
+import fs from "node:fs";
+import path from "node:path";
+import Database from "better-sqlite3";
+import { runMigrations } from "./lib/migrations.js";
+import {
+  hasStoredTokens,
+  init as initTokenManager,
+} from "./lib/tokenManager.js";
 
 // Persist the DB in a mounted volume (/data in Docker). Fall back to ./data
 // when running outside the container.
-let dbDir = process.env.DATA_DIR || '/data';
+let dbDir = process.env.DATA_DIR || "/data";
 try {
   fs.mkdirSync(dbDir, { recursive: true });
   fs.accessSync(dbDir, fs.constants.W_OK);
 } catch {
-  dbDir = path.resolve('./data');
+  dbDir = path.resolve("./data");
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-const db = new Database(path.join(dbDir, 'dashboard.db'));
-db.pragma('journal_mode = WAL');
+const db = new Database(path.join(dbDir, "dashboard.db"));
+db.pragma("journal_mode = WAL");
 
 // Apply any pending schema migrations. This is synchronous and runs before
 // any route module prepares statements, so the schema is always up to date
@@ -34,11 +38,11 @@ runMigrations(db);
 // tokens and no passphrase was supplied, refuse to start so data is never
 // silently inaccessible. When the table is empty, startup proceeds normally
 // (bootstrap mode — use GITHUB_TOKEN env var instead).
-const passphrase = (process.env.TOKEN_PASSPHRASE || '').trim();
+const passphrase = (process.env.TOKEN_PASSPHRASE || "").trim();
 if (!passphrase && hasStoredTokens(db)) {
   throw new Error(
-    'TOKEN_PASSPHRASE is required: the database contains encrypted tokens but the env var is not set. ' +
-    'Set TOKEN_PASSPHRASE before starting the server.'
+    "TOKEN_PASSPHRASE is required: the database contains encrypted tokens but the env var is not set. " +
+      "Set TOKEN_PASSPHRASE before starting the server.",
   );
 }
 if (passphrase) {

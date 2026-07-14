@@ -6,18 +6,18 @@
  * edited without a deploy. The first shipped preset only evaluates fields
  * already present on the synced repo object — no extra GitHub API calls.
  */
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SETTINGS_SETS_PATH = path.join(__dirname, '..', 'settings-sets.json');
+const SETTINGS_SETS_PATH = path.join(__dirname, "..", "settings-sets.json");
 
 // Each evaluator reads one field off the repo object and returns a boolean.
 // Deliberately data-driven (not arbitrary code) so presets stay a JSON config
 // concern, not a plugin/eval surface.
 const CHECK_EVALUATORS = {
-  nonEmpty: (value) => typeof value === 'string' && value.trim().length > 0,
+  nonEmpty: (value) => typeof value === "string" && value.trim().length > 0,
   nonEmptyArray: (value) => Array.isArray(value) && value.length > 0,
   truthy: (value) => Boolean(value),
   falsy: (value) => !value,
@@ -27,7 +27,7 @@ let cachedPresets = null;
 
 function loadPresets() {
   if (cachedPresets) return cachedPresets;
-  const raw = fs.readFileSync(SETTINGS_SETS_PATH, 'utf8');
+  const raw = fs.readFileSync(SETTINGS_SETS_PATH, "utf8");
   const parsed = JSON.parse(raw);
   cachedPresets = Array.isArray(parsed.presets) ? parsed.presets : [];
   return cachedPresets;
@@ -65,7 +65,11 @@ export function findPreset(id) {
 export function evaluatePreset(repo, preset) {
   const checks = preset.checks.map((check) => {
     const evaluate = CHECK_EVALUATORS[check.type];
-    return { id: check.id, label: check.label, pass: evaluate ? evaluate(repo[check.field]) : false };
+    return {
+      id: check.id,
+      label: check.label,
+      pass: evaluate ? evaluate(repo[check.field]) : false,
+    };
   });
   return {
     presetId: preset.id,

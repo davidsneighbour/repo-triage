@@ -1,13 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 const FOCUSABLE = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'textarea:not([disabled])',
-  'select:not([disabled])',
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "textarea:not([disabled])",
+  "select:not([disabled])",
   '[tabindex]:not([tabindex="-1"])',
-].join(',');
+].join(",");
 
 // Accessibility plumbing shared by every dialog/popover: on open, move focus
 // into the panel; trap Tab/Shift+Tab inside it; close on Escape; and restore
@@ -27,12 +27,12 @@ export function useDialog(onClose) {
     (focusables()[0] || node).focus?.();
 
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.stopPropagation();
         onCloseRef.current?.();
         return;
       }
-      if (e.key !== 'Tab') return;
+      if (e.key !== "Tab") return;
       const els = focusables();
       if (els.length === 0) {
         e.preventDefault();
@@ -50,9 +50,9 @@ export function useDialog(onClose) {
       }
     };
 
-    node.addEventListener('keydown', onKeyDown);
+    node.addEventListener("keydown", onKeyDown);
     return () => {
-      node.removeEventListener('keydown', onKeyDown);
+      node.removeEventListener("keydown", onKeyDown);
       previouslyFocused?.focus?.();
     };
   }, []);

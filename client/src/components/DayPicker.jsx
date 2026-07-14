@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { cx, ACCENT, ICON } from '../lib/constants.js';
-import { devId } from '../lib/devIdOverlay.js';
-import { useDialog } from '../lib/useDialog.js';
+import { useState } from "react";
+import { ACCENT, cx, ICON } from "../lib/constants.js";
+import { devId } from "../lib/devIdOverlay.js";
+import { useDialog } from "../lib/useDialog.js";
 
 // Mobile-only day/bucket selector (see DESIGN.md → Mobile components → Day
 // picker). A calendar-icon button showing the active column's title; tapping it
@@ -16,17 +16,17 @@ export function DayPicker({ columns, activeKey, onSelect }) {
   const active = columns.find((c) => c.key === activeKey) || columns[0];
 
   return (
-    <div {...devId('DayPicker')} className="relative">
+    <div {...devId("DayPicker")} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Choose day${active ? `, currently ${active.title}` : ''}`}
+        aria-label={`Choose day${active ? `, currently ${active.title}` : ""}`}
         className="flex min-h-[44px] items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-200 hover:bg-neutral-800"
       >
         <CalendarIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span className="truncate">{active?.title ?? 'no columns'}</span>
+        <span className="truncate">{active?.title ?? "no columns"}</span>
       </button>
 
       {open && (
@@ -46,21 +46,35 @@ export function DayPicker({ columns, activeKey, onSelect }) {
                 <button
                   key={col.key}
                   type="button"
-                  aria-current={isActive ? 'true' : undefined}
+                  aria-current={isActive ? "true" : undefined}
                   onClick={() => {
                     onSelect(col.key);
                     setOpen(false);
                   }}
                   className={cx(
-                    'flex min-h-[44px] w-full items-center justify-between gap-2 rounded-md px-2 text-left transition-colors',
-                    isActive ? 'bg-neutral-800' : 'hover:bg-neutral-800/60'
+                    "flex min-h-[44px] w-full items-center justify-between gap-2 rounded-md px-2 text-left transition-colors",
+                    isActive ? "bg-neutral-800" : "hover:bg-neutral-800/60",
                   )}
                 >
                   <span className="flex min-w-0 items-center gap-2">
-                    <span className={cx('h-2 w-2 shrink-0 rounded-full', acc.dot)} aria-hidden="true" />
+                    <span
+                      className={cx("h-2 w-2 shrink-0 rounded-full", acc.dot)}
+                      aria-hidden="true"
+                    />
                     <span className="flex min-w-0 flex-col">
-                      <span className={cx('truncate text-sm font-semibold', acc.head)}>{col.title}</span>
-                      {col.subtitle && <span className="truncate text-[11px] text-neutral-600">{col.subtitle}</span>}
+                      <span
+                        className={cx(
+                          "truncate text-sm font-semibold",
+                          acc.head,
+                        )}
+                      >
+                        {col.title}
+                      </span>
+                      {col.subtitle && (
+                        <span className="truncate text-[11px] text-neutral-600">
+                          {col.subtitle}
+                        </span>
+                      )}
                     </span>
                   </span>
                   <span className="shrink-0 rounded-full bg-neutral-800 px-2 py-0.5 text-[11px] tabular-nums text-neutral-300">

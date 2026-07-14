@@ -1,11 +1,16 @@
-import { pbkdf2Sync, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  pbkdf2Sync,
+  randomBytes,
+} from "node:crypto";
 
-const ALGORITHM = 'aes-256-gcm';
-const KEY_LEN = 32;       // 256 bits
-const IV_LEN = 12;        // 96 bits — GCM recommended fixed-length IV
-const SALT_LEN = 16;      // 128-bit PBKDF2 salt, unique per encrypted value
+const ALGORITHM = "aes-256-gcm";
+const KEY_LEN = 32; // 256 bits
+const IV_LEN = 12; // 96 bits — GCM recommended fixed-length IV
+const SALT_LEN = 16; // 128-bit PBKDF2 salt, unique per encrypted value
 const PBKDF2_ITERS = 100_000;
-const PBKDF2_DIGEST = 'sha256';
+const PBKDF2_DIGEST = "sha256";
 
 export function deriveKey(passphrase, salt) {
   return pbkdf2Sync(passphrase, salt, PBKDF2_ITERS, KEY_LEN, PBKDF2_DIGEST);
@@ -25,13 +30,16 @@ export function encryptToken(plaintext, passphrase) {
   const key = deriveKey(passphrase, salt);
   const iv = randomBytes(IV_LEN);
   const cipher = createCipheriv(ALGORITHM, key, iv);
-  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, "utf8"),
+    cipher.final(),
+  ]);
   const authTag = cipher.getAuthTag();
   return {
-    encrypted: encrypted.toString('base64'),
-    iv: iv.toString('base64'),
-    authTag: authTag.toString('base64'),
-    salt: salt.toString('base64'),
+    encrypted: encrypted.toString("base64"),
+    iv: iv.toString("base64"),
+    authTag: authTag.toString("base64"),
+    salt: salt.toString("base64"),
   };
 }
 
@@ -45,11 +53,11 @@ export function encryptToken(plaintext, passphrase) {
  * @returns {string} The original plaintext token.
  */
 export function decryptToken({ encrypted, iv, authTag, salt }, passphrase) {
-  const key = deriveKey(passphrase, Buffer.from(salt, 'base64'));
-  const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(iv, 'base64'));
-  decipher.setAuthTag(Buffer.from(authTag, 'base64'));
+  const key = deriveKey(passphrase, Buffer.from(salt, "base64"));
+  const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(iv, "base64"));
+  decipher.setAuthTag(Buffer.from(authTag, "base64"));
   return Buffer.concat([
-    decipher.update(Buffer.from(encrypted, 'base64')),
+    decipher.update(Buffer.from(encrypted, "base64")),
     decipher.final(),
-  ]).toString('utf8');
+  ]).toString("utf8");
 }

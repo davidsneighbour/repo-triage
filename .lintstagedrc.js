@@ -9,4 +9,8 @@ export default {
     'markdownlint-cli2 --config ./node_modules/@dnbhq/markdownlint-config/.markdownlint-cli2.jsonc',
     'cspell',
   ],
+
+  '*.{js,jsx,mjs,cjs,json,jsonc,css}': [
+    'biome check --write --no-errors-on-unmatched',
+  ],
 };

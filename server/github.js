@@ -5,10 +5,10 @@
  *   and token resolution from the encrypted tokens table, `GITHUB_TOKEN` env,
  *   or `gh auth token`.
  */
-import { execFileSync, spawn } from 'node:child_process';
-import { resolveTokenForOwner as dbResolveToken } from './lib/tokenManager.js';
+import { execFileSync, spawn } from "node:child_process";
+import { resolveTokenForOwner as dbResolveToken } from "./lib/tokenManager.js";
 
-const GITHUB_API = 'https://api.github.com';
+const GITHUB_API = "https://api.github.com";
 
 // ---- Shared rate-limit state -----------------------------------------------
 // Exported so server/index.js can include it in every API response.
@@ -19,12 +19,12 @@ const GITHUB_API = 'https://api.github.com';
  * @type {{ limit: number|null, remaining: number|null, used: number|null, reset: number|null, lastChecked: string|null, authInvalid: boolean }}
  */
 export const rateLimit = {
-  limit: null,       // total requests allowed per window
-  remaining: null,   // requests remaining in current window
-  used: null,        // requests consumed
-  reset: null,       // Unix timestamp (seconds) when the window resets
+  limit: null, // total requests allowed per window
+  remaining: null, // requests remaining in current window
+  used: null, // requests consumed
+  reset: null, // Unix timestamp (seconds) when the window resets
   lastChecked: null, // ISO timestamp of the last GitHub response we parsed
-  authInvalid: false,// true after a 401 — set back to false on success
+  authInvalid: false, // true after a 401 — set back to false on success
 };
 
 // ---- Per-sync source diagnostics -------------------------------------------
@@ -36,7 +36,7 @@ export const rateLimit = {
  * @type {{ owners: Array<{owner: string|null, count: number, scope: string}>, warnings: string[] }}
  */
 export const sourceStatus = {
-  owners: [],   // [{ owner, count, scope }] — scope: self|member|public|error
+  owners: [], // [{ owner, count, scope }] — scope: self|member|public|error
   warnings: [], // human-readable, non-fatal messages (e.g. org access fell back to public)
 };
 
@@ -46,7 +46,7 @@ export const sourceStatus = {
  * @type {{ source: 'env'|'gh'|null, present: boolean }}
  */
 export const authStatus = {
-  source: null,   // 'env' (GITHUB_TOKEN) | 'gh' (gh auth token) | null
+  source: null, // 'env' (GITHUB_TOKEN) | 'gh' (gh auth token) | null
   present: false, // whether a usable token was resolved
 };
 
@@ -59,10 +59,14 @@ export const authStatus = {
  */
 export function parseRateLimitHeaders(res, target = rateLimit) {
   const h = (k) => res.headers.get(k);
-  if (h('x-ratelimit-limit') !== null) target.limit = Number(h('x-ratelimit-limit'));
-  if (h('x-ratelimit-remaining') !== null) target.remaining = Number(h('x-ratelimit-remaining'));
-  if (h('x-ratelimit-used') !== null) target.used = Number(h('x-ratelimit-used'));
-  if (h('x-ratelimit-reset') !== null) target.reset = Number(h('x-ratelimit-reset'));
+  if (h("x-ratelimit-limit") !== null)
+    target.limit = Number(h("x-ratelimit-limit"));
+  if (h("x-ratelimit-remaining") !== null)
+    target.remaining = Number(h("x-ratelimit-remaining"));
+  if (h("x-ratelimit-used") !== null)
+    target.used = Number(h("x-ratelimit-used"));
+  if (h("x-ratelimit-reset") !== null)
+    target.reset = Number(h("x-ratelimit-reset"));
   target.lastChecked = new Date().toISOString();
 }
 
@@ -83,18 +87,20 @@ export function parseOwners(raw) {
   if (!s) return [];
 
   let list = null;
-  if (s.startsWith('[')) {
+  if (s.startsWith("[")) {
     try {
       const parsed = JSON.parse(s);
       if (Array.isArray(parsed)) list = parsed;
-    } catch { /* not valid JSON — fall through to delimiter split */ }
+    } catch {
+      /* not valid JSON — fall through to delimiter split */
+    }
   }
   if (!Array.isArray(list)) list = s.split(/[\s,]+/);
 
   const seen = new Set();
   const out = [];
   for (const item of list) {
-    const v = String(item ?? '').trim();
+    const v = String(item ?? "").trim();
     if (!v) continue;
     const key = v.toLowerCase();
     if (seen.has(key)) continue;
@@ -113,9 +119,9 @@ export function parseOwners(raw) {
  */
 export function ghAuthToken() {
   try {
-    const out = execFileSync('gh', ['auth', 'token'], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
+    const out = execFileSync("gh", ["auth", "token"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
       timeout: 5000,
     });
     const token = String(out).trim();
@@ -132,10 +138,10 @@ export function ghAuthToken() {
  * @returns {{ token: string|null, source: 'env'|'gh'|null }} Token and its source.
  */
 export function resolveToken() {
-  const env = (process.env.GITHUB_TOKEN || '').trim();
-  if (env) return { token: env, source: 'env' };
+  const env = (process.env.GITHUB_TOKEN || "").trim();
+  if (env) return { token: env, source: "env" };
   const gh = ghAuthToken();
-  if (gh) return { token: gh, source: 'gh' };
+  if (gh) return { token: gh, source: "gh" };
   return { token: null, source: null };
 }
 
@@ -152,7 +158,7 @@ export function buildResolveOwnerToken() {
   return function (owner) {
     if (owner) {
       const dbToken = dbResolveToken(owner);
-      if (dbToken) return { token: dbToken, source: 'db' };
+      if (dbToken) return { token: dbToken, source: "db" };
     }
     return fallback;
   };
@@ -161,17 +167,23 @@ export function buildResolveOwnerToken() {
 function buildHeaders(token) {
   return {
     Authorization: `Bearer ${token}`,
-    Accept: 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28',
-    'User-Agent': 'repo-dashboard',
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "repo-dashboard",
   };
 }
 
 function assertRateBudget() {
-  if (rateLimit.remaining === 0 && rateLimit.reset && Math.floor(Date.now() / 1000) < rateLimit.reset) {
+  if (
+    rateLimit.remaining === 0 &&
+    rateLimit.reset &&
+    Math.floor(Date.now() / 1000) < rateLimit.reset
+  ) {
     const secsLeft = Math.ceil(rateLimit.reset - Date.now() / 1000);
     const resetAt = new Date(rateLimit.reset * 1000).toLocaleTimeString();
-    throw new Error(`GitHub API rate limit exhausted — resets at ${resetAt} (in ${secsLeft}s)`);
+    throw new Error(
+      `GitHub API rate limit exhausted — resets at ${resetAt} (in ${secsLeft}s)`,
+    );
   }
 }
 
@@ -184,26 +196,33 @@ async function ghGet(url, headers) {
 
   if (res.status === 401) {
     rateLimit.authInvalid = true;
-    const body = await res.text().catch(() => '');
-    let msg = 'GitHub token is invalid or expired (401).';
+    const body = await res.text().catch(() => "");
+    let msg = "GitHub token is invalid or expired (401).";
     try {
       const parsed = JSON.parse(body);
       if (parsed.message) msg += ` GitHub says: "${parsed.message}"`;
-    } catch { /* body wasn't JSON */ }
+    } catch {
+      /* body wasn't JSON */
+    }
     throw new Error(msg);
   }
 
   if (res.status === 403 && rateLimit.remaining === 0) {
-    const resetAt = rateLimit.reset ? new Date(rateLimit.reset * 1000).toLocaleTimeString() : 'unknown';
-    throw new Error(`GitHub API rate limit exhausted (403) — resets at ${resetAt}`);
+    const resetAt = rateLimit.reset
+      ? new Date(rateLimit.reset * 1000).toLocaleTimeString()
+      : "unknown";
+    throw new Error(
+      `GitHub API rate limit exhausted (403) — resets at ${resetAt}`,
+    );
   }
 
   return res;
 }
 
 function repoListError({ status, body }) {
-  if (status === 403) return new Error(`GitHub API 403 Forbidden: ${(body || '').slice(0, 200)}`);
-  return new Error(`GitHub API ${status}: ${(body || '').slice(0, 200)}`);
+  if (status === 403)
+    return new Error(`GitHub API 403 Forbidden: ${(body || "").slice(0, 200)}`);
+  return new Error(`GitHub API ${status}: ${(body || "").slice(0, 200)}`);
 }
 
 // Paginate a repos listing. makeUrl(page, perPage) -> url. Returns
@@ -214,7 +233,7 @@ async function paginateRepos(makeUrl, headers) {
   for (let page = 1; page <= 50; page++) {
     const res = await ghGet(makeUrl(page, perPage), headers);
     if (!res.ok) {
-      const body = await res.text().catch(() => '');
+      const body = await res.text().catch(() => "");
       return { ok: false, status: res.status, body, repos: out };
     }
     const batch = await res.json();
@@ -232,19 +251,19 @@ async function paginateRepos(makeUrl, headers) {
  * @returns {boolean}
  */
 export function isGhPaginateEnabled() {
-  return (process.env.PAGINATE_VIA_GH || '').toLowerCase() === 'true';
+  return (process.env.PAGINATE_VIA_GH || "").toLowerCase() === "true";
 }
 
 // Paginate via `gh api --paginate`. Returns same { ok, status, repos } shape
 // as paginateRepos. gh outputs one JSON array per page on its own line; we
 // concatenate them. Runs async (spawn) so the event loop is not blocked.
 function paginateViaGh(ghPath, token) {
-  const args = ['api', '--paginate', ghPath];
-  if (token) args.push('--header', `Authorization: Bearer ${token}`);
+  const args = ["api", "--paginate", ghPath];
+  if (token) args.push("--header", `Authorization: Bearer ${token}`);
   return new Promise((resolve) => {
-    const child = spawn('gh', args, { stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
+    const child = spawn("gh", args, { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
     let settled = false;
     const settle = (result) => {
       if (settled) return;
@@ -256,28 +275,34 @@ function paginateViaGh(ghPath, token) {
       child.kill();
       settle({ ok: false, status: 500, repos: [] });
     }, 60000);
-    child.stdout.setEncoding('utf8');
-    child.stderr.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => { stdout += chunk; });
-    child.stderr.on('data', (chunk) => { stderr += chunk; });
-    child.on('close', (code) => {
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("close", (code) => {
       if (code !== 0) {
         const m = stderr.match(/HTTP (\d{3})/);
         settle({ ok: false, status: m ? Number(m[1]) : 500, repos: [] });
         return;
       }
       const repos = [];
-      for (const line of stdout.split('\n')) {
+      for (const line of stdout.split("\n")) {
         const t = line.trim();
         if (!t) continue;
         try {
           const parsed = JSON.parse(t);
           if (Array.isArray(parsed)) repos.push(...parsed);
-        } catch { /* skip malformed line */ }
+        } catch {
+          /* skip malformed line */
+        }
       }
       settle({ ok: true, status: 200, repos });
     });
-    child.on('error', () => settle({ ok: false, status: 500, repos: [] }));
+    child.on("error", () => settle({ ok: false, status: 500, repos: [] }));
   });
 }
 
@@ -285,8 +310,8 @@ function paginateViaGh(ghPath, token) {
 // exit, spawn error, or timeout. Used by enrichRepos for single-shot GraphQL calls.
 function spawnGhText(args, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
-    const child = spawn('gh', args, { stdio: ['ignore', 'pipe', 'ignore'] });
-    let stdout = '';
+    const child = spawn("gh", args, { stdio: ["ignore", "pipe", "ignore"] });
+    let stdout = "";
     let settled = false;
     const settle = (fn) => {
       if (settled) return;
@@ -296,15 +321,17 @@ function spawnGhText(args, timeoutMs = 30000) {
     };
     const timer = setTimeout(() => {
       child.kill();
-      settle(() => reject(new Error('gh timeout')));
+      settle(() => reject(new Error("gh timeout")));
     }, timeoutMs);
-    child.stdout.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => { stdout += chunk; });
-    child.on('close', (code) => {
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.on("close", (code) => {
       if (code !== 0) settle(() => reject(new Error(`gh exited ${code}`)));
       else settle(() => resolve(stdout));
     });
-    child.on('error', (err) => settle(() => reject(err)));
+    child.on("error", (err) => settle(() => reject(err)));
   });
 }
 
@@ -315,17 +342,23 @@ const orgReposUrl = (owner) => (page, perPage) =>
 const userReposUrl = (owner) => (page, perPage) =>
   `${GITHUB_API}/users/${encodeURIComponent(owner)}/repos?per_page=${perPage}&page=${page}&type=owner&sort=full_name`;
 
-const selfReposGhPath = '/user/repos?per_page=100&affiliation=owner&visibility=all&sort=full_name';
-const orgReposGhPath = (owner) => `/orgs/${encodeURIComponent(owner)}/repos?per_page=100&type=all&sort=full_name`;
-const userReposGhPath = (owner) => `/users/${encodeURIComponent(owner)}/repos?per_page=100&type=owner&sort=full_name`;
+const selfReposGhPath =
+  "/user/repos?per_page=100&affiliation=owner&visibility=all&sort=full_name";
+const orgReposGhPath = (owner) =>
+  `/orgs/${encodeURIComponent(owner)}/repos?per_page=100&type=all&sort=full_name`;
+const userReposGhPath = (owner) =>
+  `/users/${encodeURIComponent(owner)}/repos?per_page=100&type=owner&sort=full_name`;
 
 // Is the authenticated token a member of this org? 200 = member, anything else
 // (404 not-a-member, 403 forbidden) = no, so we only see public repos.
 async function isOrgMember(owner, headers) {
-  const res = await ghGet(`${GITHUB_API}/user/memberships/orgs/${encodeURIComponent(owner)}`, headers);
+  const res = await ghGet(
+    `${GITHUB_API}/user/memberships/orgs/${encodeURIComponent(owner)}`,
+    headers,
+  );
   if (res.status !== 200) return false;
   const m = await res.json().catch(() => null);
-  return m?.state === 'active' || m?.state === 'pending';
+  return m?.state === "active" || m?.state === "pending";
 }
 
 // Resolve one configured owner to a list of repos, recording warnings when we
@@ -339,7 +372,7 @@ async function fetchOwnerRepos(owner, viewerLogin, token, headers) {
       ? paginateViaGh(selfReposGhPath, token)
       : paginateRepos(selfReposUrl, headers));
     if (!r.ok) throw repoListError(r);
-    return { repos: r.repos, scope: 'self' };
+    return { repos: r.repos, scope: "self" };
   }
 
   // Try the org endpoint first (exposes private org repos when authorized).
@@ -351,11 +384,11 @@ async function fetchOwnerRepos(owner, viewerLogin, token, headers) {
     const member = await isOrgMember(owner, headers);
     if (!member) {
       sourceStatus.warnings.push(
-        `Token is not a member of organization "${owner}" — loaded its public repositories only.`
+        `Token is not a member of organization "${owner}" — loaded its public repositories only.`,
       );
-      return { repos: orgRes.repos, scope: 'public' };
+      return { repos: orgRes.repos, scope: "public" };
     }
-    return { repos: orgRes.repos, scope: 'member' };
+    return { repos: orgRes.repos, scope: "member" };
   }
 
   // Not an org (404) → it's a user account; load their public repos.
@@ -364,18 +397,18 @@ async function fetchOwnerRepos(owner, viewerLogin, token, headers) {
       ? paginateViaGh(userReposGhPath(owner), token)
       : paginateRepos(userReposUrl(owner), headers));
     if (!userRes.ok) throw repoListError(userRes);
-    return { repos: userRes.repos, scope: 'public' };
+    return { repos: userRes.repos, scope: "public" };
   }
 
   // Forbidden for the org listing → fall back to whatever is public.
   if (orgRes.status === 403) {
     sourceStatus.warnings.push(
-      `Token is not authorized for organization "${owner}" (403) — loaded its public repositories only.`
+      `Token is not authorized for organization "${owner}" (403) — loaded its public repositories only.`,
     );
     const userRes = await (isGhPaginateEnabled()
       ? paginateViaGh(userReposGhPath(owner), token)
       : paginateRepos(userReposUrl(owner), headers));
-    return { repos: userRes.ok ? userRes.repos : [], scope: 'public' };
+    return { repos: userRes.ok ? userRes.repos : [], scope: "public" };
   }
 
   throw repoListError(orgRes);
@@ -401,21 +434,28 @@ async function fetchConfiguredOwners(owners, resolveOwnerToken) {
   for (const owner of owners) {
     const { token } = resolveOwnerToken(owner);
     if (!token) {
-      sourceStatus.warnings.push(`No token available for owner "${owner}" — skipped.`);
-      sourceStatus.owners.push({ owner, count: 0, scope: 'error' });
+      sourceStatus.warnings.push(
+        `No token available for owner "${owner}" — skipped.`,
+      );
+      sourceStatus.owners.push({ owner, count: 0, scope: "error" });
       continue;
     }
     const headers = buildHeaders(token);
     const viewerLogin = await getViewerLogin(token, loginCache);
     try {
-      const { repos, scope } = await fetchOwnerRepos(owner, viewerLogin, token, headers);
+      const { repos, scope } = await fetchOwnerRepos(
+        owner,
+        viewerLogin,
+        token,
+        headers,
+      );
       for (const r of repos) byId.set(r.id, r);
       sourceStatus.owners.push({ owner, count: repos.length, scope });
     } catch (e) {
       // Fatal conditions abort the whole sync; everything else is per-owner.
       if (/invalid or expired|rate limit/i.test(e.message)) throw e;
       sourceStatus.warnings.push(`Could not load "${owner}": ${e.message}`);
-      sourceStatus.owners.push({ owner, count: 0, scope: 'error' });
+      sourceStatus.owners.push({ owner, count: 0, scope: "error" });
     }
   }
   return [...byId.values()];
@@ -426,7 +466,7 @@ function mapRepo(r) {
     id: r.id,
     name: r.name,
     full_name: r.full_name,
-    owner: r.owner?.login ?? (r.full_name ? r.full_name.split('/')[0] : null),
+    owner: r.owner?.login ?? (r.full_name ? r.full_name.split("/")[0] : null),
     owner_type: r.owner?.type ?? null,
     description: r.description,
     private: r.private,
@@ -472,10 +512,10 @@ function buildEnrichQuery(repos) {
       }
     }`;
   const parts = repos.map((r) => {
-    const [owner, name] = r.full_name.split('/');
+    const [owner, name] = r.full_name.split("/");
     return `r${r.id}: repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) { ${fragment} }`;
   });
-  return `query { ${parts.join('\n')} }`;
+  return `query { ${parts.join("\n")} }`;
 }
 
 function parseEnrichData(data, repos) {
@@ -486,12 +526,19 @@ function parseEnrichData(data, repos) {
     out.set(r.id, {
       open_prs: node.pullRequests?.totalCount ?? null,
       latest_release: node.releases?.nodes?.[0]
-        ? { tag: node.releases.nodes[0].tagName, published_at: node.releases.nodes[0].publishedAt }
+        ? {
+            tag: node.releases.nodes[0].tagName,
+            published_at: node.releases.nodes[0].publishedAt,
+          }
         : null,
       last_commit: node.defaultBranchRef?.target?.committedDate
-        ? { date: node.defaultBranchRef.target.committedDate, author: node.defaultBranchRef.target.author?.name ?? null }
+        ? {
+            date: node.defaultBranchRef.target.committedDate,
+            author: node.defaultBranchRef.target.author?.name ?? null,
+          }
         : null,
-      ci_status: node.defaultBranchRef?.target?.statusCheckRollup?.state ?? null,
+      ci_status:
+        node.defaultBranchRef?.target?.statusCheckRollup?.state ?? null,
     });
   }
   return out;
@@ -522,9 +569,9 @@ export async function enrichRepos(repos, token) {
     const batch = repos.slice(i, i + ENRICH_BATCH);
     const query = buildEnrichQuery(batch);
     try {
-      const args = ['api', 'graphql'];
-      if (token) args.push('--header', `Authorization: Bearer ${token}`);
-      args.push('-f', `query=${query}`);
+      const args = ["api", "graphql"];
+      if (token) args.push("--header", `Authorization: Bearer ${token}`);
+      args.push("-f", `query=${query}`);
       const raw = await spawnGhText(args, 30000);
       const parsed = JSON.parse(raw);
       if (parsed?.data) {
@@ -554,7 +601,9 @@ function mapIssue(raw) {
     title: raw.title,
     state: raw.state,
     labels: Array.isArray(raw.labels)
-      ? raw.labels.map((l) => (typeof l === 'string' ? l : l.name)).filter(Boolean)
+      ? raw.labels
+          .map((l) => (typeof l === "string" ? l : l.name))
+          .filter(Boolean)
       : [],
     body: raw.body ?? null,
     html_url: raw.html_url ?? null,
@@ -579,7 +628,7 @@ export async function fetchRepoIssues(fullName, token) {
     const url = `${GITHUB_API}/repos/${fullName}/issues?state=all&per_page=100&page=${page}`;
     const res = await ghGet(url, headers);
     if (!res.ok) {
-      const body = await res.text().catch(() => '');
+      const body = await res.text().catch(() => "");
       throw repoListError({ status: res.status, body });
     }
     const batch = await res.json();
@@ -617,7 +666,7 @@ export async function fetchAllRepos(ownersOverride = undefined) {
   authStatus.present = Boolean(token);
   if (!token) {
     throw new Error(
-      'No GitHub token found. Set GITHUB_TOKEN in your .env, run `gh auth login`, or add a token via the tokens API.'
+      "No GitHub token found. Set GITHUB_TOKEN in your .env, run `gh auth login`, or add a token via the tokens API.",
     );
   }
 
@@ -627,9 +676,12 @@ export async function fetchAllRepos(ownersOverride = undefined) {
   sourceStatus.owners = [];
   sourceStatus.warnings = [];
 
-  const owners = ownersOverride !== undefined
-    ? (Array.isArray(ownersOverride) ? ownersOverride : parseOwners(String(ownersOverride ?? '')))
-    : parseOwners(process.env.GITHUB_OWNERS);
+  const owners =
+    ownersOverride !== undefined
+      ? Array.isArray(ownersOverride)
+        ? ownersOverride
+        : parseOwners(String(ownersOverride ?? ""))
+      : parseOwners(process.env.GITHUB_OWNERS);
 
   let raw;
   if (owners.length === 0) {
@@ -638,7 +690,7 @@ export async function fetchAllRepos(ownersOverride = undefined) {
       : paginateRepos(selfReposUrl, headers));
     if (!r.ok) throw repoListError(r);
     raw = r.repos;
-    sourceStatus.owners.push({ owner: null, count: raw.length, scope: 'self' });
+    sourceStatus.owners.push({ owner: null, count: raw.length, scope: "self" });
   } else {
     raw = await fetchConfiguredOwners(owners, resolveOwnerToken);
   }
@@ -648,7 +700,9 @@ export async function fetchAllRepos(ownersOverride = undefined) {
     try {
       const rl = await ghGet(`${GITHUB_API}/rate_limit`, headers);
       if (rl.ok) parseRateLimitHeaders(rl);
-    } catch { /* best effort — don't fail the sync */ }
+    } catch {
+      /* best effort — don't fail the sync */
+    }
   }
 
   // A clean fetch proves the token is valid.

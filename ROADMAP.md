@@ -7,18 +7,18 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-**1 open issue.** The previous cycle's backlog (#78, #79, #80) is fully
-closed and merged. One new item came in via `/TODO.md` this round and was
-filed as **#81**: a double-click "solo" gesture for the own/forks/archived
-filter pills. It has two open clarification questions (mobile double-tap
-behavior, discoverability hint) that should be resolved before or during
-implementation.
+**2 open issues.** #81 (double-click/double-tap "solo" gesture for the
+own/forks/archived filter pills) is implemented, tested, and committed
+locally (`e571dc0aaa8c`) and has been closed; it will formally close on
+GitHub once that commit is pushed. Two new items came in via `/TODO.md`
+this round and were filed as **#82** (buttons wrapping text onto two lines
+at narrow widths) and **#83** (deploy `docs/api` to GitHub Pages on push).
 
 ### Health indicators
 
 | Check | Status |
 | --- | --- |
-| Tests (all workspaces) | Pass: 841 tests (431 client + 352 server + 58 CLI) |
+| Tests (all workspaces) | Pass: 844 tests (434 client + 352 server + 58 CLI) |
 | `npm run test` | Pass: exits zero |
 | `npm audit --omit=dev` | Pass: 0 vulnerabilities |
 | `npm audit` | Pass: 0 vulnerabilities |
@@ -30,22 +30,40 @@ implementation.
 
 ### UX
 
-* **[#81] feat: double-click own/forks/archived filter pills to solo them**
-  [https://github.com/davidsneighbour/repo-triage/issues/81](https://github.com/davidsneighbour/repo-triage/issues/81)
-  Single click keeps today's toggle behavior; double-click on a pill should
-  turn the other two filters off and this one on ("solo" the category) in
-  one gesture. Self-contained change to `filterPills` in `client/src/App.jsx`.
-  Blocked on nothing, but has open clarification questions about mobile
-  double-tap support and tooltip discoverability.
+* **[#82] ux: toolbar/action buttons wrap text onto two lines at narrow widths**
+  [https://github.com/davidsneighbour/repo-triage/issues/82](https://github.com/davidsneighbour/repo-triage/issues/82)
+  Some button labels break across two lines at narrow viewport widths
+  instead of staying on one line; toolbar rows should wrap whole buttons
+  onto new rows, or specific low-priority actions should collapse into an
+  existing dropdown pattern (`CardMenu`/`FieldsMenu`). Needs a
+  clarification on exactly which control(s) were seen wrapping before a
+  precise fix can be scoped.
+
+### CI / docs
+
+* **[#83] ci: deploy docs/api to GitHub Pages on push**
+  [https://github.com/davidsneighbour/repo-triage/issues/83](https://github.com/davidsneighbour/repo-triage/issues/83)
+  `docs/api` (jsdoc + clean-jsdoc-theme output, git-ignored) currently has
+  no publishing path. Add a workflow modeled loosely on
+  `.github/workflows/docker-publish.yml` that runs `npm run docs:api` and
+  deploys the output via GitHub Pages Actions deployment. Requires a
+  one-time repo settings change (Pages source → GitHub Actions) alongside
+  the workflow.
 
 ---
 
 ## Suggested order of work
 
-1. **#81** - resolve the mobile-gesture and discoverability questions, then implement.
+1. **#82** - resolve the clarification question (which control(s) wrap),
+   then implement; likely CSS-only.
+2. **#83** - decide on trigger scope (push to `main` vs. release tags),
+   then add the workflow and enable Pages-via-Actions in repo settings.
 
 ## Open clarification questions
 
-* **#81**: Should the solo gesture also work via touch double-tap in the mobile
-  action sheet, or stay desktop-only (`onDoubleClick`)? Should the pill get a
-  tooltip hint since double-click isn't otherwise discoverable?
+* **#82**: Which specific button(s)/pill(s) were seen wrapping - desktop
+  toolbar, mobile action sheet, card menu, or BulkBar? Which controls
+  should degrade into a dropdown, and reusing which existing pattern?
+* **#83**: Should the deploy run on every push to `main`, only on `v*`
+  release tags, or on a separate schedule/manual trigger? Should PR
+  branches get a preview deploy, or is production-only sufficient?

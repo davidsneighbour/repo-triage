@@ -3,6 +3,7 @@ import { enrichRepos, fetchAllRepos, resolveToken } from "../github.js";
 import { invalidatePayloadCache } from "./payloadCache.js";
 import { checkReportSchedule } from "./reportSchedule.js";
 import { ENRICH_METADATA, getEffectiveOwners, SYNC_AUTO } from "./settings.js";
+import { captureException } from "./telemetry.js";
 
 export let repoCache = [];
 export let enrichCache = new Map();
@@ -51,8 +52,8 @@ export async function refreshRepos() {
         enrichCache = map;
         invalidatePayloadCache();
       })
-      .catch(() => {
-        /* no-op */
+      .catch((e) => {
+        captureException(e);
       });
   }
 
@@ -62,6 +63,7 @@ export async function refreshRepos() {
 export function queueRefresh() {
   if (syncing) return false;
   refreshRepos().catch((e) => {
+    captureException(e);
     lastError = String(e.message || e);
     console.warn(`  [sync] GitHub fetch failed: ${lastError}`);
   });

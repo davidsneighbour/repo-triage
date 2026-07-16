@@ -20,6 +20,8 @@ services:
       # Set GITHUB_TOKEN in .env or export it before running.
       # If using gh CLI on the host: export GITHUB_TOKEN=$(gh auth token)
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      NO_TELEMETRY: ${NO_TELEMETRY:-}
       DEFAULT_INACTIVITY_DAYS: ${DEFAULT_INACTIVITY_DAYS:-7}
       DAY_ROLLOVER_HOUR: ${DAY_ROLLOVER_HOUR:-4}
       GITHUB_OWNERS: ${GITHUB_OWNERS:-}

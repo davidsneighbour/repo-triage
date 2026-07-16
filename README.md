@@ -47,6 +47,9 @@ docker compose --env-file .env up --build
 | `GITHUB_TOKEN` | no* | none | GitHub API auth token. *If unset, falls back to `gh auth token` (run `gh auth login`) |
 | `HOST` | no | `0.0.0.0` | Backend bind address. `0.0.0.0` makes dev/production reachable from other devices on your LAN |
 | `GITHUB_OWNERS` | no | empty | Users/orgs to load. Comma list or JSON array. Blank = the token owner's full set. Own login / member orgs include private; other users/orgs are public-only (a warning is shown) |
+| `SENTRY_DSN` | no | empty | Enables server-side Sentry error reporting when set |
+| `VITE_SENTRY_DSN` | no | empty | Enables client-side Sentry error reporting at Vite dev/build time when set |
+| `NO_TELEMETRY` | no | empty | Global telemetry kill switch; truthy values prevent Sentry from initializing even when DSNs are configured |
 | `DEFAULT_INACTIVITY_DAYS` | no | `7` | Due age in days for returning a repo to Today |
 | `SYNC_ON_STARTUP` | no | `true` | Fetch GitHub repos when server starts |
 | `SYNC_AUTO` | no | `true` | Enable periodic background sync |

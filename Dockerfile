@@ -10,7 +10,11 @@ COPY client/package*.json ./
 RUN npm install
 COPY client/ ./
 ARG VITE_DEV_ID_OVERLAY=false
+ARG VITE_SENTRY_DSN=
+ARG NO_TELEMETRY=
 ENV VITE_DEV_ID_OVERLAY=${VITE_DEV_ID_OVERLAY}
+ENV VITE_SENTRY_DSN=${VITE_SENTRY_DSN}
+ENV NO_TELEMETRY=${NO_TELEMETRY}
 RUN npm run build
 
 # ---- Stage 2: server runtime ----------------------------------------------
@@ -45,4 +49,4 @@ ENV DATA_DIR=/data
 EXPOSE 8787
 VOLUME ["/data"]
 # Chainguard node image sets ENTRYPOINT ["/usr/bin/node"]; only pass the script.
-CMD ["index.js"]
+CMD ["--import", "./instrument.js", "index.js"]

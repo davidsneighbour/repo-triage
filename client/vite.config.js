@@ -21,9 +21,18 @@ export default defineConfig(({ mode }) => {
     env.HTTPS_KEY_FILE ||
     process.env.HTTPS_KEY_FILE ||
     path.join(rootDir, "certs", "dev-key.pem");
+  const noTelemetry =
+    env.NO_TELEMETRY ||
+    process.env.NO_TELEMETRY ||
+    env.VITE_NO_TELEMETRY ||
+    process.env.VITE_NO_TELEMETRY ||
+    "";
 
   return {
     plugins: [react(), tailwindcss()],
+    define: {
+      "import.meta.env.NO_TELEMETRY": JSON.stringify(noTelemetry),
+    },
     server: {
       host: process.env.VITE_HOST || process.env.HOST || "0.0.0.0",
       port: 5173,

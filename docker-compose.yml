@@ -4,6 +4,8 @@ services:
       context: .
       args:
         VITE_DEV_ID_OVERLAY: "true"
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        NO_TELEMETRY: ${NO_TELEMETRY:-}
     container_name: repo-dashboard
     ports:
       - "9999:9999"
@@ -15,6 +17,8 @@ services:
       #   export GITHUB_TOKEN=$(gh auth token)   # then docker compose up
       # Or use the npm wrapper: npm run docker:up
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      NO_TELEMETRY: ${NO_TELEMETRY:-}
       DEFAULT_INACTIVITY_DAYS: ${DEFAULT_INACTIVITY_DAYS:-7}
       PORT: 9999
       DATA_DIR: /data

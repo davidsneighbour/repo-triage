@@ -112,6 +112,9 @@ set in each `vitest.config.js` and fail the run on regression.
 | --- | --- | --- | --- |
 | `GITHUB_TOKEN` | no* | none | Classic token needs `repo` scope for private repos. *If unset, falls back to `gh auth token` (requires `gh auth login`) |
 | `GITHUB_OWNERS` | no | empty | Users/orgs to load. Comma list or JSON array. Blank = token owner's full set. Own login / member orgs include private; other users/orgs are public-only (warning shown) |
+| `SENTRY_DSN` | no | empty | Enables server-side Sentry error reporting when set. Leave unset to disable. |
+| `VITE_SENTRY_DSN` | no | empty | Enables client-side Sentry error reporting at Vite dev/build time when set. Leave unset to disable. |
+| `NO_TELEMETRY` | no | empty | Global telemetry kill switch. Truthy values (`1`, `true`, `yes`, `on`) prevent Sentry from initializing even when DSNs are configured. |
 | `DEFAULT_INACTIVITY_DAYS` | no | `7` | Due age in days for Today |
 | `DAY_ROLLOVER_HOUR` | no | `4` | Hour (0-23, local) when "tomorrow" becomes "today" on the board |
 | `SYNC_ON_STARTUP` | no | `true` | Startup GitHub sync |

@@ -12,6 +12,7 @@ import {
   SYNC_ON_STARTUP,
 } from "./lib/settings.js";
 import { queueRefresh, refreshRepos, restartSyncInterval } from "./lib/sync.js";
+import { captureException } from "./lib/telemetry.js";
 import ghRouter from "./routes/gh.js";
 import issuesRouter from "./routes/issues.js";
 import reposRouter from "./routes/repos.js";
@@ -54,6 +55,17 @@ app.use("/api", tokensRouter);
 app.use("/api", undoRouter);
 app.use("/api", issuesRouter);
 app.use("/api", settingsSetsRouter);
+
+export function handleError(err, req, res, next) {
+  captureException(err);
+  if (res.headersSent) return next(err);
+  const status = Number(err?.status || err?.statusCode || 500);
+  res.status(status >= 400 && status < 600 ? status : 500).json({
+    error: String(err?.message || err),
+  });
+}
+
+app.use(handleError);
 
 // ---- Static client (built by Vite) ----------------------------------------
 // Bootstrap-only: present a production build when one exists. Route tests import

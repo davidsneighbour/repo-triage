@@ -518,14 +518,16 @@ carry the same leading selection checkbox as cards.
 
 ### Bulk actions
 
-Selecting one or more repos (the card/row checkbox) reveals the **`BulkBar`** — a
-`role="region"` strip above the board reading "N selected" with a `border-l`
-divider and buttons: **Checked now**, **Move to Today**, **Clear check**,
-**Ignore**, **Unignore**, an inline **tag input + Add tag**, and a right-aligned
-**Deselect**. Each action applies to the whole selection by looping the existing
-single-repo API calls, then clears the selection and refreshes. Selection is
-transient (not persisted) and is pruned automatically when a selected repo
-disappears after a sync.
+Selecting one or more repos (the card/row checkbox) reveals the **`BulkBar`** —
+a sticky `role="region"` strip at the top of the board labelled "Bulk actions",
+with a selected-count pill, a `border-l` divider, and buttons: **Checked now**,
+**Move to Today**, **Clear check**, **Ignore**, **Unignore**, an inline **tag
+input + Add tag**, and a right-aligned **Deselect**. It uses stronger neutral
+contrast than the surrounding toolbar so the transient selection mode is hard to
+miss without introducing a new semantic accent colour. Each action applies to
+the whole selection by looping the existing single-repo API calls, then clears
+the selection and refreshes. Selection is transient (not persisted) and is
+pruned automatically when a selected repo disappears after a sync.
 
 ### Toast (undo)
 
@@ -702,8 +704,9 @@ button.
 ### CardMenu (popover)
 
 Appears on `···` click. Fixed-width `256px`. Rendered through a portal to
-`document.body` and positioned `fixed`, anchored just below the trigger button —
-this keeps it from being clipped by a column's `overflow-y-auto` scroll area.
+`document.body` and positioned `fixed`, anchored below the trigger button when
+there is room or flipped above it near the viewport bottom — this keeps it from
+being clipped by a column's `overflow-y-auto` scroll area or the viewport edge.
 Contains these action groups, each separated by a `border-neutral-800` divider:
 
 1. **Review timing buttons** — "Checked now", "Move to Today", "Clear check date"

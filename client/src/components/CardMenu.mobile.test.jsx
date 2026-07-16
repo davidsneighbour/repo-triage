@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setDesktopViewport, setMobileViewport } from "../test/viewport.js";
 import { CardMenu } from "./CardMenu.jsx";
@@ -81,5 +81,35 @@ describe("CardMenu bottom-sheet variant (mobile)", () => {
     const dialog = screen.getByRole("dialog", { name: "Settings for widget" });
     expect(dialog.className).toMatch(/w-64/);
     expect(dialog.className).not.toMatch(/bottom-0/);
+  });
+
+  it("flips the desktop popover above low viewport anchors", async () => {
+    setDesktopViewport();
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 600,
+    });
+    const anchor = document.createElement("button");
+    anchor.getBoundingClientRect = () => ({
+      top: 550,
+      right: 900,
+      bottom: 570,
+      left: 876,
+      width: 24,
+      height: 20,
+      x: 876,
+      y: 550,
+      toJSON: () => ({}),
+    });
+
+    render(
+      <CardMenu repo={repo} anchorRef={{ current: anchor }} {...handlers} />,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Settings for widget" });
+    await waitFor(() => {
+      expect(Number.parseFloat(dialog.style.top)).toBeLessThan(550);
+      expect(Number.parseFloat(dialog.style.maxHeight)).toBeGreaterThan(500);
+    });
   });
 });

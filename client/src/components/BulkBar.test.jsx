@@ -71,6 +71,14 @@ describe("BulkBar", () => {
     expect(onClear).toHaveBeenCalled();
   });
 
+  it("uses a sticky labelled region on desktop so selection mode is visible", () => {
+    render(<BulkBar count={3} actions={actions} columns={[]} onClear={noop} />);
+    const region = screen.getByRole("region", { name: "Bulk actions" });
+    expect(region.className).toMatch(/sticky/);
+    expect(screen.getByText("Bulk actions")).toBeInTheDocument();
+    expect(screen.getByText("3 selected")).toBeInTheDocument();
+  });
+
   it("priority select ignores the blank default option (guard branch)", () => {
     render(<BulkBar count={1} actions={actions} columns={[]} onClear={noop} />);
     fireEvent.change(

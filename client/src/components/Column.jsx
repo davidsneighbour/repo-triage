@@ -75,6 +75,7 @@ export function Column({
   useEffect(() => {
     if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected;
   }, [someSelected]);
+  const dropLabel = col.key === "unchecked" ? "clear schedule" : "drag here";
 
   return (
     <div
@@ -234,7 +235,7 @@ export function Column({
             {isGlobalFiltered
               ? "no matches"
               : schedulable
-                ? "drag here"
+                ? dropLabel
                 : "empty"}
           </div>
         )}

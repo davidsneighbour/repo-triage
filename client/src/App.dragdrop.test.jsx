@@ -11,6 +11,8 @@ vi.mock("./api.js", () => ({
     setPriority: vi.fn(),
     setChecked: vi.fn(),
     touch: vi.fn(),
+    clearSchedule: vi.fn(),
+    restoreState: vi.fn(),
     setInactivity: vi.fn(),
     reorder: vi.fn(),
   },
@@ -52,6 +54,23 @@ const payload = {
       column: "day-0",
       position: 1,
     },
+    {
+      id: 3,
+      name: "never-reviewed",
+      full_name: "user/never-reviewed",
+      html_url: "https://example.com/never-reviewed",
+      description: "never checked",
+      private: false,
+      archived: false,
+      fork: false,
+      language: "JavaScript",
+      pushed_at: "2026-06-01T00:00:00.000Z",
+      checkedAgeDays: null,
+      dueInDays: 0,
+      needsCheckToday: true,
+      column: "unchecked",
+      position: 2,
+    },
   ],
   cacheReady: true,
   defaultInactivityDays: 2,
@@ -79,6 +98,7 @@ describe("App drag and drop handlers", () => {
     );
     api.list.mockResolvedValue(payload);
     api.setChecked.mockResolvedValue({ ok: true });
+    api.clearSchedule.mockResolvedValue({ ok: true });
   });
 
   it("calls setChecked when dropping a card on another card", async () => {
@@ -109,6 +129,43 @@ describe("App drag and drop handlers", () => {
 
     await waitFor(() => {
       expect(api.setChecked).toHaveBeenCalledWith(1, 1);
+    });
+  });
+
+  it("allows dragging an Unchecked card into a day column", async () => {
+    render(<App />);
+
+    const sourceLink = screen.getByRole("link", { name: "never-reviewed" });
+    const sourceCard = sourceLink.closest('[draggable="true"]');
+    const targetLink = screen.getByRole("link", { name: "drag-target" });
+    const targetCard = targetLink.closest('[draggable="true"]');
+
+    expect(sourceCard).toBeTruthy();
+    fireEvent.drop(targetCard, {
+      dataTransfer: createDataTransfer(3),
+      stopPropagation: vi.fn(),
+      preventDefault: vi.fn(),
+    });
+
+    await waitFor(() => {
+      expect(api.setChecked).toHaveBeenCalledWith(3, 2);
+    });
+  });
+
+  it("clears schedule when dropping a scheduled card onto Unchecked", async () => {
+    render(<App />);
+
+    const uncheckedLink = screen.getByRole("link", { name: "never-reviewed" });
+    const uncheckedCard = uncheckedLink.closest('[draggable="true"]');
+
+    fireEvent.drop(uncheckedCard, {
+      dataTransfer: createDataTransfer(1),
+      stopPropagation: vi.fn(),
+      preventDefault: vi.fn(),
+    });
+
+    await waitFor(() => {
+      expect(api.clearSchedule).toHaveBeenCalledWith(1);
     });
   });
 });

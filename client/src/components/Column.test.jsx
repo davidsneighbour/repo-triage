@@ -52,3 +52,16 @@ describe("Column drag events when not schedulable", () => {
     expect(onDropColumn).not.toHaveBeenCalled();
   });
 });
+
+describe("Column drop hints", () => {
+  it("labels an empty schedulable Unchecked column as a clear-schedule target", () => {
+    render(
+      <Column
+        col={{ ...col, key: "unchecked", title: "Unchecked" }}
+        repos={[]}
+        onDropColumn={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("clear schedule")).toBeInTheDocument();
+  });
+});

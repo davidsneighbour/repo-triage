@@ -100,12 +100,20 @@ export function CardMenu({
     const update = () => {
       const r = el.getBoundingClientRect();
       const width = 256;
+      const margin = 8;
+      const gap = 4;
+      const minUsefulHeight = 180;
       const left = Math.max(
-        8,
-        Math.min(r.right - width, window.innerWidth - width - 8),
+        margin,
+        Math.min(r.right - width, window.innerWidth - width - margin),
       );
-      const top = r.bottom + 4;
-      const maxHeight = window.innerHeight - top - 8;
+      const spaceBelow = window.innerHeight - r.bottom - gap - margin;
+      const spaceAbove = r.top - gap - margin;
+      const openAbove = spaceBelow < minUsefulHeight && spaceAbove > spaceBelow;
+      const maxHeight = Math.max(0, openAbove ? spaceAbove : spaceBelow);
+      const top = openAbove
+        ? Math.max(margin, r.top - gap - maxHeight)
+        : r.bottom + gap;
       setPos({ top, left, maxHeight });
     };
     update();

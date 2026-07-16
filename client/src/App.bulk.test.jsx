@@ -22,7 +22,7 @@ vi.mock("./api.js", () => ({
   },
 }));
 
-const card = (id, name) => ({
+const card = (id, name, overrides = {}) => ({
   id,
   name,
   full_name: `me/${name}`,
@@ -40,6 +40,7 @@ const card = (id, name) => ({
   position: id,
   tags: [],
   priority: null,
+  ...overrides,
 });
 
 const payload = {
@@ -116,6 +117,30 @@ describe("multi-select bulk actions", () => {
         expect.arrayContaining([1, 2]),
         { daysAgo: 6 },
       ),
+    );
+  });
+
+  it("shows visible bulk actions for an Unchecked selection and can move it", async () => {
+    api.list.mockResolvedValue({
+      ...payload,
+      repos: [card(3, "gamma", { checkedAgeDays: null, column: "unchecked" })],
+    });
+    render(<App />);
+    await screen.findByRole("link", { name: "gamma" });
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select gamma" }));
+    expect(screen.getByRole("region", { name: "Bulk actions" })).toHaveClass(
+      "sticky",
+    );
+    expect(screen.getByText("Bulk actions")).toBeInTheDocument();
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Move selected to column" }),
+      { target: { value: "6" } },
+    );
+
+    await waitFor(() =>
+      expect(api.bulk).toHaveBeenCalledWith("check", [3], { daysAgo: 6 }),
     );
   });
 

@@ -813,15 +813,21 @@ export default function App() {
     e.dataTransfer.effectAllowed = "move";
   }, []);
   const onDropColumn = useCallback(
-    (id, daysAgoTarget) => onSetChecked(id, daysAgoTarget),
-    [onSetChecked],
+    (id, daysAgoTarget) =>
+      daysAgoTarget == null
+        ? onClearCheck(id)
+        : onSetChecked(id, daysAgoTarget),
+    [onClearCheck, onSetChecked],
   );
   const onDropOnCard = useCallback(
     (e, targetId, daysAgoTarget) => {
       const id = Number(e.dataTransfer.getData("text/plain"));
-      if (id && id !== targetId) onSetChecked(id, daysAgoTarget);
+      if (id && id !== targetId) {
+        if (daysAgoTarget == null) onClearCheck(id);
+        else onSetChecked(id, daysAgoTarget);
+      }
     },
-    [onSetChecked],
+    [onClearCheck, onSetChecked],
   );
 
   const filtered = useMemo(() => {
@@ -922,7 +928,7 @@ export default function App() {
       key: "unchecked",
       title: "Unchecked",
       subtitle: "never reviewed",
-      daysAgoTarget: 0,
+      daysAgoTarget: null,
       accent: "neutral",
     }),
     [],
@@ -946,7 +952,7 @@ export default function App() {
       }));
       if (uncheckedRepos.length > 0) {
         return [
-          { ...uncheckedColumn, repos: uncheckedRepos, schedulable: false },
+          { ...uncheckedColumn, repos: uncheckedRepos, schedulable: true },
           ...dayCols,
         ];
       }
@@ -1399,7 +1405,6 @@ export default function App() {
                       col={uncheckedColumn}
                       repos={uncheckedRepos}
                       onDropColumn={onDropColumn}
-                      schedulable={false}
                       {...cardProps}
                     />
                   )}

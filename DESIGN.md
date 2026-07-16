@@ -35,6 +35,17 @@ colors:
   danger-bg: "#1e0a0f"
   warning: "#f59e0b"
   warning-bg: "#1c1100"
+  # Brand/logo asset colours
+  brand-logo-bg: "#003f5c"
+  brand-logo-line: "#ffa600"
+brand:
+  logo:
+    source: client/public/logo.svg
+    favicon: client/public/favicon.svg
+    description: >
+      Orange line-art bandage on a dark blue square background, rotated 20
+      degrees clockwise. Use as the app identity mark and source for future logo
+      variants.
 typography:
   body:
     fontFamily: IBM Plex Mono

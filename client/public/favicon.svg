@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+  width="1024"
+  height="1024"
+  viewBox="0 0 1024 1024"
+  role="img"
+  aria-labelledby="title desc">
+  <title id="title">Repo Triage favicon</title>
+  <desc id="desc">Orange line-art bandage on a dark blue square background, rotated 20 degrees clockwise.</desc>
+
+  <rect width="1024" height="1024" fill="#003f5c"/>
+
+  <g
+    transform="translate(512 512) rotate(20) scale(1.55) translate(-512 -512)"
+    fill="none"
+    stroke="#ffa600"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round">
+
+    <rect x="262" y="382" width="500" height="260" rx="78"/>
+
+    <path d="M402 382v260"/>
+    <path d="M622 382v260"/>
+
+    <circle cx="472" cy="477" r="10"/>
+    <circle cx="552" cy="477" r="10"/>
+    <circle cx="472" cy="547" r="10"/>
+    <circle cx="552" cy="547" r="10"/>
+  </g>
+</svg>

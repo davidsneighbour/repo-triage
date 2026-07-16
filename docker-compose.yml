@@ -3,7 +3,7 @@ services:
     build: .
     container_name: repo-dashboard
     ports:
-      - "8787:8787"
+      - "9999:9999"
     environment:
       # These are interpolated from --env-file (e.g. ~/.env) at `up` time.
       # If GITHUB_TOKEN is unset, the server falls back to `gh auth token`.
@@ -13,12 +13,12 @@ services:
       # Or use the npm wrapper: npm run docker:up
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       DEFAULT_INACTIVITY_DAYS: ${DEFAULT_INACTIVITY_DAYS:-7}
-      PORT: 8787
+      PORT: 9999
       DATA_DIR: /data
       # Optional local HTTPS (see CLAUDE.md "Local dev — HTTPS (mkcert)"):
       #   1. npm run certs:generate   (host-side, requires mkcert)
       #   2. HTTPS_ENABLED=true docker compose up --build
-      HTTPS_ENABLED: ${HTTPS_ENABLED:-false}
+      HTTPS_ENABLED: ${HTTPS_ENABLED:-true}
     volumes:
       # SQLite DB persists here on the host across container rebuilds
       - ./data:/data

@@ -7,55 +7,80 @@ GitHub Issues is the source of truth. This file is a generated snapshot - regene
 
 ## Project state
 
-**0 issues left to implement.** #84, #85, #86, and #87 are all implemented,
-tested, and merged into local `main` (9 commits ahead of `origin/main`, not
-yet pushed). Each commit message includes `Closes #N`, so pushing will
-auto-close all four on GitHub.
+**6 open issues**, all newly filed this round from `/TODO.md` notes (#88-93). Nothing
+was previously open or in flight; #84-87 (last round's work) are confirmed closed and
+already pushed to `origin/main`.
 
 ### Health indicators
 
 | Check | Status |
 | --- | --- |
-| Tests (all workspaces) | Pass: 872 tests (437 client + 366 server + 69 CLI) |
-| `npm run test` | Pass: exits zero |
-| `npm run test:coverage` | Pass: all three workspaces clear their branch-coverage threshold |
+| `npm run test` (all workspaces) | Pass: 872 tests (437 client + 366 server + 69 CLI) |
 | `npm run lint:markdown` | Pass: 0 errors |
-| `npm audit` / `npm audit --omit=dev` | Pass: 0 vulnerabilities (last checked before this batch; not re-run after) |
+| `npm audit --omit=dev` | Pass: 0 vulnerabilities |
+| `cd client && npm run build` | Pass: builds cleanly (503 kB main chunk, over the 500 kB warning threshold — not currently tracked as an issue) |
 
 ---
 
-## Implemented this round
+## Open issues
 
-* **#85 — docs: link the published API docs site from README** (`02907ac`).
-  Small doc-only addition; README now links
-  `https://davidsneighbour.github.io/repo-triage/`.
-* **#86 — feat: full system export (compressed archive of database, config, etc.)** (`0b106f4`).
-  New `GET /api/backup/full` streams a gzip-compressed, redacted (tokens
-  stripped) snapshot of the whole SQLite DB. Additive to the existing
-  JSON-only `/api/backup`. New `backup-full` CLI command.
-* **#87 — feat: full system import from compressed export, with consistency check** (`776bbba`).
-  New `POST /api/restore/full` validates an archive (migrate, integrity
-  check, verify every live table is readable) before installing it.
-  Installing renames the file into place; the running process needs a
-  restart to pick it up, since the live `db` singleton and every route's
-  prepared statements can't be hot-swapped safely. New `restore-full` CLI
-  command.
-* **#84 — feat: HTTPS support for local dev and Docker servers** (`f709495`).
-  Opt-in `HTTPS_ENABLED` (off by default) using mkcert certs — covers the
-  two-terminal/one-command dev flow and the local Docker Compose path.
-  New `npm run certs:generate` script. Local-dev-only; the production GHCR
-  image is untouched.
+### Telemetry / observability
+
+* **#88 — feat: add Sentry error tracking to the server**
+  Adds `@sentry/node` instrumentation to `server/`. DSN must come from an env var
+  (`SENTRY_DSN`), not be hardcoded — the original TODO note had a literal DSN inline,
+  which was deliberately dropped when filing this issue since the repo is public.
+  Open question: server-only vs. also instrumenting the React client.
+* **#93 — feat: add NO_TELEMETRY env var to disable all telemetry/tracking**
+  Global kill switch, meant to gate #88 (and any future telemetry provider). Depends on
+  #88 landing first (or at least in parallel) to have something to disable.
+* **#89 — chore: add Sentry MCP server for Claude Code**
+  Dev-tooling integration (query Sentry issues from an MCP-capable agent), distinct
+  from #88's app instrumentation. Low value until #88 produces real Sentry data, but
+  not a hard blocker. Open question: does this even belong as repo-committed config,
+  or is it a personal dev-environment setup note?
+
+### Bugs — board interaction
+
+* **#90 — fix: drag-and-drop does not work from the Unchecked column**
+  Root cause already identified by code inspection: the Unchecked column is rendered
+  with `schedulable={false}`, which also disables `draggable`/`onDragStart` on its
+  cards (`RepoCard.jsx:144`, `:157-164`) as a side effect of gating drop targets
+  (`Column.jsx:186-201`). Needs a design decision on whether Unchecked should be a
+  valid drag source at all.
+* **#91 — bug: verify bulk-select actions in the Unchecked column**
+  Code inspection suggests `BulkBar.jsx` already implements move-to-day-column and
+  set-priority bulk actions, contradicting the original "no actionable items" report.
+  Filed as a verify-and-fix-or-close issue rather than assuming the feature is
+  missing — needs a precise repro.
+* **#92 — fix: card settings menu (CardMenu) opens off-screen for cards near the
+  bottom of the viewport**
+  Root cause identified: `CardMenu.jsx:96-122` always anchors the menu below the
+  trigger and only shrinks it via `maxHeight`, with no upward-flip logic when space
+  below is insufficient.
 
 ---
 
-## Suggested next steps
+## Suggested order of work
 
-1. **Push `main`** to close #84–#87 on GitHub (each commit already carries
-   `Closes #N`). Not done automatically — confirm with the repo owner first.
-2. After pushing, re-run this triage procedure once to confirm all four
-   close cleanly and to pick up any new `/TODO.md` notes.
-3. No other open issues or TODO items are currently outstanding.
+1. **#90** (drag-and-drop from Unchecked) and **#92** (CardMenu viewport clipping) —
+   both have confirmed root causes and are ready to implement directly.
+2. **#91** (bulk-select verification) — do a quick repro pass first; likely a fast
+   close-or-fix once reproduced.
+3. **#88** (Sentry server instrumentation) — resolve the clarification question
+   (server-only vs. client too) before starting.
+4. **#93** (`NO_TELEMETRY` env var) — pairs naturally with #88; can be built in the
+   same pass so the kill switch exists from day one rather than retrofitted.
+5. **#89** (Sentry MCP) — lowest priority; more useful once #88 is live, and its own
+   scope (repo config vs. personal setup) needs clarifying first.
 
 ## Open clarification questions
 
-None outstanding.
+* **#88** — Sentry: backend-only, or also `@sentry/react` on the client?
+* **#89** — Sentry MCP: repo-committed config, or purely local/personal dev setup
+  that shouldn't live in this repo?
+* **#91** — Bulk-select bug: was the `BulkBar` toolbar not appearing at all, or did
+  it appear but the move/priority actions silently fail for Unchecked-sourced
+  selections?
+* **#90** — Should Unchecked be a valid drag *source*, or should moving a repo out of
+  Unchecked use a non-drag action (card-menu "Move to…") instead?

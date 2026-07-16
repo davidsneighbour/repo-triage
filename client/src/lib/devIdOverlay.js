@@ -4,12 +4,16 @@
 
 const COMPONENT_ATTRS = ["data-slot", "data-testid", "data-component"];
 
-// Dev-only, purpose-built identifier attribute (see #79) — spread onto a
-// component's root element via `{...devId('ComponentName')}`. Stripped from
-// production output by the `import.meta.env.DEV` check (same gating pattern
-// as DevIdOverlay.jsx itself), so it costs nothing at runtime once built.
+export function isDevIdOverlayEnabled() {
+  return import.meta.env.DEV || import.meta.env.VITE_DEV_ID_OVERLAY === "true";
+}
+
+// Dev/local-only, purpose-built identifier attribute (see #79) — spread onto
+// a component's root element via `{...devId('ComponentName')}`. Stripped from
+// normal production output unless the local Docker build opts in with
+// VITE_DEV_ID_OVERLAY=true.
 export function devId(name) {
-  return import.meta.env.DEV ? { "data-id": name } : {};
+  return isDevIdOverlayEnabled() ? { "data-id": name } : {};
 }
 
 // Builds a short, stable-ish selector-like identifier for an element, to

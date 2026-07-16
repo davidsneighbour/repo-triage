@@ -31,6 +31,7 @@ const payload = {
 
 describe("DevIdOverlay — dev-only rendering", () => {
   const originalDev = import.meta.env.DEV;
+  const originalDevIdOverlay = import.meta.env.VITE_DEV_ID_OVERLAY;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,6 +41,7 @@ describe("DevIdOverlay — dev-only rendering", () => {
 
   afterEach(() => {
     import.meta.env.DEV = originalDev;
+    import.meta.env.VITE_DEV_ID_OVERLAY = originalDevIdOverlay;
   });
 
   it("renders the overlay toggle in dev mode", async () => {
@@ -54,6 +56,7 @@ describe("DevIdOverlay — dev-only rendering", () => {
 
   it("does not render the overlay toggle when DEV is false", async () => {
     import.meta.env.DEV = false;
+    import.meta.env.VITE_DEV_ID_OVERLAY = "false";
     render(<App />);
     await screen.findByText(/loading|repositories/i).catch(() => {
       /* no-op */
@@ -63,5 +66,16 @@ describe("DevIdOverlay — dev-only rendering", () => {
         name: "Toggle element identifier overlay",
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("renders the overlay toggle when the local Docker build flag is enabled", async () => {
+    import.meta.env.DEV = false;
+    import.meta.env.VITE_DEV_ID_OVERLAY = "true";
+    render(<App />);
+    expect(
+      await screen.findByRole("button", {
+        name: "Toggle element identifier overlay",
+      }),
+    ).toBeInTheDocument();
   });
 });

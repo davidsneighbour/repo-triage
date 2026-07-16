@@ -940,12 +940,15 @@ history. All issue data comes from the local `repo_issue` sync table via
 
 ### Dev id overlay
 
-A development-only tool for pointing an AI assistant (or a human) at a
+A development/local-only tool for pointing an AI assistant (or a human) at a
 specific element during local UI debugging — not a product feature.
-`DevIdOverlay.jsx` is rendered from `App.jsx` behind `import.meta.env.DEV`, so
-Vite dead-code-eliminates it (component, strings, and the `tinykeys`
-dependency) entirely out of the production bundle — confirmed empty by
-grepping `dist/assets/*.js` for its strings after a build.
+`DevIdOverlay.jsx` is rendered from `App.jsx` behind `import.meta.env.DEV` or
+the explicit build-time opt-in `VITE_DEV_ID_OVERLAY=true`. The default
+production build leaves the flag unset/false so Vite dead-code-eliminates the
+overlay (component, strings, and the `tinykeys` dependency) entirely out of the
+released bundle. The local `docker-compose.yml` build passes the flag so the
+single-port LAN-accessible dev container can expose the same inspect overlay as
+the Vite dev server.
 
 * **Toggle** — a small `[id]`-labelled button fixed at `bottom-4 right-4`,
   `z-50` (above every dialog). `aria-pressed` reflects state; the choice
@@ -976,15 +979,13 @@ grepping `dist/assets/*.js` for its strings after a build.
   DOM node (or, for trigger+panel pairs like `CardMenu`/`TagFilter`, onto
   both the toggle button and the portal panel — same component name on each,
   since to a debugger they're "the same thing"). `devId(name)` returns
-  `{ 'data-id': name }` behind `import.meta.env.DEV` and `{}` otherwise, so
-  the attribute — and the component-name string passed to it — never reaches
-  the production bundle (confirmed empty via the same `dist/assets` grep
-  check used above for `DevIdOverlay.jsx` itself; Vite's build-time constant
-  folding removes the whole branch, not just the DOM output). Hand-authored
-  per component rather than generated via a build-time transform — a
-  generator would be disproportionate tooling for a dev-only debugging aid.
-  Applied to every component, not a curated subset, so there's no drift list
-  to keep in sync as components are added.
+  `{ 'data-id': name }` behind `import.meta.env.DEV` or
+  `VITE_DEV_ID_OVERLAY=true`, and `{}` otherwise, so the attribute — and the
+  component-name string passed to it — never reaches the default production
+  bundle. Hand-authored per component rather than generated via a build-time
+  transform — a generator would be disproportionate tooling for a local
+  debugging aid. Applied to every component, not a curated subset, so there's
+  no drift list to keep in sync as components are added.
 * **Copy** — while active, a **click anywhere** is intercepted (capture-phase
   listener, `preventDefault`/`stopPropagation`, skipped for clicks inside the
   overlay itself) and copies that element's identifier via

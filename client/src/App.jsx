@@ -48,6 +48,7 @@ import {
   SORT_LABELS,
 } from "./lib/constants.js";
 import { calendarLabel, timeAgo } from "./lib/date.js";
+import { isDevIdOverlayEnabled } from "./lib/devIdOverlay.js";
 import { useIsMobile } from "./lib/useIsMobile.js";
 
 // Colour/priority helpers now live in lib/constants; re-export for back-compat
@@ -1543,7 +1544,7 @@ export default function App() {
           }}
         />
       )}
-      {import.meta.env.DEV && <DevIdOverlay />}
+      {isDevIdOverlayEnabled() && <DevIdOverlay />}
     </div>
   );
 }

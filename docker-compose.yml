@@ -1,6 +1,9 @@
 services:
   repo-dashboard:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_DEV_ID_OVERLAY: "true"
     container_name: repo-dashboard
     ports:
       - "9999:9999"

@@ -9,6 +9,8 @@ WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install
 COPY client/ ./
+ARG VITE_DEV_ID_OVERLAY=false
+ENV VITE_DEV_ID_OVERLAY=${VITE_DEV_ID_OVERLAY}
 RUN npm run build
 
 # ---- Stage 2: server runtime ----------------------------------------------

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   devId,
   getElementIdentifier,
+  isDevIdOverlayEnabled,
   isEditableTarget,
 } from "./devIdOverlay.js";
 
@@ -75,9 +76,40 @@ describe("devId", () => {
     expect(devId("RepoCard")).toEqual({ "data-id": "RepoCard" });
   });
 
-  it("returns no props outside development (no production output)", () => {
+  it("returns a data-id prop when the local Docker build flag is enabled", () => {
     vi.stubEnv("DEV", false);
+    vi.stubEnv("VITE_DEV_ID_OVERLAY", "true");
+    expect(devId("RepoCard")).toEqual({ "data-id": "RepoCard" });
+  });
+
+  it("returns no props outside development without the local build flag", () => {
+    vi.stubEnv("DEV", false);
+    vi.stubEnv("VITE_DEV_ID_OVERLAY", "false");
     expect(devId("RepoCard")).toEqual({});
+  });
+});
+
+describe("isDevIdOverlayEnabled", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("is enabled in development", () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_ID_OVERLAY", "false");
+    expect(isDevIdOverlayEnabled()).toBe(true);
+  });
+
+  it("is enabled by the local Docker build flag", () => {
+    vi.stubEnv("DEV", false);
+    vi.stubEnv("VITE_DEV_ID_OVERLAY", "true");
+    expect(isDevIdOverlayEnabled()).toBe(true);
+  });
+
+  it("is disabled for production builds without the flag", () => {
+    vi.stubEnv("DEV", false);
+    vi.stubEnv("VITE_DEV_ID_OVERLAY", "false");
+    expect(isDevIdOverlayEnabled()).toBe(false);
   });
 });
 

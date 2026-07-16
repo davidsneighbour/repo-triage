@@ -106,6 +106,16 @@ Vitest powers both workspaces: `client/` uses jsdom + React Testing Library,
 `server/` runs in-process route tests via `supertest`. Coverage thresholds are
 set in each `vitest.config.js` and fail the run on regression.
 
+### Sentry MCP
+
+This repo commits a project-scoped Sentry MCP server in `.mcp.json` using the
+remote HTTP endpoint `https://mcp.sentry.dev/mcp`. No Sentry secrets are stored
+in git.
+
+When using Claude Code, trust the project MCP server when prompted, then run
+`/mcp` and authenticate with Sentry. After that, Claude can inspect Sentry
+issues, events, and stack traces while working in this repository.
+
 ## Environment variables
 
 | Variable | Required | Default | Notes |
